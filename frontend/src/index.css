@@ -1,0 +1,155 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --blurple: #5865F2;
+  --blurple-hover: #4752C4;
+  --warm-red: #E8352A;
+  --dark: #222222;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  background-color: #F7F7F7;
+  color: #222222;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.btn-primary {
+  @apply bg-blurple text-white font-semibold px-4 py-2 rounded-lg transition-colors duration-150 cursor-pointer;
+}
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--blurple-hover);
+}
+.btn-primary:disabled {
+  @apply opacity-50 cursor-not-allowed;
+}
+
+.btn-secondary {
+  @apply bg-white text-dark font-medium px-4 py-2 rounded-lg border border-border transition-colors duration-150 hover:bg-gray-50;
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.alert-card-high {
+  border-left: 4px solid #EF4444;
+  background: #FFF5F5;
+}
+.alert-card-medium {
+  border-left: 4px solid #F59E0B;
+  background: #FFFBEB;
+}
+.alert-card-low {
+  border-left: 4px solid #3B82F6;
+  background: #EFF6FF;
+}
+
+/* Partner A = warm red, Partner B = dark */
+.partner-a-event {
+  background-color: #E8352A;
+  color: #ffffff;
+}
+.partner-b-event {
+  background-color: #222222;
+  color: #ffffff;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #DDDDDD; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #B0B0B0; }
+
+/* ── Onboarding step enter ───────────────────────────────────── */
+@keyframes stepFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.step-enter { animation: stepFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+/* ── SMS notification slide-up ──────────────────────────────── */
+@keyframes smsSlideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.sms-enter { animation: smsSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+@keyframes progressDrain {
+  from { width: 100%; }
+  to   { width: 0%; }
+}
+
+/* ── Splash screen ─────────────────────────────────────────── */
+.splash-root {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.splash-exit {
+  animation: splashFadeOut 0.55s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+.splash-house {
+  opacity: 0;
+  animation: houseAppear 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards;
+}
+
+.splash-letter {
+  display: inline-block;
+  opacity: 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: #222222;
+  letter-spacing: -0.02em;
+  animation: letterAppear 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes houseAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.55) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes letterAppear {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes splashFadeOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.03);
+  }
+}

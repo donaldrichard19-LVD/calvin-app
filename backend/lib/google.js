@@ -1,0 +1,150 @@
+require('dotenv').config();
+const { google } = require('googleapis');
+const { supabase } = require('./supabase');
+const { encrypt, decrypt } = require('./crypto');
+
+function createOAuth2Client() {
+  return new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    process.env.GOOGLE_REDIRECT_URI
+  );
+}
+
+const SCOPES = [
+  'https://www.googleapis.com/auth/calendar.readonly',
+  'https://www.googleapis.com/auth/gmail.readonly',
+  'https://www.googleapis.com/auth/userinfo.email',
+];
+
+function getAuthUrl(partnerId) {
+  const oauth2Client = createOAuth2Client();
+  return oauth2Client.generateAuthUrl({
+    access_type: 'offline',
+    prompt: 'consent',
+    scope: SCOPES,
+    state: partnerId,
+  });
+}
+
+async function getTokensFromCode(code) {
+  const oauth2Client = createOAuth2Client();
+  const { tokens } = await oauth2Client.getToken(code);
+  oauth2Client.setCredentials(tokens);
+
+  const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
+  const { data } = await oauth2.userinfo.get();
+
+  return {
+    access_token: tokens.access_token,
+    refresh_token: tokens.refresh_token,
+    expiry_date: tokens.expiry_date,
+    email: data.email,
+  };
+}
+
+async function refreshIfNeeded(integration) {
+  const expiryDate = integration.token_expiry
+    ? new Date(integration.token_expiry).getTime()
+    : 0;
+  const fiveMinutes = 5 * 60 * 1000;
+  const needsRefresh = Date.now() >= expiryDate - fiveMinutes;
+
+  if (!needsRefresh) {
+    return decrypt(integration.access_token);
+  }
+
+  const oauth2Client = createOAuth2Client();
+  oauth2Client.setCredentials({
+    refresh_token: decrypt(integration.refresh_token),
+  });
+
+  const { credentials } = await oauth2Client.refreshAccessToken();
+
+  await supabase
+    .from('integrations')
+    .update({
+      access_token: encrypt(credentials.access_token),
+      token_expiry: new Date(credentials.expiry_date).toISOString(),
+    })
+    .eq('id', integration.id);
+
+  return credentials.access_token;
+}
+
+async function getCalendarEvents(integration, daysAhead = 14) {
+  const accessToken = await refreshIfNeeded(integration);
+  const oauth2Client = createOAuth2Client();
+  oauth2Client.setCredentials({ access_token: accessToken });
+
+  const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+  const timeMin = new Date().toISOString();
+  const timeMax = new Date(Date.now() + daysAhead * 86400000).toISOString();
+
+  const res = await calendar.events.list({
+    calendarId: 'primary',
+    timeMin,
+    timeMax,
+    singleEvents: true,
+    orderBy: 'startTime',
+    maxResults: 200,
+  });
+
+  return (res.data.items || []).map((e) => ({
+    id: e.id,
+    title: e.summary || '(No title)',
+    start: e.start?.dateTime || e.start?.date,
+    end: e.end?.dateTime || e.end?.date,
+    location: e.location || null,
+    attendees: (e.attendees || []).map((a) => a.email),
+    description: e.description || null,
+    isAllDay: !!e.start?.date,
+  }));
+}
+
+async function getRecentEmails(integration, maxResults = 50) {
+  const accessToken = await refreshIfNeeded(integration);
+  const oauth2Client = createOAuth2Client();
+  oauth2Client.setCredentials({ access_token: accessToken });
+
+  const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+
+  const sevenDaysAgo = Math.floor((Date.now() - 7 * 86400000) / 1000);
+  const query = `(is:unread OR is:starred OR label:IMPORTANT OR (in:sent after:${sevenDaysAgo}))`;
+
+  const listRes = await gmail.users.messages.list({
+    userId: 'me',
+    q: query,
+    maxResults,
+  });
+
+  const messages = listRes.data.messages || [];
+  if (!messages.length) return [];
+
+  const fetched = await Promise.all(
+    messages.map((m) =>
+      gmail.users.messages.get({
+        userId: 'me',
+        id: m.id,
+        format: 'metadata',
+        metadataHeaders: ['Subject', 'From', 'To', 'Date'],
+      })
+    )
+  );
+
+  return fetched.map((res) => {
+    const headers = res.data.payload?.headers || [];
+    const h = (name) => headers.find((h) => h.name === name)?.value || '';
+    return {
+      id: res.data.id,
+      subject: h('Subject'),
+      from: h('From'),
+      to: h('To'),
+      date: h('Date'),
+      snippet: res.data.snippet || '',
+      labels: res.data.labelIds || [],
+    };
+  });
+}
+
+module.exports = { getAuthUrl, getTokensFromCode, refreshIfNeeded, getCalendarEvents, getRecentEmails };
