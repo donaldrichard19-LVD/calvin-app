@@ -28,7 +28,7 @@ router.get('/connect', requireAuth, async (req, res) => {
 
 router.get('/callback', async (req, res) => {
   const { code, state: partnerId, error: oauthError } = req.query;
-  const FRONTEND_URL = process.env.FRONTEND_URL;
+  const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:5173').trim().replace(/\/$/, '');
 
   if (oauthError || !code || !partnerId) {
     console.error('[google/callback] Missing params:', { oauthError, hasCode: !!code, partnerId });
