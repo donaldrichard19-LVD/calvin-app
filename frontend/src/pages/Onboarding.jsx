@@ -279,7 +279,7 @@ export default function Onboarding() {
               <HouseIcon />
               <h1 className="text-[26px] font-bold text-dark mt-4 mb-1">Welcome to Calvin</h1>
               <p className="text-mid text-[15px] leading-relaxed max-w-xs mx-auto">
-                The shared operating picture for two-adult households.
+                Stay in sync, work as a team, never drop the ball again.
               </p>
             </div>
             <FormInput

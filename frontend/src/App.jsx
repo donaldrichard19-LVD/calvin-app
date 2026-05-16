@@ -53,7 +53,7 @@ function LandingPage() {
       <div className="max-w-md w-full text-center">
         <h1 className="text-4xl font-bold text-dark mb-3">Calvin</h1>
         <p className="text-mid text-lg mb-8 leading-relaxed">
-          The shared operating picture for two-adult households. Never drop the ball again.
+          Stay in sync, work as a team, never drop the ball again.
         </p>
         <SignIn routing="hash" afterSignInUrl="/" />
       </div>
