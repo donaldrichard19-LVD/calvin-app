@@ -111,7 +111,14 @@ export default function Onboarding() {
 
   const [displayName, setDisplayName] = useState('');
   const [phone, setPhone]             = useState('');
-  const [inviteCode, setInviteCode]   = useState('');
+  const [inviteCode, setInviteCode]   = useState(() => {
+    const fromUrl = new URLSearchParams(window.location.search).get('invite');
+    if (fromUrl) {
+      sessionStorage.setItem('calvin_invite', fromUrl);
+      return fromUrl;
+    }
+    return sessionStorage.getItem('calvin_invite') || '';
+  });
   const [createdCode, setCreatedCode] = useState('');
   const [copied, setCopied]           = useState(false);
 
@@ -202,6 +209,7 @@ export default function Onboarding() {
 
   async function handleJoin() {
     if (!inviteCode.trim()) return setError('Enter an invite code');
+    sessionStorage.removeItem('calvin_invite');
     setLoading(true);
     setError('');
     setFlow('join');

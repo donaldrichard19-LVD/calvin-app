@@ -25,7 +25,7 @@ const VIEW_OPTIONS = [
   { value: 'both',     label: 'Both',     icon: '⊞'  },
 ];
 
-export default function PartnerStatus({ partners, integrations, onRefresh, view, onViewChange, onChangeEmoji }) {
+export default function PartnerStatus({ partners, integrations, onRefresh, view, onViewChange, onChangeEmoji, onInvite, showInvite }) {
   const [spinning, setSpinning] = React.useState(false);
 
   async function handleRefresh() {
@@ -88,10 +88,24 @@ export default function PartnerStatus({ partners, integrations, onRefresh, view,
         </div>
       )}
 
+      {/* Invite */}
+      {showInvite && (
+        <button
+          onClick={onInvite}
+          className="ml-auto flex items-center gap-1.5 text-[12px] font-semibold text-blurple hover:opacity-80 transition-opacity"
+          title="Invite your partner"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          <span className="hidden sm:inline">Invite partner</span>
+        </button>
+      )}
+
       {/* Refresh */}
       <button
         onClick={handleRefresh}
-        className="ml-auto text-mid hover:text-dark transition-colors"
+        className={`${showInvite ? '' : 'ml-auto'} text-mid hover:text-dark transition-colors`}
         title="Run analysis now"
       >
         <svg className={`w-4 h-4 ${spinning ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">

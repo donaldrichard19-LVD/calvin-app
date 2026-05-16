@@ -9,6 +9,7 @@ import TimelineView from '../components/TimelineView';
 import ChatDrawer from '../components/ChatDrawer';
 import SplashScreen from '../components/SplashScreen';
 import SMSNotification from '../components/SMSNotification';
+import InviteModal from '../components/InviteModal';
 
 const SPLASH_KEY = 'calvin_splash_shown';
 const POLL_INTERVAL = 90000;
@@ -53,6 +54,7 @@ export default function Dashboard() {
   const [smsAlert, setSmsAlert]       = useState(null);
   const [smsVisible, setSmsVisible]   = useState(false);
   const smsShownRef = useRef(false);
+  const [inviteOpen, setInviteOpen]   = useState(false);
 
   const fetchAll = useCallback(async () => {
     try {
@@ -230,6 +232,8 @@ export default function Dashboard() {
           view={view}
           onViewChange={setView}
           onChangeEmoji={handleChangeEmoji}
+          onInvite={() => setInviteOpen(true)}
+          showInvite={!otherPartner}
         />
       )}
 
@@ -273,6 +277,13 @@ export default function Dashboard() {
           alert={smsAlert}
           partners={[partnerAData, partnerBData].filter(Boolean)}
           onDismiss={() => setSmsVisible(false)}
+        />
+      )}
+
+      {inviteOpen && householdInfo?.household?.invite_code && (
+        <InviteModal
+          inviteCode={householdInfo.household.invite_code}
+          onClose={() => setInviteOpen(false)}
         />
       )}
     </div>
