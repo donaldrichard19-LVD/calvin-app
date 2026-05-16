@@ -20,6 +20,7 @@ app.use('/api/google', require('./routes/google'));
 app.use('/api/briefing', require('./routes/briefing'));
 app.use('/api/chat', require('./routes/chat'));
 app.use('/api/sms', require('./routes/sms'));
+app.use('/api/calendar', require('./routes/calendar'));
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

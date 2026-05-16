@@ -60,15 +60,17 @@ export default function Dashboard() {
     try {
       const token = await getToken();
       const auth = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
-      const [briefingData, intgData, hhData] = await Promise.all([
+      const [briefingData, intgData, hhData, calData] = await Promise.all([
         apiFetch('/api/briefing', auth),
         apiFetch('/api/integrations/household', auth),
         apiFetch('/api/household/me', auth),
+        apiFetch('/api/calendar/events', auth),
       ]);
 
       setBriefing(briefingData);
       setIntegrations(intgData || []);
       setHouseholdInfo(hhData);
+      setCalendarData(calData || { eventsA: [], eventsB: [] });
 
       // Trigger SMS notification for first high-priority alert (once per session)
       if (!smsShownRef.current) {
