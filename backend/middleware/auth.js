@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { verifyToken } = require('@clerk/clerk-sdk-node');
+const { verifyToken } = require('@clerk/backend');
 
 async function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization;
