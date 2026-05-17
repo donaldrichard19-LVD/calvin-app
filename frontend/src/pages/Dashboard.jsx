@@ -172,7 +172,7 @@ export default function Dashboard() {
 
     return (
       <div className="min-h-screen bg-bg flex flex-col">
-        <Header partnerName={partner?.display_name} />
+        <Header />
         <div className="flex flex-col items-center justify-center flex-1 text-center p-8">
           <div className="text-4xl mb-4">🔌</div>
           <h2 className="text-xl font-bold text-dark mb-2">Connect your Google account</h2>
@@ -218,7 +218,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-bg flex flex-col">
-      <Header partnerName={partner?.display_name} />
+      <Header />
 
       {otherPartner && !partnerIntegration && (
         <div className="bg-amber-50 border-b border-amber-200 px-6 py-2 text-[13px] text-amber-700 flex items-center gap-2">
@@ -234,6 +234,7 @@ export default function Dashboard() {
         <PartnerStatus
           partners={[partnerAData, partnerBData].filter(Boolean)}
           integrations={integrations}
+          householdName={householdInfo?.household?.name}
           onRefresh={fetchAll}
           onChangeEmoji={handleChangeEmoji}
           onInvite={() => setInviteOpen(true)}

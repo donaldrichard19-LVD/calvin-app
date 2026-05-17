@@ -19,7 +19,7 @@ function getStatusTooltip(integration) {
   return `Synced ${hrs}h ago`;
 }
 
-export default function PartnerStatus({ partners, integrations, onRefresh, onChangeEmoji, onInvite, showInvite }) {
+export default function PartnerStatus({ partners, integrations, householdName, onRefresh, onChangeEmoji, onInvite, showInvite }) {
   const [spinning, setSpinning] = React.useState(false);
 
   async function handleRefresh() {
@@ -36,56 +36,67 @@ export default function PartnerStatus({ partners, integrations, onRefresh, onCha
     integrations?.find((i) => i.partner_id === partnerId && i.provider === 'google');
 
   return (
-    <div className="flex items-center gap-3 bg-white border-b border-border px-4 py-2 flex-wrap gap-y-2">
-      <div className="flex items-center gap-4 flex-1">
-        {partners.map((partner, idx) => {
-          const intg = getPartnerIntegration(partner.id);
-          return (
-            <div key={partner.id} className="flex items-center gap-2">
-              <EmojiAvatar
-                emoji={partner.emoji}
-                isA={idx === 0}
-                name={partner.display_name}
-                onChangeEmoji={(e) => onChangeEmoji?.(partner.id, e)}
-              />
-              <div>
-                <div className="text-[13px] font-semibold text-dark leading-none">
-                  {partner.display_name || 'Partner ' + (idx === 0 ? 'A' : 'B')}
-                </div>
-                <div className="flex items-center gap-1 mt-0.5">
-                  <span className={`w-2 h-2 rounded-full ${getStatusColor(intg)}`} title={getStatusTooltip(intg)} />
-                  <span className="text-[11px] text-light">{getStatusTooltip(intg)}</span>
+    <div className="bg-white border-b border-border px-4 pt-3 pb-2">
+      {/* Household name */}
+      {householdName && (
+        <div className="text-[11px] font-bold uppercase tracking-widest text-light mb-2">
+          {householdName}
+        </div>
+      )}
+
+      <div className="flex items-center gap-2">
+        {/* Partner avatars */}
+        <div className="flex items-center gap-4 flex-1">
+          {partners.map((partner, idx) => {
+            const intg = getPartnerIntegration(partner.id);
+            return (
+              <div key={partner.id} className="flex items-center gap-2">
+                <EmojiAvatar
+                  emoji={partner.emoji}
+                  isA={idx === 0}
+                  name={partner.display_name}
+                  onChangeEmoji={(e) => onChangeEmoji?.(partner.id, e)}
+                />
+                <div>
+                  <div className="text-[13px] font-semibold text-dark leading-none">
+                    {partner.display_name || 'Partner ' + (idx === 0 ? 'A' : 'B')}
+                  </div>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <span className={`w-2 h-2 rounded-full ${getStatusColor(intg)}`} title={getStatusTooltip(intg)} />
+                    <span className="text-[11px] text-light">{getStatusTooltip(intg)}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
 
-      <div className="flex items-center gap-3 shrink-0">
-        {showInvite && (
+        {/* Actions */}
+        <div className="flex items-center gap-3 shrink-0">
+          {showInvite && (
+            <button
+              onClick={onInvite}
+              className="flex items-center gap-1.5 text-[12px] font-semibold text-blurple hover:opacity-80 transition-opacity"
+              title="Invite your partner"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              <span className="hidden sm:inline">Invite partner</span>
+            </button>
+          )}
+
           <button
-            onClick={onInvite}
-            className="flex items-center gap-1.5 text-[12px] font-semibold text-blurple hover:opacity-80 transition-opacity"
-            title="Invite your partner"
+            onClick={handleRefresh}
+            className="text-light hover:text-dark transition-colors"
+            title="Run analysis now"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            <svg className={`w-4 h-4 ${spinning ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
-            <span className="hidden sm:inline">Invite partner</span>
           </button>
-        )}
-
-        <button
-          onClick={handleRefresh}
-          className="text-light hover:text-dark transition-colors"
-          title="Run analysis now"
-        >
-          <svg className={`w-4 h-4 ${spinning ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-        </button>
+        </div>
       </div>
     </div>
   );

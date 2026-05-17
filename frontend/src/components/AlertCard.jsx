@@ -39,11 +39,34 @@ function PartnerChip({ partner, isA }) {
 
 export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnooze, onResolve, onChat }) {
   const [expanded, setExpanded] = useState(false);
+  const [resolving, setResolving] = useState(false);
+  const [fadingOut, setFadingOut] = useState(false);
+
   const meta = TYPE_META[alert.type] || { icon: '•', label: alert.type };
   const cardClass = { high: 'alert-card-high', medium: 'alert-card-medium', low: 'alert-card-low' }[alert.severity] || 'alert-card-low';
 
+  function handleResolve() {
+    if (resolving) return;
+    setResolving(true);
+    setTimeout(() => {
+      setFadingOut(true);
+      setTimeout(() => onResolve(alert.id), 250);
+    }, 700);
+  }
+
   return (
-    <div className={`card ${cardClass} p-4`}>
+    <div className={`card ${cardClass} p-4 relative overflow-hidden ${fadingOut ? 'card-fade-out' : ''}`}>
+      {/* Green resolve overlay */}
+      {resolving && (
+        <div className="absolute inset-0 bg-green-50 flex items-center justify-center z-10 rounded-[12px]">
+          <div className="check-pop">
+            <svg className="w-16 h-16 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-mid bg-white border border-border rounded-full px-2 py-0.5">
@@ -90,8 +113,9 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
             Ask follow-up
           </button>
           <button
-            onClick={() => onResolve(alert.id)}
-            className="text-[12px] font-semibold text-green-700 border border-green-600 rounded-full px-3 py-1 hover:bg-green-50 transition-colors"
+            onClick={handleResolve}
+            disabled={resolving}
+            className="text-[12px] font-semibold text-green-700 border border-green-600 rounded-full px-3 py-1 hover:bg-green-50 transition-colors disabled:opacity-50"
           >
             Resolve
           </button>

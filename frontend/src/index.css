@@ -70,6 +70,20 @@ body {
 ::-webkit-scrollbar-thumb { background: #DDDDDD; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #B0B0B0; }
 
+/* ── Resolve check animation ────────────────────────────────── */
+@keyframes checkPop {
+  0%   { transform: scale(0) rotate(-15deg); opacity: 0; }
+  60%  { transform: scale(1.25) rotate(4deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg);   opacity: 1; }
+}
+.check-pop { animation: checkPop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+@keyframes cardFadeOut {
+  0%   { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.96); }
+}
+.card-fade-out { animation: cardFadeOut 0.25s ease-out forwards; }
+
 /* ── Onboarding step enter ───────────────────────────────────── */
 @keyframes stepFadeIn {
   from { opacity: 0; transform: translateY(10px); }
