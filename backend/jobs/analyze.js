@@ -36,10 +36,10 @@ async function runAnalysisForHousehold(householdId) {
     const intB = partnerB ? getIntegration(partnerB.id) : null;
 
     const [eventsA, emailsA, eventsB, emailsB] = await Promise.all([
-      intA ? getCalendarEvents(intA) : Promise.resolve([]),
-      intA ? getRecentEmails(intA) : Promise.resolve([]),
-      intB ? getCalendarEvents(intB) : Promise.resolve([]),
-      intB ? getRecentEmails(intB) : Promise.resolve([]),
+      intA ? getCalendarEvents(intA).catch((err) => { console.error('[analyze] eventsA failed:', err.message); return []; }) : Promise.resolve([]),
+      intA ? getRecentEmails(intA).catch((err) => { console.error('[analyze] emailsA failed:', err.message); return []; })  : Promise.resolve([]),
+      intB ? getCalendarEvents(intB).catch((err) => { console.error('[analyze] eventsB failed:', err.message); return []; }) : Promise.resolve([]),
+      intB ? getRecentEmails(intB).catch((err) => { console.error('[analyze] emailsB failed:', err.message); return []; })  : Promise.resolve([]),
     ]);
 
     await Promise.all([

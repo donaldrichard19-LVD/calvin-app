@@ -31,10 +31,11 @@ export default function PartnerStatus({ partners, integrations, onRefresh, view,
   async function handleRefresh() {
     setSpinning(true);
     try {
-      await apiFetch('/api/household/analyze', { method: 'POST' });
+      await apiFetch('/api/analyze/trigger', { method: 'POST' });
+      await new Promise((r) => setTimeout(r, 5000));
       if (onRefresh) onRefresh();
     } catch {}
-    setTimeout(() => setSpinning(false), 3000);
+    setSpinning(false);
   }
 
   const getPartnerIntegration = (partnerId) =>
