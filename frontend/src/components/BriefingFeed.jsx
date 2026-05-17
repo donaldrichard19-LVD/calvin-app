@@ -35,7 +35,7 @@ export default function BriefingFeed({ alerts, meta, partnerA, partnerB, onDismi
             return (
               <button
                 key={label}
-                onClick={() => { setActiveFilter(label); setTypeFilter(null); }}
+                onClick={() => { setActiveFilter(activeFilter === label ? 'All' : label); setTypeFilter(null); }}
                 className={`flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1 rounded-full transition-colors ${
                   isActive ? active : 'bg-white text-mid border border-border hover:bg-gray-50'
                 }`}
@@ -81,7 +81,7 @@ export default function BriefingFeed({ alerts, meta, partnerA, partnerB, onDismi
             )}
             {medium.length > 0 && (
               <div>
-                <div className="text-[11px] font-bold uppercase tracking-wider text-amber-500 mb-2">This week</div>
+                <div className="text-[11px] font-bold uppercase tracking-wider text-amber-500 mb-2">Medium Priority</div>
                 <div className="space-y-2">
                   {medium.map((a) => (
                     <AlertCard key={a.id} alert={a} partnerA={partnerA} partnerB={partnerB}
@@ -92,7 +92,7 @@ export default function BriefingFeed({ alerts, meta, partnerA, partnerB, onDismi
             )}
             {low.length > 0 && (
               <div>
-                <div className="text-[11px] font-bold uppercase tracking-wider text-blue-400 mb-2">FYI</div>
+                <div className="text-[11px] font-bold uppercase tracking-wider text-blue-400 mb-2">Low Priority</div>
                 <div className="space-y-2">
                   {low.map((a) => (
                     <AlertCard key={a.id} alert={a} partnerA={partnerA} partnerB={partnerB}

@@ -9,12 +9,6 @@ const TYPE_META = {
   asymmetric_context:   { icon: '📨', label: 'Heads Up' },
 };
 
-const SEVERITY_COLORS = {
-  high: 'text-red-600',
-  medium: 'text-amber-600',
-  low: 'text-blue-600',
-};
-
 function timeAgo(dateStr) {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
@@ -71,9 +65,6 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-mid bg-white border border-border rounded-full px-2 py-0.5">
             {meta.icon} {meta.label}
-          </span>
-          <span className={`text-[11px] font-semibold uppercase tracking-wider ${SEVERITY_COLORS[alert.severity]}`}>
-            {alert.severity}
           </span>
         </div>
         <span className="text-[11px] text-light shrink-0">{timeAgo(alert.created_at)}</span>
