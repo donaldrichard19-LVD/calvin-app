@@ -26,12 +26,13 @@ function storeEmoji(partnerId, emoji) {
 
 export default function Dashboard() {
   const { isLoaded, getToken } = useAuth();
-  const [briefing, setBriefing]         = useState({ alerts: [], meta: {} });
-  const [integrations, setIntegrations] = useState([]);
+  const [briefing, setBriefing]           = useState({ alerts: [], meta: {} });
+  const [integrations, setIntegrations]   = useState([]);
+  const [myIntegrations, setMyIntegrations] = useState(null); // null = not yet loaded
   const [householdInfo, setHouseholdInfo] = useState(null);
-  const [calendarData, setCalendarData] = useState({ eventsA: [], eventsB: [] });
+  const [calendarData, setCalendarData]   = useState({ eventsA: [], eventsB: [] });
   const [calendarSyncError, setCalendarSyncError] = useState(null);
-  const [loading, setLoading]           = useState(true);
+  const [loading, setLoading]             = useState(true);
   const [chatAlert, setChatAlert]       = useState(null);
   const [splashDone, setSplashDone]     = useState(
     () => sessionStorage.getItem(SPLASH_KEY) === '1'
@@ -60,15 +61,17 @@ export default function Dashboard() {
     try {
       const token = await getToken();
       const auth = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
-      const [briefingData, intgData, hhData] = await Promise.all([
+      const [briefingData, intgData, hhData, myIntgData] = await Promise.all([
         apiFetch('/api/briefing', auth),
         apiFetch('/api/integrations/household', auth),
         apiFetch('/api/household/me', auth),
+        apiFetch('/api/integrations', auth),
       ]);
 
       setBriefing(briefingData);
       setIntegrations(intgData || []);
       setHouseholdInfo(hhData);
+      setMyIntegrations(myIntgData || []);
 
       apiFetch('/api/calendar/events', auth)
         .then((calData) => {
@@ -120,9 +123,10 @@ export default function Dashboard() {
   const partnerAData = partner      ? { ...partner,      emoji: getEmoji(partner.id, '😊') }      : null;
   const partnerBData = otherPartner ? { ...otherPartner, emoji: getEmoji(otherPartner.id, '😎') } : null;
 
-  const myIntegration = integrations.find(
-    (i) => i.partner_id === partner?.id && i.provider === 'google' && i.is_active
-  );
+  // myIntegrations is queried by partner_id directly — more reliable than the household query
+  const myIntegration = myIntegrations === null
+    ? null
+    : myIntegrations.find((i) => i.provider === 'google' && i.is_active);
   const partnerIntegration = otherPartner
     ? integrations.find((i) => i.partner_id === otherPartner.id && i.provider === 'google' && i.is_active)
     : null;
@@ -158,7 +162,7 @@ export default function Dashboard() {
   }
 
   // ── Splash / connect gates ────────────────────────────────────────────────
-  if (!loading && !myIntegration) {
+  if (!loading && myIntegrations !== null && !myIntegration) {
     if (!splashDone) {
       return (
         <SplashScreen
