@@ -12,7 +12,7 @@ function createOAuth2Client() {
 }
 
 const SCOPES = [
-  'https://www.googleapis.com/auth/calendar.readonly',
+  'https://www.googleapis.com/auth/calendar.events',
   'https://www.googleapis.com/auth/gmail.readonly',
   'https://www.googleapis.com/auth/userinfo.email',
 ];
@@ -102,6 +102,32 @@ async function getCalendarEvents(integration, daysAhead = 14) {
   }));
 }
 
+async function createCalendarEvent(integration, { title, start, end, description, attendees = [], timezone = 'America/New_York' }) {
+  const accessToken = await refreshIfNeeded(integration);
+  const oauth2Client = createOAuth2Client();
+  oauth2Client.setCredentials({ access_token: accessToken });
+
+  const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+
+  const isAllDay = /^\d{4}-\d{2}-\d{2}$/.test(start);
+  const eventBody = {
+    summary: title,
+    description: description || undefined,
+    start: isAllDay ? { date: start } : { dateTime: start, timeZone: timezone },
+    end:   isAllDay ? { date: end   } : { dateTime: end,   timeZone: timezone },
+    attendees: attendees.length ? attendees.map((email) => ({ email })) : undefined,
+  };
+
+  const res = await calendar.events.insert({ calendarId: 'primary', resource: eventBody });
+  return {
+    id:    res.data.id,
+    title: res.data.summary,
+    start: res.data.start?.dateTime || res.data.start?.date,
+    end:   res.data.end?.dateTime   || res.data.end?.date,
+    link:  res.data.htmlLink,
+  };
+}
+
 async function getRecentEmails(integration, maxResults = 50) {
   const accessToken = await refreshIfNeeded(integration);
   const oauth2Client = createOAuth2Client();
@@ -147,4 +173,4 @@ async function getRecentEmails(integration, maxResults = 50) {
   });
 }
 
-module.exports = { getAuthUrl, getTokensFromCode, refreshIfNeeded, getCalendarEvents, getRecentEmails };
+module.exports = { getAuthUrl, getTokensFromCode, refreshIfNeeded, getCalendarEvents, createCalendarEvent, getRecentEmails };

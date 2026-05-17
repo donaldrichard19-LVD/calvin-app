@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { requireAuth } = require('../middleware/auth');
 const { supabase } = require('../lib/supabase');
-const { getCalendarEvents } = require('../lib/google');
+const { getCalendarEvents, createCalendarEvent } = require('../lib/google');
 
 router.get('/events', requireAuth, async (req, res) => {
   try {
@@ -43,6 +43,43 @@ router.get('/events', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('[calendar] events error:', err.message);
     res.json({ eventsA: [], eventsB: [] });
+  }
+});
+
+router.post('/create', requireAuth, async (req, res) => {
+  try {
+    const { title, start, end, description, attendees, timezone } = req.body;
+    if (!title || !start || !end) return res.status(400).json({ error: 'title, start, and end are required' });
+
+    const { data: me } = await supabase
+      .from('partners')
+      .select('id, household_id')
+      .eq('clerk_user_id', req.auth.userId)
+      .single();
+
+    if (!me?.household_id) return res.status(400).json({ error: 'No household found' });
+
+    const { data: intg } = await supabase
+      .from('integrations')
+      .select('*')
+      .eq('partner_id', me.id)
+      .eq('provider', 'google')
+      .eq('is_active', true)
+      .not('access_token', 'is', null)
+      .single();
+
+    if (!intg) return res.status(400).json({ error: 'Google Calendar not connected. Reconnect in Settings.' });
+
+    const event = await createCalendarEvent(intg, { title, start, end, description, attendees, timezone });
+    res.json({ success: true, event });
+  } catch (err) {
+    console.error('[calendar/create]', err.message);
+    const isScope = err.message?.includes('insufficient') || err.code === 403;
+    res.status(isScope ? 403 : 500).json({
+      error: isScope
+        ? 'Calendar write access not granted. Go to Settings and reconnect Google.'
+        : err.message,
+    });
   }
 });
 
