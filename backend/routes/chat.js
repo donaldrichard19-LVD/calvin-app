@@ -65,6 +65,8 @@ Be concise and direct. If the user asks to create, schedule, or add a calendar e
       .filter((m) => m.role && m.content)
       .map((m) => ({ role: m.role, content: String(m.content) }));
 
+    let createdEvent = null;
+
     // First Claude call
     let response = await client.messages.create({
       model: 'claude-sonnet-4-6',
@@ -97,6 +99,7 @@ Be concise and direct. If the user asks to create, schedule, or add a calendar e
             toolResult = { error: 'Google Calendar not connected. Go to Settings and reconnect Google.' };
           } else {
             const event = await createCalendarEvent(intg, toolUseBlock.input);
+            createdEvent = event;
             toolResult = { success: true, event };
           }
         } catch (err) {
@@ -130,7 +133,7 @@ Be concise and direct. If the user asks to create, schedule, or add a calendar e
 
     const textBlock = response.content.find((b) => b.type === 'text');
     console.log('[chat] final text length:', textBlock?.text?.length);
-    res.json({ content: textBlock?.text || '' });
+    res.json({ content: textBlock?.text || '', eventCreated: createdEvent || null });
   } catch (err) {
     console.error('[chat] error:', err.message, err.status ?? '');
     res.status(500).json({ error: err.message });

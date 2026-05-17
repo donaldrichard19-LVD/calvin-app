@@ -1,6 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { apiFetch } from '../lib/api';
 
+const SUGGESTIONS = [
+  '📅 Create a calendar event for this',
+  'What are my options here?',
+  'Who should handle this?',
+];
+
 function TypingDots() {
   return (
     <div className="flex gap-1 items-center px-3 py-2">
@@ -11,6 +17,31 @@ function TypingDots() {
           style={{ animationDelay: `${i * 0.15}s` }}
         />
       ))}
+    </div>
+  );
+}
+
+function CalendarEventCard({ event }) {
+  const start = event?.start?.dateTime || event?.start?.date;
+  const formatted = start
+    ? new Date(start).toLocaleString('en-US', {
+        weekday: 'short', month: 'short', day: 'numeric',
+        hour: 'numeric', minute: '2-digit',
+      })
+    : null;
+
+  return (
+    <div className="mt-2 bg-blurpleLight border border-blurple/20 rounded-xl px-3 py-2.5 flex items-start gap-2.5">
+      <span className="text-lg shrink-0">📅</span>
+      <div className="min-w-0">
+        <p className="text-[13px] font-semibold text-blurple leading-snug truncate">
+          {event?.summary || 'Event created'}
+        </p>
+        {formatted && (
+          <p className="text-[11px] text-blurple/70 mt-0.5">{formatted}</p>
+        )}
+        <p className="text-[11px] text-green-700 font-semibold mt-1">✓ Added to Google Calendar</p>
+      </div>
     </div>
   );
 }
@@ -30,22 +61,25 @@ export default function ChatDrawer({ alert, onClose }) {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
-  async function sendMessage() {
-    const text = input.trim();
-    if (!text || loading) return;
+  async function sendMessage(text) {
+    const trimmed = (text ?? input).trim();
+    if (!trimmed || loading) return;
 
-    const userMsg = { role: 'user', content: text };
+    const userMsg = { role: 'user', content: trimmed };
     const next = [...messages, userMsg];
     setMessages(next);
     setInput('');
     setLoading(true);
 
     try {
-      const { content } = await apiFetch('/api/chat', {
+      const data = await apiFetch('/api/chat', {
         method: 'POST',
         body: JSON.stringify({ alertId: alert.id, messages: next }),
       });
-      setMessages([...next, { role: 'assistant', content }]);
+      setMessages([
+        ...next,
+        { role: 'assistant', content: data.content, eventCreated: data.eventCreated || null },
+      ]);
     } catch (err) {
       setMessages([...next, { role: 'assistant', content: `Error: ${err.message}` }]);
     } finally {
@@ -62,30 +96,20 @@ export default function ChatDrawer({ alert, onClose }) {
 
   return (
     <>
-      <div
-        className="fixed inset-0 z-40 bg-black/20"
-        onClick={onClose}
-      />
+      <div className="fixed inset-0 z-40 bg-black/20" onClick={onClose} />
       <div
         className="fixed top-0 right-0 h-full z-50 bg-white flex flex-col"
-        style={{
-          width: 'clamp(320px, 420px, 100vw)',
-          boxShadow: '-4px 0 24px rgba(0,0,0,0.12)',
-          transition: 'transform 0.25s ease',
-        }}
+        style={{ width: 'clamp(320px, 420px, 100vw)', boxShadow: '-4px 0 24px rgba(0,0,0,0.12)' }}
       >
+        {/* Header */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-border shrink-0">
           <div className="flex-1 min-w-0">
             <div className="text-[13px] font-semibold text-dark truncate">{alert?.title}</div>
           </div>
-          <button
-            onClick={onClose}
-            className="text-mid hover:text-dark text-xl leading-none"
-          >
-            ×
-          </button>
+          <button onClick={onClose} className="text-mid hover:text-dark text-xl leading-none">×</button>
         </div>
 
+        {/* Alert context */}
         {alert && (
           <div className="px-4 py-3 bg-gray-50 border-b border-border shrink-0">
             <p className="text-[12px] text-mid leading-relaxed">{alert.summary}</p>
@@ -95,12 +119,25 @@ export default function ChatDrawer({ alert, onClose }) {
           </div>
         )}
 
+        {/* Messages */}
         <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
           {messages.length === 0 && (
-            <div className="text-center text-light text-[12px] pt-8">
-              Ask a follow-up question about this alert
+            <div className="pt-6 space-y-4">
+              <p className="text-center text-light text-[12px]">Ask a follow-up or create a calendar event</p>
+              <div className="flex flex-col gap-2">
+                {SUGGESTIONS.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => sendMessage(s)}
+                    className="text-left text-[12px] font-medium text-blurple bg-blurpleLight border border-blurple/20 rounded-xl px-3 py-2 hover:bg-blurple/10 transition-colors"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
+
           {messages.map((m, i) => (
             <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div
@@ -111,9 +148,11 @@ export default function ChatDrawer({ alert, onClose }) {
                 }`}
               >
                 {m.content}
+                {m.eventCreated && <CalendarEventCard event={m.eventCreated} />}
               </div>
             </div>
           ))}
+
           {loading && (
             <div className="flex justify-start">
               <div className="bg-white border border-border rounded-xl rounded-bl-sm shadow-card">
@@ -124,18 +163,19 @@ export default function ChatDrawer({ alert, onClose }) {
           <div ref={bottomRef} />
         </div>
 
+        {/* Input */}
         <div className="px-4 py-3 border-t border-border shrink-0">
           <div className="flex gap-2 items-end">
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKey}
-              placeholder="Ask a follow-up…"
+              placeholder="Ask a follow-up or say 'Create an event…'"
               rows={2}
               className="flex-1 resize-none border border-border rounded-lg px-3 py-2 text-[13px] text-dark placeholder-light focus:outline-none focus:border-blurple transition-colors"
             />
             <button
-              onClick={sendMessage}
+              onClick={() => sendMessage()}
               disabled={!input.trim() || loading}
               className="btn-primary px-3 py-2 shrink-0 self-end"
             >
