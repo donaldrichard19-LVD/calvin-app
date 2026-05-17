@@ -28,8 +28,8 @@ export default function BriefingFeed({ alerts, meta, partnerA, partnerB, onDismi
           {[
             { label: 'All',    count: meta?.total,        active: 'bg-blurple text-white',  dot: null },
             { label: 'High',   count: meta?.high_count,   active: 'bg-red-500 text-white',  dot: 'bg-red-500'   },
-            { label: 'Medium', count: meta?.medium_count, active: 'bg-amber-500 text-white', dot: 'bg-amber-500' },
-            { label: 'Low',    count: meta?.low_count,    active: 'bg-blue-500 text-white',  dot: 'bg-blue-500'  },
+            { label: 'Medium', count: meta?.medium_count, active: 'bg-amber text-white', dot: 'bg-amber' },
+            { label: 'Low',    count: meta?.low_count,    active: 'bg-blue text-white',  dot: 'bg-blue'  },
           ].map(({ label, count, active, dot }) => {
             const isActive = activeFilter === label && !typeFilter;
             return (
@@ -81,7 +81,7 @@ export default function BriefingFeed({ alerts, meta, partnerA, partnerB, onDismi
             )}
             {medium.length > 0 && (
               <div>
-                <div className="text-[11px] font-bold uppercase tracking-wider text-amber-500 mb-2">Medium Priority</div>
+                <div className="text-[11px] font-bold uppercase tracking-wider text-amber mb-2">Medium Priority</div>
                 <div className="space-y-2">
                   {medium.map((a) => (
                     <AlertCard key={a.id} alert={a} partnerA={partnerA} partnerB={partnerB}
@@ -92,7 +92,7 @@ export default function BriefingFeed({ alerts, meta, partnerA, partnerB, onDismi
             )}
             {low.length > 0 && (
               <div>
-                <div className="text-[11px] font-bold uppercase tracking-wider text-blue-400 mb-2">Low Priority</div>
+                <div className="text-[11px] font-bold uppercase tracking-wider text-blue mb-2">Low Priority</div>
                 <div className="space-y-2">
                   {low.map((a) => (
                     <AlertCard key={a.id} alert={a} partnerA={partnerA} partnerB={partnerB}
