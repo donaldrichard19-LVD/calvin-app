@@ -35,8 +35,11 @@ function timeSince(dateStr) {
 
 export default function SettingsView({ householdInfo, integrations }) {
   const { signOut } = useClerk();
-  const [copied, setCopied] = useState(false);
-  const [connecting, setConnecting] = useState(false);
+  const [copied, setCopied]           = useState(false);
+  const [connecting, setConnecting]   = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
+  const [leaving, setLeaving]         = useState(false);
+  const [leaveConfirm, setLeaveConfirm] = useState(false);
 
   const partner      = householdInfo?.partner;
   const otherPartner = householdInfo?.other_partner;
@@ -59,6 +62,29 @@ export default function SettingsView({ householdInfo, integrations }) {
     }
   }
 
+  async function handleDisconnectGoogle() {
+    if (disconnecting) return;
+    setDisconnecting(true);
+    try {
+      await apiFetch('/api/integrations/google', { method: 'DELETE' });
+      window.location.reload();
+    } catch {
+      setDisconnecting(false);
+    }
+  }
+
+  async function handleLeaveHousehold() {
+    if (leaving) return;
+    setLeaving(true);
+    try {
+      await apiFetch('/api/household/leave', { method: 'DELETE' });
+      window.location.href = '/';
+    } catch {
+      setLeaving(false);
+      setLeaveConfirm(false);
+    }
+  }
+
   function copyInvite() {
     const link = `${window.location.origin}?invite=${inviteCode}`;
     navigator.clipboard.writeText(link).then(() => {
@@ -77,19 +103,30 @@ export default function SettingsView({ householdInfo, integrations }) {
 
       <Section title="Google Calendar & Gmail">
         {myIntegration ? (
-          <Row
-            label="Connected"
-            value={`${myIntegration.account_email} · synced ${timeSince(myIntegration.last_synced_at)}`}
-            action={
+          <>
+            <Row
+              label="Connected"
+              value={`${myIntegration.account_email} · synced ${timeSince(myIntegration.last_synced_at)}`}
+              action={
+                <button
+                  onClick={handleReconnect}
+                  disabled={connecting}
+                  className="text-[12px] font-semibold text-blurple hover:opacity-75 disabled:opacity-50"
+                >
+                  {connecting ? 'Redirecting…' : 'Reconnect'}
+                </button>
+              }
+            />
+            <div className="px-4 py-3">
               <button
-                onClick={handleReconnect}
-                disabled={connecting}
-                className="text-[12px] font-semibold text-blurple hover:opacity-75 disabled:opacity-50"
+                onClick={handleDisconnectGoogle}
+                disabled={disconnecting}
+                className="text-[13px] font-medium text-red-500 hover:text-red-600 transition-colors disabled:opacity-50"
               >
-                {connecting ? 'Redirecting…' : 'Reconnect'}
+                {disconnecting ? 'Disconnecting…' : 'Disconnect Google account'}
               </button>
-            }
-          />
+            </div>
+          </>
         ) : (
           <Row
             label="Not connected"
@@ -133,6 +170,38 @@ export default function SettingsView({ householdInfo, integrations }) {
           />
         </Section>
       )}
+
+      <Section title="Household">
+        {!leaveConfirm ? (
+          <div className="px-4 py-3">
+            <button
+              onClick={() => setLeaveConfirm(true)}
+              className="text-[13px] font-medium text-red-500 hover:text-red-600 transition-colors"
+            >
+              Leave household
+            </button>
+          </div>
+        ) : (
+          <div className="px-4 py-4 space-y-3">
+            <p className="text-[13px] text-dark font-medium">Are you sure? This will disconnect your Google account and remove you from the household.</p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleLeaveHousehold}
+                disabled={leaving}
+                className="text-[13px] font-semibold text-white bg-red-500 hover:bg-red-600 px-4 py-1.5 rounded-lg disabled:opacity-50 transition-colors"
+              >
+                {leaving ? 'Leaving…' : 'Yes, leave'}
+              </button>
+              <button
+                onClick={() => setLeaveConfirm(false)}
+                className="text-[13px] font-medium text-mid hover:text-dark transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </Section>
 
       <Section title="Account">
         <div className="px-4 py-3">

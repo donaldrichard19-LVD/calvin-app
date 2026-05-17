@@ -218,27 +218,19 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-bg flex flex-col">
-      <Header />
-
-      {otherPartner && !partnerIntegration && (
-        <div className="bg-amber-50 border-b border-amber-200 px-6 py-2 text-[13px] text-amber-700 flex items-center gap-2">
-          <span>⚠️</span>
-          <span>
-            <strong>{otherPartner.display_name}</strong> hasn't connected their Google account yet.
-            Share invite code: <code className="font-mono font-bold">{householdInfo?.household?.invite_code}</code>
-          </span>
-        </div>
-      )}
+      <Header
+        householdInfo={householdInfo}
+        integrations={integrations}
+        onRefresh={fetchAll}
+        onInvite={() => setInviteOpen(true)}
+        showInvite={!otherPartner}
+      />
 
       {partners.length > 0 && (
         <PartnerStatus
           partners={[partnerAData, partnerBData].filter(Boolean)}
           integrations={integrations}
-          householdName={householdInfo?.household?.name}
-          onRefresh={fetchAll}
           onChangeEmoji={handleChangeEmoji}
-          onInvite={() => setInviteOpen(true)}
-          showInvite={!otherPartner}
         />
       )}
 

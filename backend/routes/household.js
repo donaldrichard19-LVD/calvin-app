@@ -167,6 +167,28 @@ router.put('/partner', requireAuth, async (req, res) => {
   }
 });
 
+router.delete('/leave', requireAuth, async (req, res) => {
+  try {
+    const partner = await getPartner(req.auth.userId);
+    if (!partner) return res.status(404).json({ error: 'Partner not found' });
+
+    await supabase
+      .from('integrations')
+      .update({ is_active: false, access_token: null, refresh_token: null })
+      .eq('partner_id', partner.id);
+
+    const { error } = await supabase
+      .from('partners')
+      .update({ household_id: null })
+      .eq('id', partner.id);
+    if (error) throw error;
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.post('/analyze', requireAuth, async (req, res) => {
   try {
     const partner = await getPartner(req.auth.userId);
