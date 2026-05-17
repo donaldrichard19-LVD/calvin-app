@@ -22,11 +22,6 @@ export default function BriefingFeed({ alerts, meta, partnerA, partnerB, onDismi
       <div className="px-4 pt-4 pb-2 shrink-0">
         <div className="flex items-center gap-2 mb-3">
           <h2 className="text-[16px] font-bold text-dark">Briefing</h2>
-          {meta?.total > 0 && (
-            <span className="bg-blurple text-white text-[11px] font-bold px-2 py-0.5 rounded-full">
-              {meta.total}
-            </span>
-          )}
         </div>
 
         <div className="flex gap-1 flex-wrap">
