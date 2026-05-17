@@ -33,14 +33,14 @@ router.get('/events', requireAuth, async (req, res) => {
     const theirIntg = other ? integrations?.find((i) => i.partner_id === other.id) || null : null;
 
     const [eventsA, eventsB] = await Promise.all([
-      myIntg    ? getCalendarEvents(myIntg)    : Promise.resolve([]),
-      theirIntg ? getCalendarEvents(theirIntg) : Promise.resolve([]),
+      myIntg    ? getCalendarEvents(myIntg).catch(() => [])    : Promise.resolve([]),
+      theirIntg ? getCalendarEvents(theirIntg).catch(() => []) : Promise.resolve([]),
     ]);
 
     res.json({ eventsA, eventsB });
   } catch (err) {
     console.error('[calendar] events error:', err.message);
-    res.status(500).json({ error: err.message });
+    res.json({ eventsA: [], eventsB: [] });
   }
 });
 
