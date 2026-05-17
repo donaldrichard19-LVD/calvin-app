@@ -27,33 +27,36 @@ export default function BriefingFeed({ alerts, meta, partnerA, partnerB, onDismi
               {meta.total}
             </span>
           )}
-          <div className="flex items-center gap-1 ml-auto text-[11px]">
-            {meta?.high_count > 0 && (
-              <span className="bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full font-semibold">🔴 {meta.high_count}</span>
-            )}
-            {meta?.medium_count > 0 && (
-              <span className="bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-full font-semibold">🟡 {meta.medium_count}</span>
-            )}
-            {meta?.low_count > 0 && (
-              <span className="bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full font-semibold">🔵 {meta.low_count}</span>
-            )}
-          </div>
         </div>
 
         <div className="flex gap-1 flex-wrap">
-          {FILTERS.map((f) => (
-            <button
-              key={f}
-              onClick={() => { setActiveFilter(f); setTypeFilter(null); }}
-              className={`text-[11px] font-semibold px-3 py-1 rounded-full transition-colors ${
-                activeFilter === f && !typeFilter
-                  ? 'bg-blurple text-white'
-                  : 'bg-white text-mid border border-border hover:bg-gray-50'
-              }`}
-            >
-              {f}
-            </button>
-          ))}
+          {[
+            { label: 'All',    count: meta?.total,        active: 'bg-blurple text-white',  dot: null },
+            { label: 'High',   count: meta?.high_count,   active: 'bg-red-500 text-white',  dot: 'bg-red-500'   },
+            { label: 'Medium', count: meta?.medium_count, active: 'bg-amber-500 text-white', dot: 'bg-amber-500' },
+            { label: 'Low',    count: meta?.low_count,    active: 'bg-blue-500 text-white',  dot: 'bg-blue-500'  },
+          ].map(({ label, count, active, dot }) => {
+            const isActive = activeFilter === label && !typeFilter;
+            return (
+              <button
+                key={label}
+                onClick={() => { setActiveFilter(label); setTypeFilter(null); }}
+                className={`flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1 rounded-full transition-colors ${
+                  isActive ? active : 'bg-white text-mid border border-border hover:bg-gray-50'
+                }`}
+              >
+                {dot && !isActive && <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />}
+                {label}
+                {count > 0 && (
+                  <span className={`text-[10px] font-bold px-1 py-0.5 rounded-full leading-none ${
+                    isActive ? 'bg-white/30 text-white' : 'bg-gray-100 text-mid'
+                  }`}>
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
