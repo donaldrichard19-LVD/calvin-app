@@ -43,7 +43,7 @@ Be concise and direct. Answer only what's asked. Do not repeat the alert back to
       .map((m) => ({ role: m.role, content: String(m.content) }));
 
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 1024,
       system: systemPrompt,
       messages: validMessages,
