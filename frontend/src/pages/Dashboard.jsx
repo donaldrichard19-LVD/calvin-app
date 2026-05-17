@@ -216,8 +216,6 @@ export default function Dashboard() {
     loading,
   };
 
-  const badgeCount = briefing.alerts.length;
-
   return (
     <div className="min-h-screen bg-bg flex flex-col">
       <Header />
@@ -265,7 +263,7 @@ export default function Dashboard() {
         )}
       </div>
 
-      <BottomNav active={view} onChange={setView} badgeCount={badgeCount} />
+      <BottomNav active={view} onChange={setView} />
 
       {chatAlert && (
         <ChatDrawer alert={chatAlert} onClose={() => setChatAlert(null)} />

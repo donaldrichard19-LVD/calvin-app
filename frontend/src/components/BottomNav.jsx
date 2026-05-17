@@ -40,7 +40,7 @@ const TABS = [
   },
 ];
 
-export default function BottomNav({ active, onChange, badgeCount = 0 }) {
+export default function BottomNav({ active, onChange }) {
   return (
     <nav className="fixed bottom-0 inset-x-0 h-16 bg-white border-t border-border z-40 flex items-center safe-bottom">
       {TABS.map(({ id, label, icon }) => {
@@ -55,11 +55,6 @@ export default function BottomNav({ active, onChange, badgeCount = 0 }) {
           >
             <div className="relative">
               {icon(isActive)}
-              {id === 'briefings' && badgeCount > 0 && (
-                <span className="absolute -top-1 -right-1.5 bg-red-500 text-white text-[9px] font-bold min-w-[14px] h-[14px] rounded-full flex items-center justify-center px-0.5 leading-none">
-                  {badgeCount > 9 ? '9+' : badgeCount}
-                </span>
-              )}
             </div>
             <span className={`text-[10px] font-semibold leading-none ${isActive ? 'text-blurple' : ''}`}>{label}</span>
           </button>
