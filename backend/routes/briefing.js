@@ -106,6 +106,50 @@ router.patch('/:alertId/resolve', requireAuth, async (req, res) => {
   }
 });
 
+router.get('/stats', requireAuth, async (req, res) => {
+  try {
+    const householdId = await getHouseholdId(req.auth.userId);
+    if (!householdId) return res.json({ active: 0, resolved_30d: 0, dismissed_30d: 0, resolution_rate: 0, by_type: {}, by_severity: {} });
+
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
+
+    const { data: all } = await supabase
+      .from('alerts')
+      .select('id, type, severity, status, title, created_at, updated_at')
+      .eq('household_id', householdId)
+      .order('updated_at', { ascending: false });
+
+    const alerts = all || [];
+    const active     = alerts.filter((a) => a.status === 'active');
+    const resolved30 = alerts.filter((a) => a.status === 'resolved'  && a.updated_at >= thirtyDaysAgo);
+    const dismissed30 = alerts.filter((a) => a.status === 'dismissed' && a.updated_at >= thirtyDaysAgo);
+    const created30  = alerts.filter((a) => a.created_at >= thirtyDaysAgo);
+
+    const by_type = {};
+    for (const a of alerts) by_type[a.type] = (by_type[a.type] || 0) + 1;
+
+    const by_severity = {};
+    for (const a of active) by_severity[a.severity] = (by_severity[a.severity] || 0) + 1;
+
+    const recentResolved = resolved30.slice(0, 5).map((a) => ({
+      id: a.id, title: a.title, type: a.type, severity: a.severity, updated_at: a.updated_at,
+    }));
+
+    res.json({
+      active: active.length,
+      resolved_30d: resolved30.length,
+      dismissed_30d: dismissed30.length,
+      created_30d: created30.length,
+      resolution_rate: created30.length > 0 ? Math.round((resolved30.length / created30.length) * 100) : 0,
+      by_type,
+      by_severity,
+      recent_resolved: recentResolved,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get('/history', requireAuth, async (req, res) => {
   try {
     const householdId = await getHouseholdId(req.auth.userId);

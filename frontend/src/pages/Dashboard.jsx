@@ -6,6 +6,9 @@ import Header from '../components/Header';
 import PartnerStatus from '../components/PartnerStatus';
 import BriefingFeed from '../components/BriefingFeed';
 import TimelineView from '../components/TimelineView';
+import InsightsView from '../components/InsightsView';
+import SettingsView from '../components/SettingsView';
+import BottomNav from '../components/BottomNav';
 import ChatDrawer from '../components/ChatDrawer';
 import SplashScreen from '../components/SplashScreen';
 import SMSNotification from '../components/SMSNotification';
@@ -35,10 +38,7 @@ export default function Dashboard() {
   );
   const navigate = useNavigate();
 
-  // View toggle — default to insights so alerts are front and centre
-  const [view, setView] = useState('insights');
-
-  // Per-partner emoji stored in localStorage for persistence
+  const [view, setView] = useState('briefings');
   const [emojis, setEmojis] = useState({});
 
   function getEmoji(partnerId, fallback = '😊') {
@@ -50,10 +50,10 @@ export default function Dashboard() {
     setEmojis((prev) => ({ ...prev, [partnerId]: emoji }));
   }
 
-  // SMS notification — show once per session for first high-priority alert
-  const [smsAlert, setSmsAlert]       = useState(null);
-  const [smsVisible, setSmsVisible]   = useState(false);
-  const smsShownRef = useRef(false);
+  // In-app alert notification — show once per session for first new high/medium alert
+  const [alertNotif, setAlertNotif]   = useState(null);
+  const [alertVisible, setAlertVisible] = useState(false);
+  const alertShownRef = useRef(false);
   const [inviteOpen, setInviteOpen]   = useState(false);
 
   const fetchAll = useCallback(async () => {
@@ -70,19 +70,19 @@ export default function Dashboard() {
       setIntegrations(intgData || []);
       setHouseholdInfo(hhData);
 
-      // Fetch calendar separately — a Google API failure must not break the dashboard
       apiFetch('/api/calendar/events', auth)
         .then((calData) => setCalendarData(calData || { eventsA: [], eventsB: [] }))
         .catch(() => {});
 
-      // Trigger SMS notification for first high-priority alert (once per session)
-      if (!smsShownRef.current) {
-        const firstHigh = (briefingData.alerts || []).find((a) => a.severity === 'high');
-        if (firstHigh) {
-          smsShownRef.current = true;
+      if (!alertShownRef.current) {
+        const first = (briefingData.alerts || []).find(
+          (a) => a.severity === 'high' || a.severity === 'medium'
+        );
+        if (first) {
+          alertShownRef.current = true;
           setTimeout(() => {
-            setSmsAlert(firstHigh);
-            setSmsVisible(true);
+            setAlertNotif(first);
+            setAlertVisible(true);
           }, 1500);
         }
       }
@@ -119,7 +119,6 @@ export default function Dashboard() {
   const otherPartner = householdInfo?.other_partner;
   const partners     = [partner, otherPartner].filter(Boolean);
 
-  // Enrich partner objects with stored emoji
   const partnerAData = partner      ? { ...partner,      emoji: getEmoji(partner.id, '😊') }      : null;
   const partnerBData = otherPartner ? { ...otherPartner, emoji: getEmoji(otherPartner.id, '😎') } : null;
 
@@ -215,6 +214,8 @@ export default function Dashboard() {
     loading,
   };
 
+  const highCount = briefing.alerts.filter((a) => a.severity === 'high').length;
+
   return (
     <div className="min-h-screen bg-bg flex flex-col">
       <Header partnerName={partner?.display_name} />
@@ -234,54 +235,43 @@ export default function Dashboard() {
           partners={[partnerAData, partnerBData].filter(Boolean)}
           integrations={integrations}
           onRefresh={fetchAll}
-          view={view}
-          onViewChange={setView}
           onChangeEmoji={handleChangeEmoji}
           onInvite={() => setInviteOpen(true)}
           showInvite={!otherPartner}
         />
       )}
 
-      {/* ── Insights only ── */}
-      {view === 'insights' && (
-        <div className="flex-1 overflow-y-auto">
+      {/* ── Main content ── */}
+      <div className="flex-1 overflow-y-auto pb-16">
+        {view === 'briefings' && (
           <div className="max-w-2xl mx-auto p-4">
             <BriefingFeed {...briefingProps} />
           </div>
-        </div>
-      )}
+        )}
 
-      {/* ── Calendar only ── */}
-      {view === 'calendar' && (
-        <div className="flex-1 overflow-y-auto p-4">
-          <TimelineView {...timelineProps} />
-        </div>
-      )}
-
-      {/* ── Both: sidebar + main ── */}
-      {view === 'both' && (
-        <div className="flex flex-1 overflow-hidden">
-          <div className="hidden md:flex w-[360px] shrink-0 flex-col border-r border-border bg-white overflow-hidden">
-            <BriefingFeed {...briefingProps} sidebar />
-          </div>
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {view === 'calendar' && (
+          <div className="p-4">
             <TimelineView {...timelineProps} />
-            <div className="md:hidden">
-              <BriefingFeed {...briefingProps} />
-            </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {view === 'insights' && <InsightsView />}
+
+        {view === 'settings' && (
+          <SettingsView householdInfo={householdInfo} integrations={integrations} />
+        )}
+      </div>
+
+      <BottomNav active={view} onChange={setView} badgeCount={highCount} />
 
       {chatAlert && (
         <ChatDrawer alert={chatAlert} onClose={() => setChatAlert(null)} />
       )}
 
-      {smsVisible && smsAlert && (
+      {alertVisible && alertNotif && (
         <SMSNotification
-          alert={smsAlert}
-          partners={[partnerAData, partnerBData].filter(Boolean)}
-          onDismiss={() => setSmsVisible(false)}
+          alert={alertNotif}
+          onDismiss={() => setAlertVisible(false)}
         />
       )}
 

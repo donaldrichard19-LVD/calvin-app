@@ -21,8 +21,9 @@ async function sendSMS(to, body) {
   }
 }
 
-async function sendAlertSMS(partners, alertTitle) {
-  const msg = `Calvin Alert: ${alertTitle}. Open app for details.`;
+async function sendAlertSMS(partners, alertTitle, severity = 'high') {
+  const prefix = severity === 'high' ? '🔴 HIGH' : '🟡 MEDIUM';
+  const msg = `Calvin ${prefix}: ${alertTitle}. Open the app for details.`;
   await Promise.all(
     partners
       .filter((p) => p.phone)

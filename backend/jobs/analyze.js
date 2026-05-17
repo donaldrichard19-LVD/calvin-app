@@ -80,7 +80,7 @@ async function runAnalysisForHousehold(householdId) {
     console.log(`[analyze] Claude returned ${alerts.length} alerts:`, alerts.map((a) => `${a.severity}:${a.fingerprint}`));
 
     let created = 0;
-    const highAlerts = [];
+    const smsAlerts = [];
 
     for (const alert of alerts) {
       const fp = alert.fingerprint || alert._md5;
@@ -112,12 +112,12 @@ async function runAnalysisForHousehold(householdId) {
       );
 
       created++;
-      if (alert.severity === 'high') highAlerts.push(alert);
+      if (alert.severity === 'high' || alert.severity === 'medium') smsAlerts.push(alert);
     }
 
-    if (highAlerts.length > 0 && partners.some((p) => p.phone)) {
-      for (const ha of highAlerts) {
-        await sendAlertSMS(partners, ha.title);
+    if (smsAlerts.length > 0 && partners.some((p) => p.phone)) {
+      for (const sa of smsAlerts) {
+        await sendAlertSMS(partners, sa.title, sa.severity);
       }
     }
 
