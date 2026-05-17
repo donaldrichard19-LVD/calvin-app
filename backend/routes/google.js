@@ -89,7 +89,12 @@ router.get('/callback', async (req, res) => {
   } catch (err) {
     const detail = err.response?.data || {};
     console.error('[google/callback] Token exchange error:', err.message, JSON.stringify(detail));
-    const msg = `${err.message} | redirect_uri_used=${process.env.GOOGLE_REDIRECT_URI}`;
+    const msg = JSON.stringify({
+      error: err.message,
+      google_detail: detail,
+      redirect_uri: process.env.GOOGLE_REDIRECT_URI,
+      client_id: (process.env.GOOGLE_CLIENT_ID || '').slice(0, 20) + '...',
+    });
     res.redirect(`${FRONTEND_URL}/dashboard?error=callback_${encodeURIComponent(msg)}`);
   }
 });
