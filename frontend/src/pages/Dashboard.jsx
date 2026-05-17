@@ -146,6 +146,7 @@ export default function Dashboard() {
     setBriefing((prev) => ({
       ...prev,
       alerts: prev.alerts.filter((a) => a.id !== alertId),
+      meta: { ...prev.meta, total: Math.max(0, (prev.meta.total || 1) - 1) },
     }));
   }
 
@@ -154,6 +155,7 @@ export default function Dashboard() {
     setBriefing((prev) => ({
       ...prev,
       alerts: prev.alerts.filter((a) => a.id !== alertId),
+      meta: { ...prev.meta, total: Math.max(0, (prev.meta.total || 1) - 1) },
     }));
   }
 
@@ -214,7 +216,7 @@ export default function Dashboard() {
     loading,
   };
 
-  const highCount = briefing.alerts.filter((a) => a.severity === 'high').length;
+  const badgeCount = briefing.alerts.length;
 
   return (
     <div className="min-h-screen bg-bg flex flex-col">
@@ -263,7 +265,7 @@ export default function Dashboard() {
         )}
       </div>
 
-      <BottomNav active={view} onChange={setView} badgeCount={highCount} />
+      <BottomNav active={view} onChange={setView} badgeCount={badgeCount} />
 
       {chatAlert && (
         <ChatDrawer alert={chatAlert} onClose={() => setChatAlert(null)} />
