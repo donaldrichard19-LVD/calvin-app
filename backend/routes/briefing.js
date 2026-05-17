@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { requireAuth } = require('../middleware/auth');
 const { supabase } = require('../lib/supabase');
+const { sendSMS } = require('../lib/twilio');
 
 async function getHouseholdId(clerkUserId) {
   const { data } = await supabase
@@ -94,12 +95,45 @@ router.patch('/:alertId/snooze', requireAuth, async (req, res) => {
 router.patch('/:alertId/resolve', requireAuth, async (req, res) => {
   try {
     const householdId = await getHouseholdId(req.auth.userId);
+
+    const { data: alert, error: fetchErr } = await supabase
+      .from('alerts')
+      .select('id, title, relevant_to')
+      .eq('id', req.params.alertId)
+      .eq('household_id', householdId)
+      .single();
+    if (fetchErr) throw fetchErr;
+
     const { error } = await supabase
       .from('alerts')
       .update({ status: 'resolved', updated_at: new Date().toISOString() })
       .eq('id', req.params.alertId)
       .eq('household_id', householdId);
     if (error) throw error;
+
+    // SMS the other partner if the alert was shared with both
+    if (alert?.relevant_to?.length > 1) {
+      const { data: me } = await supabase
+        .from('partners')
+        .select('id, display_name')
+        .eq('clerk_user_id', req.auth.userId)
+        .single();
+
+      const { data: allPartners } = await supabase
+        .from('partners')
+        .select('id, display_name, phone')
+        .eq('household_id', householdId);
+
+      const other = allPartners?.find((p) => p.id !== me?.id);
+      if (other?.phone) {
+        const resolverName = me?.display_name || 'Your partner';
+        await sendSMS(
+          other.phone,
+          `✅ ${resolverName} resolved: "${alert.title}"`
+        );
+      }
+    }
+
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
