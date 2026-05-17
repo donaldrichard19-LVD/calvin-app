@@ -74,9 +74,12 @@ Be concise and direct. If the user asks to create, schedule, or add a calendar e
       tools: TOOLS,
     });
 
+    console.log('[chat] stop_reason:', response.stop_reason, '| content types:', response.content.map((b) => b.type));
+
     // Agentic loop: handle tool use
     if (response.stop_reason === 'tool_use') {
       const toolUseBlock = response.content.find((b) => b.type === 'tool_use');
+      console.log('[chat] tool_use:', toolUseBlock?.name, JSON.stringify(toolUseBlock?.input));
 
       let toolResult;
       if (toolUseBlock?.name === 'create_calendar_event') {
@@ -126,9 +129,10 @@ Be concise and direct. If the user asks to create, schedule, or add a calendar e
     }
 
     const textBlock = response.content.find((b) => b.type === 'text');
+    console.log('[chat] final text length:', textBlock?.text?.length);
     res.json({ content: textBlock?.text || '' });
   } catch (err) {
-    console.error('[chat]', err.message);
+    console.error('[chat] error:', err.message, err.status ?? '');
     res.status(500).json({ error: err.message });
   }
 });
