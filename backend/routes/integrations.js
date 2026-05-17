@@ -50,7 +50,27 @@ router.get('/household', requireAuth, async (req, res) => {
       .eq('household_id', partner.household_id);
     if (error) throw error;
 
-    const result = (integrations || []).map((intg) => ({
+    // Fallback: if current user's integration isn't in the household list
+    // (happens when household_id was null at OAuth time), fetch it directly
+    // and backfill household_id so future queries work correctly
+    const myIntg = (integrations || []).find((i) => i.partner_id === partner.id);
+    let merged = integrations || [];
+    if (!myIntg) {
+      const { data: direct } = await supabase
+        .from('integrations')
+        .select('id, partner_id, provider, account_email, scope, is_active, last_synced_at, connected_at')
+        .eq('partner_id', partner.id)
+        .eq('is_active', true);
+      if (direct?.length) {
+        await supabase
+          .from('integrations')
+          .update({ household_id: partner.household_id })
+          .in('id', direct.map((i) => i.id));
+        merged = [...merged, ...direct];
+      }
+    }
+
+    const result = merged.map((intg) => ({
       ...intg,
       partner: partners?.find((p) => p.id === intg.partner_id) || null,
     }));

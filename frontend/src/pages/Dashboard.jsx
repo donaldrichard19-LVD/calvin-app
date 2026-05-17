@@ -104,13 +104,8 @@ export default function Dashboard() {
 
     if (justConnected) {
       window.history.replaceState({}, '', '/dashboard');
-      let attempts = 0;
-      const retry = setInterval(async () => {
-        attempts++;
-        await fetchAll();
-        if (attempts >= 5) clearInterval(retry);
-      }, 800);
-      return () => clearInterval(retry);
+      fetchAll();
+      return;
     }
 
     fetchAll();
