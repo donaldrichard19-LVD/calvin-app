@@ -42,6 +42,8 @@ async function runAnalysisForHousehold(householdId) {
       intB ? getRecentEmails(intB).catch((err) => { console.error('[analyze] emailsB failed:', err.message); return []; })  : Promise.resolve([]),
     ]);
 
+    console.log(`[analyze] Data fetched — eventsA:${eventsA.length} emailsA:${emailsA.length} eventsB:${eventsB.length} emailsB:${emailsB.length}`);
+
     await Promise.all([
       intA && supabase.from('integrations').update({ last_synced_at: new Date().toISOString() }).eq('id', intA.id),
       intB && supabase.from('integrations').update({ last_synced_at: new Date().toISOString() }).eq('id', intB.id),
@@ -73,14 +75,16 @@ async function runAnalysisForHousehold(householdId) {
       timezone: 'America/New_York',
     };
 
+    console.log(`[analyze] Existing fingerprints: ${existingFingerprints.length}`);
     const alerts = await analyzeHousehold(context);
+    console.log(`[analyze] Claude returned ${alerts.length} alerts:`, alerts.map((a) => `${a.severity}:${a.fingerprint}`));
 
     let created = 0;
     const highAlerts = [];
 
     for (const alert of alerts) {
       const fp = alert.fingerprint || alert._md5;
-      if (existingFingerprints.includes(fp)) continue;
+      if (existingFingerprints.includes(fp)) { console.log(`[analyze] Skipping duplicate fingerprint: ${fp}`); continue; }
 
       const { data: inserted, error: insertErr } = await supabase
         .from('alerts')
