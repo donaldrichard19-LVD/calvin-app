@@ -35,6 +35,9 @@ router.get('/callback', async (req, res) => {
     return res.redirect(`${FRONTEND_URL}/onboarding?error=google_auth_failed`);
   }
 
+  console.log('[google/callback] GOOGLE_REDIRECT_URI:', process.env.GOOGLE_REDIRECT_URI);
+  console.log('[google/callback] partnerId from state:', partnerId);
+
   try {
     const { access_token, refresh_token, expiry_date, email } = await getTokensFromCode(code);
     console.log('[google/callback] Tokens received for email:', email);
@@ -84,8 +87,10 @@ router.get('/callback', async (req, res) => {
     console.log('[google/callback] Integration saved successfully for partner:', partner.id);
     res.redirect(`${FRONTEND_URL}/dashboard?connected=google`);
   } catch (err) {
-    console.error('[google/callback] Unexpected error:', err.message);
-    res.redirect(`${FRONTEND_URL}/dashboard?error=callback_${encodeURIComponent(err.message)}`);
+    const detail = err.response?.data || {};
+    console.error('[google/callback] Token exchange error:', err.message, JSON.stringify(detail));
+    const msg = `${err.message} | redirect_uri_used=${process.env.GOOGLE_REDIRECT_URI}`;
+    res.redirect(`${FRONTEND_URL}/dashboard?error=callback_${encodeURIComponent(msg)}`);
   }
 });
 
