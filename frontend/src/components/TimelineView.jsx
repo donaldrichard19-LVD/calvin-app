@@ -134,7 +134,7 @@ function DayGrid({ day, eventsA, eventsB, partnerA, partnerB, pxPerHour, mobile 
   );
 }
 
-export default function TimelineView({ eventsA = [], eventsB = [], alerts = [], partnerA, partnerB, loading }) {
+export default function TimelineView({ eventsA = [], eventsB = [], alerts = [], partnerA, partnerB, loading, syncError }) {
   const days = getDays();
 
   const hasDayAlert = (day) =>
@@ -241,7 +241,12 @@ export default function TimelineView({ eventsA = [], eventsB = [], alerts = [], 
         })}
       </div>
 
-      {eventsA.length === 0 && eventsB.length === 0 && (
+      {syncError && (
+        <div className="mt-3 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-[12px] text-red-700">
+          Calendar sync error: {syncError}. Try reconnecting Google in Settings.
+        </div>
+      )}
+      {!syncError && eventsA.length === 0 && eventsB.length === 0 && (
         <div className="text-center text-mid text-sm py-6">
           Connect Google Calendar to see schedules
         </div>

@@ -30,6 +30,7 @@ export default function Dashboard() {
   const [integrations, setIntegrations] = useState([]);
   const [householdInfo, setHouseholdInfo] = useState(null);
   const [calendarData, setCalendarData] = useState({ eventsA: [], eventsB: [] });
+  const [calendarSyncError, setCalendarSyncError] = useState(null);
   const [loading, setLoading]           = useState(true);
   const [chatAlert, setChatAlert]       = useState(null);
   const [splashDone, setSplashDone]     = useState(
@@ -70,7 +71,10 @@ export default function Dashboard() {
       setHouseholdInfo(hhData);
 
       apiFetch('/api/calendar/events', auth)
-        .then((calData) => setCalendarData(calData || { eventsA: [], eventsB: [] }))
+        .then((calData) => {
+          setCalendarData(calData || { eventsA: [], eventsB: [] });
+          setCalendarSyncError(calData?.error || null);
+        })
         .catch(() => {});
 
       if (!alertShownRef.current) {
@@ -207,12 +211,13 @@ export default function Dashboard() {
   };
 
   const timelineProps = {
-    eventsA:  calendarData.eventsA,
-    eventsB:  calendarData.eventsB,
-    alerts:   briefing.alerts,
-    partnerA: partnerAData,
-    partnerB: partnerBData,
+    eventsA:    calendarData.eventsA,
+    eventsB:    calendarData.eventsB,
+    alerts:     briefing.alerts,
+    partnerA:   partnerAData,
+    partnerB:   partnerBData,
     loading,
+    syncError:  calendarSyncError,
   };
 
   return (

@@ -52,16 +52,24 @@ router.get('/callback', async (req, res) => {
 
     console.log('[google/callback] Partner found:', partner.id, 'household:', partner.household_id);
 
+    // Preserve the existing refresh_token if Google doesn't return a new one
+    const { data: existingIntg } = await supabase
+      .from('integrations')
+      .select('refresh_token')
+      .eq('partner_id', partner.id)
+      .eq('provider', 'google')
+      .maybeSingle();
+
     const { error: upsertError } = await supabase.from('integrations').upsert(
       {
         partner_id: partner.id,
         household_id: partner.household_id,
         provider: 'google',
         access_token: encrypt(access_token),
-        refresh_token: encrypt(refresh_token),
+        refresh_token: refresh_token ? encrypt(refresh_token) : (existingIntg?.refresh_token || null),
         token_expiry: expiry_date ? new Date(expiry_date).toISOString() : null,
         account_email: email,
-        scope: 'calendar.readonly gmail.readonly userinfo.email',
+        scope: 'calendar gmail userinfo.email',
         is_active: true,
         connected_at: new Date().toISOString(),
       },
