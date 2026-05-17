@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@clerk/clerk-react';
 import { apiFetch } from '../lib/api';
 import Header from '../components/Header';
-import PartnerStatus from '../components/PartnerStatus';
 import BriefingFeed from '../components/BriefingFeed';
 import TimelineView from '../components/TimelineView';
 import InsightsView from '../components/InsightsView';
@@ -225,12 +224,6 @@ export default function Dashboard() {
         onInvite={() => setInviteOpen(true)}
         showInvite={!otherPartner}
         partner={partnerAData}
-        onChangeEmoji={handleChangeEmoji}
-      />
-
-      <PartnerStatus
-        otherPartner={partnerBData}
-        integrations={integrations}
         onChangeEmoji={handleChangeEmoji}
       />
 
