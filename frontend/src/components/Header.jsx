@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { apiFetch } from '../lib/api';
+import EmojiAvatar from './EmojiAvatar';
 
 function HouseIcon({ className }) {
   return (
@@ -32,7 +33,7 @@ function StatusDot({ intg }) {
   return <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />;
 }
 
-export default function Header({ householdInfo, integrations, onRefresh, onInvite, showInvite }) {
+export default function Header({ householdInfo, integrations, onRefresh, onInvite, showInvite, partner, onChangeEmoji }) {
   const [open, setOpen]       = useState(false);
   const [spinning, setSpinning] = useState(false);
   const dropRef = useRef(null);
@@ -138,6 +139,20 @@ export default function Header({ householdInfo, integrations, onRefresh, onInvit
       <span className="absolute left-1/2 -translate-x-1/2 text-dark font-bold text-lg tracking-tight pointer-events-none">
         Calvin
       </span>
+
+      {/* Current user — right */}
+      {partner && (
+        <div className="ml-auto flex items-center gap-2">
+          <span className="text-[13px] font-semibold text-dark hidden sm:inline">{partner.display_name}</span>
+          <EmojiAvatar
+            emoji={partner.emoji}
+            isA
+            name={partner.display_name}
+            onChangeEmoji={(e) => onChangeEmoji?.(partner.id, e)}
+            alignRight
+          />
+        </div>
+      )}
     </header>
   );
 }

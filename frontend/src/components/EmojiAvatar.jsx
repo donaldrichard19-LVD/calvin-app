@@ -6,7 +6,7 @@ const EMOJI_OPTIONS = [
   '🦁', '🦊', '🐼', '🐨', '🌸', '⚡', '🎯', '🏄',
 ];
 
-export default function EmojiAvatar({ emoji, isA, onChangeEmoji, name }) {
+export default function EmojiAvatar({ emoji, isA, onChangeEmoji, name, alignRight = false }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -32,7 +32,7 @@ export default function EmojiAvatar({ emoji, isA, onChangeEmoji, name }) {
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-1.5 z-50 bg-white rounded-xl shadow-card-hover border border-border p-2 w-[200px]">
+        <div className={`absolute ${alignRight ? 'right-0' : 'left-0'} top-full mt-1.5 z-50 bg-white rounded-xl shadow-card-hover border border-border p-2 w-[200px]`}>
           <p className="text-[10px] text-light font-semibold uppercase tracking-wider px-1 mb-1.5">
             Choose emoji
           </p>

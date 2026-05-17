@@ -224,15 +224,15 @@ export default function Dashboard() {
         onRefresh={fetchAll}
         onInvite={() => setInviteOpen(true)}
         showInvite={!otherPartner}
+        partner={partnerAData}
+        onChangeEmoji={handleChangeEmoji}
       />
 
-      {partners.length > 0 && (
-        <PartnerStatus
-          partners={[partnerAData, partnerBData].filter(Boolean)}
-          integrations={integrations}
-          onChangeEmoji={handleChangeEmoji}
-        />
-      )}
+      <PartnerStatus
+        otherPartner={partnerBData}
+        integrations={integrations}
+        onChangeEmoji={handleChangeEmoji}
+      />
 
       {/* ── Main content ── */}
       <div className="flex-1 overflow-y-auto pb-16">
