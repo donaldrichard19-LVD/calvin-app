@@ -174,6 +174,7 @@ export default function Dashboard() {
       );
     }
 
+    const urlError = new URLSearchParams(window.location.search).get('error');
     return (
       <div className="min-h-screen bg-bg flex flex-col">
         <Header />
@@ -183,6 +184,11 @@ export default function Dashboard() {
           <p className="text-mid text-sm mb-6 max-w-xs">
             Calvin needs access to your calendar and inbox to detect gaps and conflicts.
           </p>
+          {urlError && (
+            <p className="text-red-500 text-xs mb-4 max-w-xs">
+              Last attempt failed ({urlError}). Try again below.
+            </p>
+          )}
           <button
             onClick={async () => {
               const { url } = await apiFetch('/api/google/connect');
@@ -192,6 +198,12 @@ export default function Dashboard() {
           >
             Connect Google account
           </button>
+          <details className="mt-8 text-left max-w-xs w-full">
+            <summary className="text-[11px] text-light cursor-pointer">Debug info</summary>
+            <pre className="text-[10px] text-mid bg-gray-50 rounded p-2 mt-1 overflow-auto max-h-40">
+              {JSON.stringify({ myIntegrations, urlError }, null, 2)}
+            </pre>
+          </details>
         </div>
       </div>
     );
