@@ -9,7 +9,7 @@ import Onboarding from './pages/Onboarding';
 function TokenBridge() {
   const { getToken } = useAuth();
   useEffect(() => {
-    setTokenGetter(() => getToken());
+    setTokenGetter((skipCache) => getToken(skipCache ? { skipCache: true } : undefined));
   }, [getToken]);
   return null;
 }
