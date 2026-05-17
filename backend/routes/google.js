@@ -93,7 +93,8 @@ router.get('/callback', async (req, res) => {
       error: err.message,
       google_detail: detail,
       redirect_uri: process.env.GOOGLE_REDIRECT_URI,
-      client_id: (process.env.GOOGLE_CLIENT_ID || '').slice(0, 20) + '...',
+      client_id_prefix: (process.env.GOOGLE_CLIENT_ID || '').slice(0, 20),
+      client_secret_length: (process.env.GOOGLE_CLIENT_SECRET || '').length,
     });
     res.redirect(`${FRONTEND_URL}/dashboard?error=callback_${encodeURIComponent(msg)}`);
   }
