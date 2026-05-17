@@ -55,7 +55,7 @@ export default function BriefingFeed({ alerts, meta, partnerA, partnerB, onDismi
         </div>
       </div>
 
-      <div className={`${sidebar ? 'flex-1 overflow-y-auto' : ''} px-4 pb-4 space-y-3`}>
+      <div className={`${sidebar ? 'flex-1 overflow-y-auto' : ''} px-4 pb-4 pt-2 space-y-3`}>
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-center">
             <div className="text-3xl mb-2">✓</div>
