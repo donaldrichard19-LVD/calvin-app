@@ -57,11 +57,11 @@ export default function Header({ householdInfo, integrations, onRefresh, onInvit
     setSpinning(false);
   }
 
-  const partner      = householdInfo?.partner;
+  const hhPartner    = householdInfo?.partner;
   const otherPartner = householdInfo?.other_partner;
   const household    = householdInfo?.household;
 
-  const myIntg      = integrations?.find((i) => i.partner_id === partner?.id && i.provider === 'google');
+  const myIntg      = integrations?.find((i) => i.partner_id === hhPartner?.id && i.provider === 'google');
   const partnerIntg = otherPartner
     ? integrations?.find((i) => i.partner_id === otherPartner.id && i.provider === 'google')
     : null;
@@ -94,7 +94,7 @@ export default function Header({ householdInfo, integrations, onRefresh, onInvit
               </p>
               <div className="space-y-2">
                 {[
-                  { p: partner,      intg: myIntg,      tag: 'You' },
+                  { p: hhPartner,    intg: myIntg,      tag: 'You' },
                   { p: otherPartner, intg: partnerIntg, tag: 'Partner' },
                 ].filter((x) => x.p).map(({ p, intg, tag }) => (
                   <div key={p.id} className="flex items-center justify-between">
