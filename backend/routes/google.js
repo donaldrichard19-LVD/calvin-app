@@ -78,14 +78,14 @@ router.get('/callback', async (req, res) => {
 
     if (upsertError) {
       console.error('[google/callback] Integration upsert failed:', upsertError);
-      return res.redirect(`${FRONTEND_URL}/dashboard?error=save_failed`);
+      return res.redirect(`${FRONTEND_URL}/dashboard?error=upsert_${encodeURIComponent(upsertError.message)}`);
     }
 
     console.log('[google/callback] Integration saved successfully for partner:', partner.id);
     res.redirect(`${FRONTEND_URL}/dashboard?connected=google`);
   } catch (err) {
     console.error('[google/callback] Unexpected error:', err.message);
-    res.redirect(`${FRONTEND_URL}/onboarding?error=token_exchange_failed`);
+    res.redirect(`${FRONTEND_URL}/dashboard?error=callback_${encodeURIComponent(err.message)}`);
   }
 });
 

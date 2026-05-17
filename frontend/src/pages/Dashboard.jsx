@@ -111,6 +111,7 @@ export default function Dashboard() {
       return;
     }
 
+    // Don't clear error params — keep them visible for the debug panel
     fetchAll();
     const id = setInterval(fetchAll, POLL_INTERVAL);
     return () => clearInterval(id);
