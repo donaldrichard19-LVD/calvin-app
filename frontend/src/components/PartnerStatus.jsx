@@ -32,7 +32,7 @@ export default function PartnerStatus({ partners, integrations, onRefresh, view,
     setSpinning(true);
     try {
       await apiFetch('/api/analyze/trigger', { method: 'POST' });
-      await new Promise((r) => setTimeout(r, 5000));
+      await new Promise((r) => setTimeout(r, 12000));
       if (onRefresh) onRefresh();
     } catch {}
     setSpinning(false);
