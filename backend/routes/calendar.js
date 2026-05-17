@@ -31,10 +31,12 @@ router.get('/events', requireAuth, async (req, res) => {
 
     const myIntg    = integrations?.find((i) => i.partner_id === me.id) || null;
     const theirIntg = other ? integrations?.find((i) => i.partner_id === other.id) || null : null;
+    console.log('[calendar] integrations found:', integrations?.length, '| myIntg:', !!myIntg, '| theirIntg:', !!theirIntg);
+    if (myIntg) console.log('[calendar] myIntg token_expiry:', myIntg.token_expiry, '| has access_token:', !!myIntg.access_token, '| has refresh_token:', !!myIntg.refresh_token);
 
     const [eventsA, eventsB] = await Promise.all([
-      myIntg    ? getCalendarEvents(myIntg).catch(() => [])    : Promise.resolve([]),
-      theirIntg ? getCalendarEvents(theirIntg).catch(() => []) : Promise.resolve([]),
+      myIntg    ? getCalendarEvents(myIntg).catch((err) => { console.error('[calendar] eventsA failed:', err.message); return []; })    : Promise.resolve([]),
+      theirIntg ? getCalendarEvents(theirIntg).catch((err) => { console.error('[calendar] eventsB failed:', err.message); return []; }) : Promise.resolve([]),
     ]);
 
     res.json({ eventsA, eventsB });
