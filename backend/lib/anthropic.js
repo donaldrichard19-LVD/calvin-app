@@ -8,11 +8,42 @@ const SYSTEM_PROMPT = `You are a proactive family operations analyst for a two-a
 
 You are NOT a chatbot. You do NOT give general advice. You ONLY surface specific, concrete, time-sensitive issues you can directly observe in the data provided.
 
-Do not surface issues whose fingerprint appears in existing_alert_fingerprints — those are already known.
+## What NOT to surface
+- Do not surface issues whose fingerprint appears in existing_alert_fingerprints — those are already known.
+- Do not recommend creating a calendar event if a matching event (same date, same participants, same purpose) already exists in partnerA_events or partnerB_events.
+- Do not flag a conflict or gap that the current calendar data shows has already been resolved.
 
-Respond ONLY with a valid JSON array. No preamble, no markdown, no explanation outside the JSON.
+## Dismissal preferences
+You will receive dismissal_patterns showing what this household has dismissed over the past 30 days:
+- dismissal_patterns.by_type: count of dismissals per alert type (e.g. { "dropped_commitment": 6, "asymmetric_context": 4 })
+- dismissal_patterns.recent_titles: titles of recently dismissed alerts
 
-Each alert object must have these exact fields:
+Use this to personalise alert generation:
+- If a type has been dismissed 3 or more times, only surface new alerts of that type when severity would clearly be high. Skip medium and low entirely for that type.
+- If a type has been dismissed 6 or more times, skip it altogether unless the issue is urgent and time-sensitive.
+- If a new alert's content closely resembles a recently dismissed title (e.g. routine purchase receipts, subscription notifications, shipping confirmations, marketing emails), skip it.
+- Never suppress a high-severity alert purely due to dismissal history if it represents a genuine scheduling conflict or missed commitment with real consequences.
+
+## Auto-resolving existing alerts
+You will receive existing_active_alerts — alerts currently shown to the household. For each one, review the current calendar and email data to check if the recommended action has been completed:
+- "schedule_conflict": the two conflicting events no longer overlap, or one was removed/rescheduled → resolve.
+- "coverage_gap": an event now covers the gap period → resolve.
+- "dropped_commitment": an event matching the commitment now exists → resolve.
+- Any alert whose action_hint suggests creating a calendar event: a matching event now exists → resolve.
+When in doubt, leave the alert active. Only resolve when the evidence is clear.
+
+## Response format
+Respond ONLY with a valid JSON object. No preamble, no markdown, no explanation outside the JSON.
+
+{
+  "resolve": ["uuid-of-alert-1", "uuid-of-alert-2"],
+  "alerts": []
+}
+
+"resolve" is an array of alert IDs from existing_active_alerts[].id whose recommended actions are now completed.
+"alerts" is an array of new alert objects to create.
+
+Each new alert object must have these exact fields:
 {
   "type": "schedule_conflict" | "coverage_gap" | "dropped_commitment" | "invisible_dependency" | "expiring_item" | "asymmetric_context",
   "severity": "high" | "medium" | "low",
@@ -37,20 +68,27 @@ async function analyzeHousehold(householdContext) {
     messages: [{ role: 'user', content: userMessage }],
   });
 
-  const raw = message.content[0]?.text || '[]';
-  let alerts;
+  const raw = message.content[0]?.text || '{}';
+  let parsed;
   try {
     const cleaned = raw.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim();
-    alerts = JSON.parse(cleaned);
+    parsed = JSON.parse(cleaned);
   } catch {
-    console.error('Failed to parse Claude response:', raw.slice(0, 200));
-    alerts = [];
+    console.error('[anthropic] Failed to parse Claude response:', raw.slice(0, 200));
+    parsed = { resolve: [], alerts: [] };
   }
 
-  return alerts.map((alert) => ({
-    ...alert,
-    _md5: crypto.createHash('md5').update(alert.fingerprint || JSON.stringify(alert)).digest('hex'),
-  }));
+  // Support legacy array format in case of partial rollout
+  const rawAlerts = Array.isArray(parsed) ? parsed : (parsed.alerts || []);
+  const resolveIds = Array.isArray(parsed) ? [] : (parsed.resolve || []);
+
+  return {
+    alerts: rawAlerts.map((alert) => ({
+      ...alert,
+      _md5: crypto.createHash('md5').update(alert.fingerprint || JSON.stringify(alert)).digest('hex'),
+    })),
+    resolveIds,
+  };
 }
 
 module.exports = { analyzeHousehold };

@@ -49,21 +49,29 @@ async function runAnalysisForHousehold(householdId) {
       intB && supabase.from('integrations').update({ last_synced_at: new Date().toISOString() }).eq('id', intB.id),
     ].filter(Boolean));
 
-    const { data: fingerprints } = await supabase
-      .from('alert_fingerprints')
-      .select('fingerprint')
-      .eq('household_id', householdId);
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
+    const [fingerprintsResult, activeAlertsResult, householdResult, dismissedResult] = await Promise.all([
+      supabase.from('alert_fingerprints').select('fingerprint').eq('household_id', householdId),
+      supabase.from('alerts').select('id, type, title, summary, action_hint, source_data, status').eq('household_id', householdId).in('status', ['active', 'snoozed']),
+      supabase.from('households').select('id, name').eq('id', householdId).single(),
+      supabase.from('alerts').select('type, title').eq('household_id', householdId).eq('status', 'dismissed').gte('updated_at', thirtyDaysAgo),
+    ]);
 
-    const existingFingerprints = (fingerprints || []).map((f) => f.fingerprint);
+    const existingFingerprints = (fingerprintsResult.data || []).map((f) => f.fingerprint);
+    const activeAlerts = activeAlertsResult.data || [];
 
-    const { data: household } = await supabase
-      .from('households')
-      .select('id, name')
-      .eq('id', householdId)
-      .single();
+    const dismissedAlerts = dismissedResult.data || [];
+    const dismissalsByType = dismissedAlerts.reduce((acc, a) => {
+      acc[a.type] = (acc[a.type] || 0) + 1;
+      return acc;
+    }, {});
+    const dismissalPatterns = {
+      by_type: dismissalsByType,
+      recent_titles: dismissedAlerts.slice(0, 30).map((a) => a.title),
+    };
 
     const context = {
-      household: { id: householdId, name: household?.name },
+      household: { id: householdId, name: householdResult.data?.name },
       partnerA: { id: partnerA?.id, display_name: partnerA?.display_name, email: intA?.account_email },
       partnerB: partnerB ? { id: partnerB.id, display_name: partnerB.display_name, email: intB?.account_email } : null,
       partnerA_events: eventsA,
@@ -71,13 +79,24 @@ async function runAnalysisForHousehold(householdId) {
       partnerA_emails: emailsA,
       partnerB_emails: emailsB,
       existing_alert_fingerprints: existingFingerprints,
+      existing_active_alerts: activeAlerts.map((a) => ({
+        id: a.id,
+        type: a.type,
+        title: a.title,
+        summary: a.summary,
+        action_hint: a.action_hint,
+        source_data: a.source_data,
+        status: a.status,
+      })),
+      dismissal_patterns: dismissalPatterns,
       current_time: new Date().toISOString(),
       timezone: 'America/New_York',
     };
 
-    console.log(`[analyze] Existing fingerprints: ${existingFingerprints.length}`);
-    const alerts = await analyzeHousehold(context);
-    console.log(`[analyze] Claude returned ${alerts.length} alerts:`, alerts.map((a) => `${a.severity}:${a.fingerprint}`));
+    console.log(`[analyze] Existing fingerprints: ${existingFingerprints.length}, active alerts: ${activeAlerts.length}`);
+    const { alerts, resolveIds } = await analyzeHousehold(context);
+    console.log(`[analyze] Claude returned ${alerts.length} new alerts, ${resolveIds.length} to auto-resolve`);
+    if (alerts.length) console.log('[analyze] New:', alerts.map((a) => `${a.severity}:${a.fingerprint}`));
 
     let created = 0;
     const smsAlerts = [];
@@ -122,6 +141,27 @@ async function runAnalysisForHousehold(householdId) {
     }
 
     const now = new Date().toISOString();
+
+    // Auto-resolve alerts whose recommended actions are now completed
+    let autoResolved = 0;
+    if (resolveIds.length > 0) {
+      const { data: toResolve } = await supabase
+        .from('alerts')
+        .select('id')
+        .in('id', resolveIds)
+        .eq('household_id', householdId)
+        .in('status', ['active', 'snoozed']);
+
+      if (toResolve?.length) {
+        const safeIds = toResolve.map((a) => a.id);
+        await supabase.from('alerts').update({ status: 'resolved', updated_at: now }).in('id', safeIds);
+        // Remove fingerprints so the issue can re-surface if it re-occurs
+        await supabase.from('alert_fingerprints').delete().in('alert_id', safeIds);
+        autoResolved = safeIds.length;
+        console.log(`[analyze] Auto-resolved ${autoResolved} alerts`);
+      }
+    }
+
     const { data: expired } = await supabase
       .from('alerts')
       .select('id')
@@ -144,11 +184,11 @@ async function runAnalysisForHousehold(householdId) {
         status: 'completed',
         completed_at: now,
         alerts_created: created,
-        alerts_resolved: resolvedCount,
+        alerts_resolved: resolvedCount + autoResolved,
       })
       .eq('id', run.id);
 
-    console.log(`[analyze] Household ${householdId}: ${created} new alerts, ${resolvedCount} resolved`);
+    console.log(`[analyze] Household ${householdId}: ${created} new, ${autoResolved} auto-resolved, ${resolvedCount} expired`);
     return run.id;
   } catch (err) {
     console.error(`[analyze] Household ${householdId} failed:`, err.message);

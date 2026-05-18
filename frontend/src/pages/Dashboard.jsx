@@ -56,6 +56,8 @@ export default function Dashboard() {
   const [alertVisible, setAlertVisible] = useState(false);
   const alertShownRef = useRef(false);
   const [inviteOpen, setInviteOpen]   = useState(false);
+  const [dismissToast, setDismissToast] = useState(false);
+  const dismissToastTimer = useRef(null);
 
   const fetchAll = useCallback(async () => {
     try {
@@ -139,6 +141,9 @@ export default function Dashboard() {
       alerts: prev.alerts.filter((a) => a.id !== alertId),
       meta: { ...prev.meta, total: (prev.meta.total || 1) - 1 },
     }));
+    clearTimeout(dismissToastTimer.current);
+    setDismissToast(true);
+    dismissToastTimer.current = setTimeout(() => setDismissToast(false), 3500);
   }
 
   async function handleSnooze(alertId, hours) {
@@ -263,6 +268,16 @@ export default function Dashboard() {
         {view === 'settings' && (
           <SettingsView householdInfo={householdInfo} integrations={integrations} />
         )}
+      </div>
+
+      <div
+        className={`fixed bottom-16 left-0 right-0 flex justify-center px-4 z-40 pointer-events-none transition-all duration-300 ${
+          dismissToast ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+        }`}
+      >
+        <div className="bg-dark text-white text-[12px] font-medium px-4 py-2.5 rounded-full shadow-lg max-w-xs text-center">
+          Calvin uses dismissals to learn your preferences
+        </div>
       </div>
 
       <BottomNav active={view} onChange={setView} />
