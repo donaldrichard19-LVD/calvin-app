@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { useAuth, useUser, useSignIn, SignIn } from '@clerk/clerk-react';
+import { useAuth, useUser, SignIn } from '@clerk/clerk-react';
 import { setTokenGetter } from './lib/api';
 import { apiFetch } from './lib/api';
 import Dashboard from './pages/Dashboard';
@@ -48,29 +48,14 @@ function RootRedirect() {
 }
 
 function LandingPage() {
-  const { signIn, setActive, isLoaded } = useSignIn();
-  const [tryingDemo, setTryingDemo] = useState(false);
-  const [demoError, setDemoError]   = useState(null);
-
   const isDemo = import.meta.env.VITE_IS_DEMO === 'true';
+  const [copied, setCopied] = useState(null);
 
-  async function handleTryDemo() {
-    if (!isLoaded || tryingDemo) return;
-    setTryingDemo(true);
-    setDemoError(null);
-    try {
-      const { token } = await apiFetch('/api/demo/token');
-      const result = await signIn.create({ strategy: 'ticket', ticket: token });
-      if (result.status === 'complete') {
-        await setActive({ session: result.createdSessionId });
-      } else {
-        setDemoError(`Unexpected status: ${result.status}`);
-        setTryingDemo(false);
-      }
-    } catch (err) {
-      setDemoError(err?.errors?.[0]?.longMessage || err?.message || 'Demo sign-in failed — try again.');
-      setTryingDemo(false);
-    }
+  function copy(value, field) {
+    navigator.clipboard.writeText(value).then(() => {
+      setCopied(field);
+      setTimeout(() => setCopied(null), 2000);
+    });
   }
 
   return (
@@ -82,21 +67,26 @@ function LandingPage() {
         </p>
 
         {isDemo && (
-          <>
-            <button
-              onClick={handleTryDemo}
-              disabled={tryingDemo}
-              className="btn-primary w-full py-3 text-[15px] mb-2 disabled:opacity-50"
-            >
-              {tryingDemo ? 'Signing in…' : 'Try the demo'}
-            </button>
-            {demoError && <p className="text-red-500 text-[12px] mb-3">{demoError}</p>}
-            <div className="flex items-center gap-3 my-5">
-              <div className="flex-1 h-px bg-border" />
-              <span className="text-[11px] text-light">or sign in with your account</span>
-              <div className="flex-1 h-px bg-border" />
-            </div>
-          </>
+          <div className="card p-4 mb-6 text-left space-y-2">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-light mb-3">Demo credentials</p>
+            {[
+              { label: 'Email', value: 'demo@trycalvin.app', field: 'email' },
+              { label: 'Password', value: 'calvindemoapp', field: 'password' },
+            ].map(({ label, value, field }) => (
+              <div key={field} className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-[11px] text-light">{label}</div>
+                  <div className="text-[14px] font-medium text-dark font-mono">{value}</div>
+                </div>
+                <button
+                  onClick={() => copy(value, field)}
+                  className="text-[12px] font-semibold text-blurple hover:opacity-75 shrink-0"
+                >
+                  {copied === field ? 'Copied!' : 'Copy'}
+                </button>
+              </div>
+            ))}
+          </div>
         )}
 
         <SignIn routing="hash" afterSignInUrl="/" />
