@@ -1,0 +1,272 @@
+// All dates generated relative to now so the demo always looks current
+function daysFromNow(n) {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  return d;
+}
+function dt(daysOffset, h, m = 0) {
+  const d = daysFromNow(daysOffset);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, m).toISOString();
+}
+function hoursAgo(h) {
+  return new Date(Date.now() - h * 3_600_000).toISOString();
+}
+function daysAgo(n) {
+  return new Date(Date.now() - n * 86_400_000).toISOString();
+}
+
+// ── Partners & household ───────────────────────────────────────────────────
+
+export const DEMO_HOUSEHOLD = {
+  household:     { id: 'demo-hh', name: 'Chen Family', invite_code: 'CHEN42' },
+  partner:       { id: 'demo-pa', display_name: 'Alex', phone: '+1 (555) 012-3456', clerk_user_id: 'demo' },
+  other_partner: { id: 'demo-pb', display_name: 'Jordan' },
+};
+
+export const DEMO_INTEGRATIONS = [
+  {
+    id: 'intg-a', partner_id: 'demo-pa', provider: 'google', is_active: true,
+    account_email: 'alex.chen@gmail.com', last_synced_at: hoursAgo(0.4),
+  },
+  {
+    id: 'intg-b', partner_id: 'demo-pb', provider: 'google', is_active: true,
+    account_email: 'jordan.chen@gmail.com', last_synced_at: hoursAgo(0.6),
+  },
+];
+
+export const DEMO_MY_INTEGRATIONS = [DEMO_INTEGRATIONS[0]];
+
+// ── Alerts ─────────────────────────────────────────────────────────────────
+
+const DEMO_ALERTS_BASE = [
+  {
+    id: 'alert-1',
+    severity: 'high',
+    type: 'schedule_conflict',
+    title: 'Double-booked Thursday — parent-teacher conf overlaps Emma\'s soccer pickup',
+    summary:
+      'Both of you are unavailable at the same time on Thursday afternoon. Alex has a board prep meeting that runs 2–4pm, and Jordan has a quarterly review until 4pm. Emma\'s soccer pickup is at 4:00pm and the parent-teacher conference is also at 4:00pm — there\'s no one to cover both.',
+    action_hint: 'Decide who takes the parent-teacher conf and arrange backup pickup for Emma.',
+    relevant_to: ['partnerA', 'partnerB'],
+    status: 'open',
+    source_data: { dates: [dt(3, 16)] },
+    created_at: hoursAgo(1.2),
+    updated_at: hoursAgo(1.2),
+  },
+  {
+    id: 'alert-2',
+    severity: 'high',
+    type: 'coverage_gap',
+    title: 'Emma\'s school dropoff uncovered Wednesday — Jordan\'s offsite, Alex has early call',
+    summary:
+      'Jordan is at a two-day team offsite Tuesday and Wednesday (9am–6pm). On Wednesday morning, Alex has a 7:45am video call that conflicts with the 8:00am school dropoff window. Neither partner has Emma\'s Wednesday morning dropoff covered.',
+    action_hint: 'Ask a grandparent for Wednesday morning, or reschedule Alex\'s 7:45am call.',
+    relevant_to: ['partnerA', 'partnerB'],
+    status: 'open',
+    source_data: { dates: [dt(2, 8)] },
+    created_at: hoursAgo(1.5),
+    updated_at: hoursAgo(1.5),
+  },
+  {
+    id: 'alert-3',
+    severity: 'medium',
+    type: 'dropped_commitment',
+    title: 'HOA renewal notice — $425 due in 7 days, no payment initiated',
+    summary:
+      'An email from Maplewood HOA arrived 3 days ago with an annual dues invoice of $425 due in 7 days. The email has been read but no payment or calendar reminder has been added. Last year the late fee was $75.',
+    action_hint: 'Pay online at the HOA portal or add a reminder before the due date.',
+    relevant_to: ['partnerB'],
+    status: 'open',
+    source_data: {},
+    created_at: hoursAgo(3),
+    updated_at: hoursAgo(3),
+  },
+  {
+    id: 'alert-4',
+    severity: 'medium',
+    type: 'coverage_gap',
+    title: 'Emma\'s soccer pickup gap Wednesday 4pm — Jordan at offsite until 6pm',
+    summary:
+      'Emma\'s soccer practice ends at 4:00pm on Wednesday. Jordan is at an all-day offsite and won\'t be back until 6pm. Alex has a team sync that ends at 12pm but no conflicts at 4pm — however this hasn\'t been confirmed as covered.',
+    action_hint: 'Confirm Alex can do Wednesday pickup, or ask grandparents as backup.',
+    relevant_to: ['partnerA', 'partnerB'],
+    status: 'open',
+    source_data: { dates: [dt(2, 16)] },
+    created_at: hoursAgo(2),
+    updated_at: hoursAgo(2),
+  },
+  {
+    id: 'alert-5',
+    severity: 'low',
+    type: 'expiring_item',
+    title: 'Liam\'s 6-month pediatric checkup is 3 weeks overdue',
+    summary:
+      'Liam\'s last well-child visit was 6.5 months ago. The pediatrician\'s office sent a reminder email 10 days ago that hasn\'t been acted on. Scheduling typically takes 1–2 weeks lead time.',
+    action_hint: 'Call Dr. Patel\'s office or book online at their patient portal.',
+    relevant_to: ['partnerA'],
+    status: 'open',
+    source_data: {},
+    created_at: hoursAgo(10),
+    updated_at: hoursAgo(10),
+  },
+  {
+    id: 'alert-6',
+    severity: 'low',
+    type: 'asymmetric_context',
+    title: 'Amazon Subscribe & Save order — $91 ships in 2 days, review before it locks',
+    summary:
+      'A recurring Amazon Subscribe & Save order for household supplies (diapers, paper towels, dish soap) is scheduled to process and ship in 48 hours. Jordan placed this order last month; Alex may not be aware. If quantities or items need adjusting, the window closes soon.',
+    action_hint: 'Review the order in Amazon Subscribe & Save and adjust if needed.',
+    relevant_to: ['partnerB'],
+    status: 'open',
+    source_data: {},
+    created_at: hoursAgo(5),
+    updated_at: hoursAgo(5),
+  },
+];
+
+// Mutable copy so dismiss/resolve work in-session
+let demoAlerts = [...DEMO_ALERTS_BASE];
+
+function buildMeta(alerts) {
+  const active = alerts.filter((a) => a.status === 'open');
+  return {
+    total:             active.length,
+    high_count:        active.filter((a) => a.severity === 'high').length,
+    medium_count:      active.filter((a) => a.severity === 'medium').length,
+    low_count:         active.filter((a) => a.severity === 'low').length,
+    last_analysis_at:  hoursAgo(0.3),
+  };
+}
+
+// ── Calendar events ────────────────────────────────────────────────────────
+
+const DEMO_CALENDAR = {
+  eventsA: [
+    // Mon (today, day 0)
+    { id: 'ea-1',  title: 'School dropoff — Emma & Liam', start: dt(0, 8, 0),  end: dt(0, 8, 30),  location: 'Lincoln Elementary' },
+    { id: 'ea-2',  title: 'Team standup',                  start: dt(0, 9, 0),  end: dt(0, 9, 30)  },
+    { id: 'ea-3',  title: 'Lunch with Sarah',              start: dt(0, 12, 0), end: dt(0, 13, 0),  location: 'Tartine Bakery' },
+    { id: 'ea-4',  title: 'Kids pickup',                   start: dt(0, 15, 30),end: dt(0, 16, 0),  location: 'Lincoln Elementary' },
+    // Tue (day 1)
+    { id: 'ea-5',  title: 'Dentist appointment',           start: dt(1, 10, 0), end: dt(1, 11, 0),  location: 'Bright Smiles Dental' },
+    { id: 'ea-6',  title: 'Deep work block',               start: dt(1, 13, 0), end: dt(1, 15, 0)  },
+    // Wed (day 2)
+    { id: 'ea-7',  title: 'Video call — 7:45am',           start: dt(2, 7, 45), end: dt(2, 8, 45)  },
+    { id: 'ea-8',  title: 'Team sync',                     start: dt(2, 11, 0), end: dt(2, 12, 0)  },
+    { id: 'ea-9',  title: 'Emma soccer pickup',            start: dt(2, 16, 0), end: dt(2, 16, 30), location: 'Riverside Park' },
+    // Thu (day 3)
+    { id: 'ea-10', title: 'All-hands meeting',             start: dt(3, 9, 0),  end: dt(3, 10, 30) },
+    { id: 'ea-11', title: 'Board prep',                    start: dt(3, 14, 0), end: dt(3, 16, 0)  },
+    { id: 'ea-12', title: 'Parent-teacher conference',     start: dt(3, 16, 0), end: dt(3, 17, 0),  location: 'Lincoln Elementary' },
+    // Fri (day 4)
+    { id: 'ea-13', title: 'Work half-day',                 start: dt(4, 9, 0),  end: dt(4, 12, 0)  },
+    // Sat (day 5)
+    { id: 'ea-14', title: 'Grocery run',                   start: dt(5, 9, 30), end: dt(5, 10, 30), location: 'Whole Foods' },
+    { id: 'ea-15', title: 'Gym',                           start: dt(5, 11, 0), end: dt(5, 12, 30), location: 'Equinox' },
+    // Sun (day 6)
+    { id: 'ea-16', title: 'Meal prep',                     start: dt(6, 15, 0), end: dt(6, 17, 0)  },
+  ],
+  eventsB: [
+    // Mon (today, day 0)
+    { id: 'eb-1',  title: 'Client call',                   start: dt(0, 10, 0), end: dt(0, 11, 30) },
+    { id: 'eb-2',  title: 'Project review',                start: dt(0, 14, 0), end: dt(0, 15, 30) },
+    // Tue (day 1)
+    { id: 'eb-3',  title: 'Team offsite — Day 1',          start: dt(1, 9, 0),  end: dt(1, 18, 0),  location: 'Hotel Emblem, SF' },
+    // Wed (day 2)
+    { id: 'eb-4',  title: 'Team offsite — Day 2',          start: dt(2, 9, 0),  end: dt(2, 18, 0),  location: 'Hotel Emblem, SF' },
+    // Thu (day 3)
+    { id: 'eb-5',  title: 'Quarterly business review',     start: dt(3, 9, 0),  end: dt(3, 11, 0)  },
+    { id: 'eb-6',  title: 'Emma soccer pickup',            start: dt(3, 16, 0), end: dt(3, 16, 30), location: 'Riverside Park' },
+    // Fri (day 4)
+    { id: 'eb-7',  title: '1-on-1s',                       start: dt(4, 10, 0), end: dt(4, 12, 0)  },
+    { id: 'eb-8',  title: 'Emma\'s school play',           start: dt(4, 15, 0), end: dt(4, 16, 30), location: 'Lincoln Elementary' },
+    // Sat (day 5)
+    { id: 'eb-9',  title: 'Yoga',                          start: dt(5, 8, 30), end: dt(5, 9, 30),  location: 'CorePower Yoga' },
+    { id: 'eb-10', title: 'Family lunch',                  start: dt(5, 12, 0), end: dt(5, 14, 0),  location: 'Nopalito' },
+    // Sun (day 6)
+    { id: 'eb-11', title: 'In-laws visiting',              start: dt(6, 13, 0), end: dt(6, 18, 0)  },
+  ],
+};
+
+// ── Insights / stats ───────────────────────────────────────────────────────
+
+const DEMO_STATS = {
+  active:          4,
+  resolved_30d:    14,
+  resolution_rate: 78,
+  created_30d:     18,
+  dismissed_30d:   4,
+  by_type: {
+    coverage_gap:        6,
+    schedule_conflict:   4,
+    dropped_commitment:  3,
+    expiring_item:       3,
+    asymmetric_context:  2,
+  },
+  recent_resolved: [
+    { id: 'r-1', title: 'Car registration renewal — paid online', type: 'dropped_commitment', updated_at: daysAgo(2) },
+    { id: 'r-2', title: 'Soccer practice schedule clash resolved — Jordan taking Tuesdays', type: 'schedule_conflict', updated_at: daysAgo(4) },
+    { id: 'r-3', title: 'Liam\'s preschool field trip permission slip submitted', type: 'dropped_commitment', updated_at: daysAgo(5) },
+    { id: 'r-4', title: 'Babysitter booked for date night Friday', type: 'coverage_gap', updated_at: daysAgo(7) },
+    { id: 'r-5', title: 'FSA deadline reminder actioned — reimbursements filed', type: 'expiring_item', updated_at: daysAgo(9) },
+  ],
+};
+
+// ── Household context ──────────────────────────────────────────────────────
+
+const DEMO_CONTEXT = {
+  members: [
+    { id: 'm-1', name: 'Emma',  role: 'child', age: '8', notes: 'Nut allergy · soccer Tue/Thu 3:30–4:30' },
+    { id: 'm-2', name: 'Liam',  role: 'child', age: '5', notes: 'Loves dinosaurs · preschool 8:30–12:30' },
+  ],
+  notes: 'Vegetarian household. Grandparents (Pat & Chris) live 20 min away and are available for pickups with advance notice.',
+};
+
+// ── Router ─────────────────────────────────────────────────────────────────
+
+export function getDemoResponse(path, options = {}) {
+  const method = (options.method || 'GET').toUpperCase();
+
+  if (path === '/api/household/me')           return Promise.resolve(DEMO_HOUSEHOLD);
+  if (path === '/api/integrations/household') return Promise.resolve(DEMO_INTEGRATIONS);
+  if (path === '/api/integrations')           return Promise.resolve(DEMO_MY_INTEGRATIONS);
+  if (path === '/api/calendar/events')        return Promise.resolve(DEMO_CALENDAR);
+  if (path === '/api/briefing/stats')         return Promise.resolve(DEMO_STATS);
+  if (path === '/api/household/context')      return Promise.resolve({ context: DEMO_CONTEXT });
+
+  if (path === '/api/briefing') {
+    const open = demoAlerts.filter((a) => a.status === 'open');
+    return Promise.resolve({ alerts: open, meta: buildMeta(open) });
+  }
+
+  // Mutations: dismiss / snooze / resolve
+  const dismissMatch = path.match(/^\/api\/briefing\/([^/]+)\/dismiss$/);
+  if (dismissMatch && method === 'PATCH') {
+    demoAlerts = demoAlerts.filter((a) => a.id !== dismissMatch[1]);
+    return Promise.resolve({});
+  }
+  const snoozeMatch = path.match(/^\/api\/briefing\/([^/]+)\/snooze$/);
+  if (snoozeMatch && method === 'PATCH') {
+    demoAlerts = demoAlerts.filter((a) => a.id !== snoozeMatch[1]);
+    return Promise.resolve({});
+  }
+  const resolveMatch = path.match(/^\/api\/briefing\/([^/]+)\/resolve$/);
+  if (resolveMatch && method === 'PATCH') {
+    demoAlerts = demoAlerts.map((a) =>
+      a.id === resolveMatch[1] ? { ...a, status: 'resolved' } : a
+    );
+    return Promise.resolve({});
+  }
+
+  // Sync trigger — no-op in demo
+  if (path === '/api/analyze/trigger') return Promise.resolve({ ok: true });
+
+  // Google connect — redirect to dashboard root (no real OAuth in demo)
+  if (path === '/api/google/connect') return Promise.resolve({ url: '/' });
+
+  // Household context save
+  if (path === '/api/household/context' && method === 'PATCH') return Promise.resolve({});
+
+  return Promise.resolve({});
+}

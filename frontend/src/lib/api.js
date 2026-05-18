@@ -1,4 +1,7 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { getDemoResponse } from './demoData';
+
+const API_URL  = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const IS_DEMO  = import.meta.env.VITE_IS_DEMO === 'true';
 
 let getTokenFn = null;
 
@@ -26,6 +29,8 @@ async function doFetch(path, options, skipCache) {
 }
 
 export async function apiFetch(path, options = {}) {
+  if (IS_DEMO) return getDemoResponse(path, options);
+
   let res = await doFetch(path, options, false);
 
   if (res.status === 401) {
