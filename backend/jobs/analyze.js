@@ -100,10 +100,14 @@ async function runAnalysisForHousehold(householdId) {
 
     let created = 0;
     const smsAlerts = [];
+    const activeTitles = new Set(activeAlerts.map((a) => `${a.type}::${a.title?.toLowerCase()}`));
 
     for (const alert of alerts) {
       const fp = alert.fingerprint || alert._md5;
       if (existingFingerprints.includes(fp)) { console.log(`[analyze] Skipping duplicate fingerprint: ${fp}`); continue; }
+
+      const titleKey = `${alert.type}::${alert.title?.toLowerCase()}`;
+      if (activeTitles.has(titleKey)) { console.log(`[analyze] Skipping duplicate active title: ${alert.title}`); continue; }
 
       const { data: inserted, error: insertErr } = await supabase
         .from('alerts')
@@ -125,6 +129,7 @@ async function runAnalysisForHousehold(householdId) {
 
       if (insertErr) continue;
 
+      activeTitles.add(titleKey);
       await supabase.from('alert_fingerprints').upsert(
         { household_id: householdId, fingerprint: fp, alert_id: inserted.id },
         { onConflict: 'household_id,fingerprint' }
