@@ -20,17 +20,13 @@ export default function BriefingFeed({ alerts, meta, partnerA, partnerB, onDismi
   return (
     <div className={`flex flex-col ${sidebar ? 'h-full' : ''}`}>
       <div className="px-4 pt-4 pb-2 shrink-0">
-        <div className="flex items-center gap-2 mb-3">
-          <h2 className="text-[16px] font-bold text-dark">Briefing</h2>
-        </div>
-
         <div className="flex gap-1 flex-wrap">
           {[
-            { label: 'All',    count: meta?.total,        active: 'bg-blurple text-white',  dot: null },
-            { label: 'High',   count: meta?.high_count,   active: 'bg-red-500 text-white',  dot: 'bg-red-500'   },
-            { label: 'Medium', count: meta?.medium_count, active: 'bg-amber text-white', dot: 'bg-amber' },
-            { label: 'Low',    count: meta?.low_count,    active: 'bg-blue text-white',  dot: 'bg-blue'  },
-          ].map(({ label, count, active, dot }) => {
+            { label: 'All',    count: meta?.total,        active: 'bg-blurple text-white' },
+            { label: 'High',   count: meta?.high_count,   active: 'bg-red-500 text-white' },
+            { label: 'Medium', count: meta?.medium_count, active: 'bg-amber text-white'   },
+            { label: 'Low',    count: meta?.low_count,    active: 'bg-blue text-white'    },
+          ].map(({ label, count, active }) => {
             const isActive = activeFilter === label && !typeFilter;
             return (
               <button
@@ -40,7 +36,6 @@ export default function BriefingFeed({ alerts, meta, partnerA, partnerB, onDismi
                   isActive ? active : 'bg-white text-mid border border-border hover:bg-gray-50'
                 }`}
               >
-                {dot && !isActive && <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />}
                 {label}
                 {count > 0 && (
                   <span className={`text-[10px] font-bold px-1 py-0.5 rounded-full leading-none ${

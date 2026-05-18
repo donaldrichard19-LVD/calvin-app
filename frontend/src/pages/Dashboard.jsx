@@ -6,7 +6,7 @@ import Header from '../components/Header';
 import BriefingFeed from '../components/BriefingFeed';
 import TimelineView from '../components/TimelineView';
 import InsightsView from '../components/InsightsView';
-import SettingsView from '../components/SettingsView';
+import SettingsView, { getInAppAlertsEnabled } from '../components/SettingsView';
 import BottomNav from '../components/BottomNav';
 import ChatDrawer from '../components/ChatDrawer';
 import SplashScreen from '../components/SplashScreen';
@@ -80,7 +80,7 @@ export default function Dashboard() {
         })
         .catch(() => {});
 
-      if (!alertShownRef.current) {
+      if (!alertShownRef.current && getInAppAlertsEnabled()) {
         const first = (briefingData.alerts || []).find(
           (a) => a.severity === 'high' || a.severity === 'medium'
         );

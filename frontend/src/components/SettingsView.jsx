@@ -33,6 +33,12 @@ function timeSince(dateStr) {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
+const INAPP_ALERTS_KEY = 'calvin_inapp_alerts';
+
+export function getInAppAlertsEnabled() {
+  return localStorage.getItem(INAPP_ALERTS_KEY) !== 'false';
+}
+
 export default function SettingsView({ householdInfo, integrations }) {
   const { signOut } = useClerk();
   const [copied, setCopied]           = useState(false);
@@ -40,6 +46,13 @@ export default function SettingsView({ householdInfo, integrations }) {
   const [disconnecting, setDisconnecting] = useState(false);
   const [leaving, setLeaving]         = useState(false);
   const [leaveConfirm, setLeaveConfirm] = useState(false);
+  const [inAppAlerts, setInAppAlerts] = useState(getInAppAlertsEnabled);
+
+  function toggleInAppAlerts() {
+    const next = !inAppAlerts;
+    setInAppAlerts(next);
+    localStorage.setItem(INAPP_ALERTS_KEY, String(next));
+  }
 
   const partner      = householdInfo?.partner;
   const otherPartner = householdInfo?.other_partner;
@@ -142,6 +155,27 @@ export default function SettingsView({ householdInfo, integrations }) {
             }
           />
         )}
+      </Section>
+
+      <Section title="Notifications">
+        <div className="flex items-center justify-between px-4 py-3 gap-3">
+          <div className="min-w-0">
+            <div className="text-[14px] font-medium text-dark">In-app alerts</div>
+            <div className="text-[11px] text-light">Show a popup when a new high or medium alert is detected</div>
+          </div>
+          <button
+            onClick={toggleInAppAlerts}
+            className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors duration-200 focus:outline-none ${
+              inAppAlerts ? 'bg-blurple' : 'bg-gray-200'
+            }`}
+            role="switch"
+            aria-checked={inAppAlerts}
+          >
+            <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform duration-200 mt-0.5 ${
+              inAppAlerts ? 'translate-x-5' : 'translate-x-0.5'
+            }`} />
+          </button>
+        </div>
       </Section>
 
       {otherPartner && (
