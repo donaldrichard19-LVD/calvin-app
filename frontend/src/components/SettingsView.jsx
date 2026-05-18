@@ -99,7 +99,7 @@ export default function SettingsView({ householdInfo, integrations }) {
   }
 
   function copyInvite() {
-    const link = `${window.location.origin}?invite=${inviteCode}`;
+    const link = window.location.origin;
     navigator.clipboard.writeText(link).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -188,22 +188,20 @@ export default function SettingsView({ householdInfo, integrations }) {
         </Section>
       )}
 
-      {inviteCode && (
-        <Section title="Household invite">
-          <Row
-            label="Invite code"
-            value={inviteCode}
-            action={
-              <button
-                onClick={copyInvite}
-                className="text-[12px] font-semibold text-blurple hover:opacity-75"
-              >
-                {copied ? 'Copied!' : 'Copy link'}
-              </button>
-            }
-          />
-        </Section>
-      )}
+      <Section title="Invite friends">
+        <Row
+          label="Share Calvin"
+          value="Invite friends to try Calvin"
+          action={
+            <button
+              onClick={copyInvite}
+              className="text-[12px] font-semibold text-blurple hover:opacity-75"
+            >
+              {copied ? 'Copied!' : 'Copy link'}
+            </button>
+          }
+        />
+      </Section>
 
       <Section title="Household">
         {!leaveConfirm ? (
