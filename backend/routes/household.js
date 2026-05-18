@@ -189,6 +189,40 @@ router.delete('/leave', requireAuth, async (req, res) => {
   }
 });
 
+router.get('/context', requireAuth, async (req, res) => {
+  try {
+    const partner = await getPartner(req.auth.userId);
+    if (!partner?.household_id) return res.json({ context: {} });
+
+    const { data, error } = await supabase
+      .from('households')
+      .select('context')
+      .eq('id', partner.household_id)
+      .single();
+    if (error) throw error;
+    res.json({ context: data?.context || {} });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.patch('/context', requireAuth, async (req, res) => {
+  try {
+    const { context } = req.body;
+    const partner = await getPartner(req.auth.userId);
+    if (!partner?.household_id) return res.status(400).json({ error: 'No household' });
+
+    const { error } = await supabase
+      .from('households')
+      .update({ context })
+      .eq('id', partner.household_id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.post('/analyze', requireAuth, async (req, res) => {
   try {
     const partner = await getPartner(req.auth.userId);

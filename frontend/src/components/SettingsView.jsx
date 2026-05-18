@@ -1,6 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useClerk } from '@clerk/clerk-react';
 import { apiFetch } from '../lib/api';
+
+const ROLES = ['child', 'pet', 'grandparent', 'parent', 'sibling', 'other'];
+function newMember() {
+  return { id: crypto.randomUUID(), name: '', role: 'child', age: '', notes: '' };
+}
 
 function Section({ title, children }) {
   return (
@@ -47,6 +52,41 @@ export default function SettingsView({ householdInfo, integrations }) {
   const [leaving, setLeaving]         = useState(false);
   const [leaveConfirm, setLeaveConfirm] = useState(false);
   const [inAppAlerts, setInAppAlerts] = useState(getInAppAlertsEnabled);
+
+  const [context, setContext]         = useState({ members: [], notes: '' });
+  const [contextSaving, setContextSaving] = useState(false);
+  const [contextSaved, setContextSaved]   = useState(false);
+
+  useEffect(() => {
+    apiFetch('/api/household/context')
+      .then((d) => setContext(d.context?.members ? d.context : { members: d.context?.members || [], notes: d.context?.notes || '' }))
+      .catch(() => {});
+  }, []);
+
+  function addMember() {
+    setContext((prev) => ({ ...prev, members: [...prev.members, newMember()] }));
+  }
+
+  function updateMember(id, field, value) {
+    setContext((prev) => ({
+      ...prev,
+      members: prev.members.map((m) => m.id === id ? { ...m, [field]: value } : m),
+    }));
+  }
+
+  function removeMember(id) {
+    setContext((prev) => ({ ...prev, members: prev.members.filter((m) => m.id !== id) }));
+  }
+
+  async function saveContext() {
+    setContextSaving(true);
+    try {
+      await apiFetch('/api/household/context', { method: 'PATCH', body: JSON.stringify({ context }) });
+      setContextSaved(true);
+      setTimeout(() => setContextSaved(false), 2000);
+    } catch {}
+    setContextSaving(false);
+  }
 
   function toggleInAppAlerts() {
     const next = !inAppAlerts;
@@ -175,6 +215,77 @@ export default function SettingsView({ householdInfo, integrations }) {
               inAppAlerts ? 'translate-x-5' : 'translate-x-0.5'
             }`} />
           </button>
+        </div>
+      </Section>
+
+      <Section title="Household context">
+        <div className="px-4 py-3 space-y-3">
+          <p className="text-[11px] text-light leading-relaxed">
+            Calvin uses this to personalise alerts and chat responses — add children, pets, grandparents, food preferences, and anything else that's relevant.
+          </p>
+
+          {context.members.map((m) => (
+            <div key={m.id} className="flex gap-2 items-start">
+              <div className="flex-1 space-y-1.5">
+                <input
+                  value={m.name}
+                  onChange={(e) => updateMember(m.id, 'name', e.target.value)}
+                  placeholder="Name"
+                  className="w-full text-[13px] border border-border rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-blurple"
+                />
+                <div className="flex gap-1.5">
+                  <select
+                    value={m.role}
+                    onChange={(e) => updateMember(m.id, 'role', e.target.value)}
+                    className="text-[12px] border border-border rounded-lg px-2 py-1.5 bg-white focus:outline-none"
+                  >
+                    {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                  <input
+                    value={m.age}
+                    onChange={(e) => updateMember(m.id, 'age', e.target.value)}
+                    placeholder="Age"
+                    className="w-14 text-[12px] border border-border rounded-lg px-2 py-1.5 bg-white focus:outline-none"
+                  />
+                  <input
+                    value={m.notes}
+                    onChange={(e) => updateMember(m.id, 'notes', e.target.value)}
+                    placeholder="Fav. food, allergies, notes…"
+                    className="flex-1 text-[12px] border border-border rounded-lg px-2 py-1.5 bg-white focus:outline-none"
+                  />
+                </div>
+              </div>
+              <button
+                onClick={() => removeMember(m.id)}
+                className="text-light hover:text-red-400 transition-colors pt-2 px-1"
+              >✕</button>
+            </div>
+          ))}
+
+          <button
+            onClick={addMember}
+            className="text-[12px] font-semibold text-blurple hover:opacity-75 transition-opacity"
+          >
+            + Add person or pet
+          </button>
+
+          <textarea
+            value={context.notes}
+            onChange={(e) => setContext((prev) => ({ ...prev, notes: e.target.value }))}
+            placeholder="Other notes (e.g. we're vegetarian, grandparents live 10 mins away…)"
+            rows={2}
+            className="w-full text-[13px] border border-border rounded-lg px-3 py-2 bg-white resize-none focus:outline-none focus:ring-1 focus:ring-blurple"
+          />
+
+          <div className="flex justify-end">
+            <button
+              onClick={saveContext}
+              disabled={contextSaving}
+              className="btn-primary text-[12px] py-1.5 px-4 disabled:opacity-50"
+            >
+              {contextSaved ? 'Saved ✓' : contextSaving ? 'Saving…' : 'Save'}
+            </button>
+          </div>
         </div>
       </Section>
 

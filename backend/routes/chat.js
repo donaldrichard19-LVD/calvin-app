@@ -9,6 +9,24 @@ const { createCalendarEvent } = require('../lib/google');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+function formatHouseholdContext(ctx) {
+  if (!ctx || (!ctx.members?.length && !ctx.notes)) return '';
+  const parts = [];
+  if (ctx.members?.length) {
+    const list = ctx.members
+      .filter((m) => m.name)
+      .map((m) => {
+        let s = `${m.name} (${m.role}${m.age ? `, age ${m.age}` : ''})`;
+        if (m.notes) s += `: ${m.notes}`;
+        return s;
+      })
+      .join('; ');
+    if (list) parts.push(`Members: ${list}`);
+  }
+  if (ctx.notes) parts.push(ctx.notes);
+  return parts.join('\n');
+}
+
 const TOOLS = [
   {
     name: 'create_calendar_event',
@@ -40,16 +58,16 @@ router.post('/', requireAuth, chatLimiter, async (req, res) => {
       .eq('clerk_user_id', req.auth.userId)
       .single();
 
-    const { data: alert, error: aErr } = await supabase
-      .from('alerts')
-      .select('title, summary, action_hint')
-      .eq('id', alertId)
-      .eq('household_id', partner?.household_id)
-      .single();
+    const [alertResult, householdResult] = await Promise.all([
+      supabase.from('alerts').select('title, summary, action_hint').eq('id', alertId).eq('household_id', partner?.household_id).single(),
+      supabase.from('households').select('context').eq('id', partner?.household_id).single(),
+    ]);
 
-    if (aErr || !alert) return res.status(404).json({ error: 'Alert not found' });
+    const alert = alertResult.data;
+    if (alertResult.error || !alert) return res.status(404).json({ error: 'Alert not found' });
 
     const now = new Date().toLocaleString('en-US', { timeZone: 'America/New_York', dateStyle: 'full', timeStyle: 'short' });
+    const householdContext = formatHouseholdContext(householdResult.data?.context);
 
     const systemPrompt = `You are a practical family assistant. The user is asking a follow-up about this alert:
 
@@ -58,8 +76,8 @@ Summary: ${alert.summary}
 Suggested action: ${alert.action_hint}
 
 Current date/time: ${now} (America/New_York)
-
-Be concise and direct. If the user asks to create, schedule, or add a calendar event, use the create_calendar_event tool. Infer reasonable defaults (1 hour duration if not specified). Do not repeat the alert back to the user.`;
+${householdContext ? `\nHousehold context:\n${householdContext}\n` : ''}
+Be concise and direct. Use the household context to personalise responses — reference people, pets, and preferences by name where relevant. If the user asks to create, schedule, or add a calendar event, use the create_calendar_event tool. Infer reasonable defaults (1 hour duration if not specified). Do not repeat the alert back to the user.`;
 
     const validMessages = messages
       .filter((m) => m.role && m.content)
