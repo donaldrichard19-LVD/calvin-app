@@ -102,12 +102,27 @@ async function runAnalysisForHousehold(householdId) {
     const smsAlerts = [];
     const activeTitles = new Set(activeAlerts.map((a) => `${a.type}::${a.title?.toLowerCase()}`));
 
+    // Build a set of event/email IDs already covered by active alerts
+    const activeEventIds = new Set();
+    const activeEmailIds = new Set();
+    for (const a of activeAlerts) {
+      (a.source_data?.event_ids || []).forEach((id) => activeEventIds.add(id));
+      (a.source_data?.email_ids || []).forEach((id) => activeEmailIds.add(id));
+    }
+
     for (const alert of alerts) {
       const fp = alert.fingerprint || alert._md5;
       if (existingFingerprints.includes(fp)) { console.log(`[analyze] Skipping duplicate fingerprint: ${fp}`); continue; }
 
       const titleKey = `${alert.type}::${alert.title?.toLowerCase()}`;
       if (activeTitles.has(titleKey)) { console.log(`[analyze] Skipping duplicate active title: ${alert.title}`); continue; }
+
+      // Skip if any referenced event/email is already covered by an active alert
+      const newEventIds = alert.source_data?.event_ids || [];
+      const newEmailIds = alert.source_data?.email_ids || [];
+      const overlapsEvent = newEventIds.some((id) => activeEventIds.has(id));
+      const overlapsEmail = newEmailIds.some((id) => activeEmailIds.has(id));
+      if (overlapsEvent || overlapsEmail) { console.log(`[analyze] Skipping — source already covered by active alert: ${alert.title}`); continue; }
 
       const { data: inserted, error: insertErr } = await supabase
         .from('alerts')
@@ -130,6 +145,8 @@ async function runAnalysisForHousehold(householdId) {
       if (insertErr) continue;
 
       activeTitles.add(titleKey);
+      newEventIds.forEach((id) => activeEventIds.add(id));
+      newEmailIds.forEach((id) => activeEmailIds.add(id));
       await supabase.from('alert_fingerprints').upsert(
         { household_id: householdId, fingerprint: fp, alert_id: inserted.id },
         { onConflict: 'household_id,fingerprint' }
