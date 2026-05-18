@@ -16,6 +16,7 @@ app.use(cors({
 app.use(express.json());
 app.use(defaultLimiter);
 
+app.use('/api/demo',      require('./routes/demo'));
 app.use('/api/household', require('./routes/household'));
 app.use('/api/integrations', require('./routes/integrations'));
 app.use('/api/google', require('./routes/google'));
