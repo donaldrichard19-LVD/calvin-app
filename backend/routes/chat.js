@@ -151,6 +151,16 @@ Be concise and direct. Use the household context to personalise responses — re
 
     const textBlock = response.content.find((b) => b.type === 'text');
     console.log('[chat] final text length:', textBlock?.text?.length);
+
+    if (textBlock?.text) {
+      supabase.from('chat_messages').insert({
+        household_id: partner.household_id,
+        alert_id:     alertId,
+        partner_id:   partner.id,
+        content:      textBlock.text,
+      }).then(({ error }) => { if (error) console.error('[chat] log error:', error.message); });
+    }
+
     res.json({ content: textBlock?.text || '', eventCreated: createdEvent || null });
   } catch (err) {
     console.error('[chat] error:', err.message, err.status ?? '');
