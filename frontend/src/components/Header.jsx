@@ -119,7 +119,7 @@ export default function Header({ householdInfo, integrations, onRefresh, onInvit
                 className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-border text-left"
               >
                 <PlusIcon className="w-4 h-4 text-blurple shrink-0" />
-                <span className="text-[13px] font-medium text-dark">Add user account</span>
+                <span className="text-[13px] font-medium text-dark">Add household user</span>
               </button>
             )}
 
