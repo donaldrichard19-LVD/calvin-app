@@ -102,6 +102,8 @@ function Spinner({ className = 'w-4 h-4' }) {
 // Joiner flow:  0 (info) → 1 (household/join)   → [splash] → 3 (connect)               → dashboard
 //   Joiner's connect step is displayed as step 2 in the dot counter.
 
+const IS_DEMO = import.meta.env.VITE_IS_DEMO === 'true';
+
 export default function Onboarding() {
   const { isLoaded, isSignedIn } = useAuth();
   const navigate = useNavigate();
@@ -122,6 +124,7 @@ export default function Onboarding() {
   const [createdCode, setCreatedCode] = useState('');
   const [copied, setCopied]           = useState(false);
 
+  const [demoLoading, setDemoLoading]  = useState(false);
   const [loading, setLoading]         = useState(false);
   const [checking, setChecking]       = useState(true);
   const [showSplash, setShowSplash]   = useState(false);
@@ -243,6 +246,22 @@ export default function Onboarding() {
     }
   }
 
+  async function handleDemoExplore() {
+    setDemoLoading(true);
+    try {
+      await apiFetch('/api/household/partner', {
+        method: 'PUT',
+        body: JSON.stringify({ display_name: 'Demo User', phone: null }),
+      });
+      await apiFetch('/api/household/create', {
+        method: 'POST',
+        body: JSON.stringify({ name: 'Demo Household' }),
+      }).catch(() => {});
+      await apiFetch('/api/demo/setup', { method: 'POST' }).catch(() => {});
+    } catch {}
+    navigate('/dashboard', { replace: true });
+  }
+
   function copyCode() {
     navigator.clipboard.writeText(createdCode);
     setCopied(true);
@@ -283,6 +302,15 @@ export default function Onboarding() {
         {/* ── Step 0: Your info ── */}
         {step === 0 && (
           <div key="step-0" className="step-enter space-y-5">
+            {IS_DEMO && (
+              <button
+                onClick={handleDemoExplore}
+                disabled={demoLoading}
+                className="btn-primary w-full py-3 text-[15px] disabled:opacity-50"
+              >
+                {demoLoading ? 'Setting up…' : 'Explore demo →'}
+              </button>
+            )}
             <div className="text-center mb-6">
               <HouseIcon />
               <h1 className="text-[26px] font-bold text-dark mt-4 mb-1">Welcome to Calvin</h1>

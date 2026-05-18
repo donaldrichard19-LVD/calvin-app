@@ -168,7 +168,8 @@ export default function Dashboard() {
   }
 
   // ── Splash / connect gates ────────────────────────────────────────────────
-  if (!loading && myIntegrations !== null && !myIntegration) {
+  const isDemo = import.meta.env.VITE_IS_DEMO === 'true';
+  if (!isDemo && !loading && myIntegrations !== null && !myIntegration) {
     if (!splashDone) {
       return (
         <SplashScreen
