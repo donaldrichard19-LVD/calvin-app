@@ -10,8 +10,14 @@ function getClient() {
   return new Resend(process.env.RESEND_API_KEY);
 }
 
+function validDate(val) {
+  const d = new Date(val);
+  return isNaN(d.getTime()) ? null : d;
+}
+
 function fmtTime(e) {
-  if (e.start?.dateTime) return new Date(e.start.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  const d = validDate(e.start?.dateTime);
+  if (d) return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
   return 'All day';
 }
 
@@ -27,14 +33,17 @@ function fmtDayLabel(date) {
 
 function buildWeekBuckets(eventsA, eventsB, partnerA, partnerB) {
   const now = new Date();
+  const today = new Date(now); today.setHours(0,0,0,0);
   const buckets = {};
   const addEvent = (e, name) => {
-    const start = new Date(e.start?.dateTime || e.start?.date);
-    const today = new Date(now); today.setHours(0,0,0,0);
-    const daysAhead = Math.round((new Date(start).setHours(0,0,0,0) - today.getTime()) / 86400000);
+    const raw = e.start?.dateTime || e.start?.date;
+    const start = validDate(raw);
+    if (!start) return;
+    const dayStart = new Date(start); dayStart.setHours(0,0,0,0);
+    const daysAhead = Math.round((dayStart - today) / 86400000);
     if (daysAhead < 0 || daysAhead > 6) return;
-    const key = start.toDateString();
-    if (!buckets[key]) buckets[key] = { date: start, events: [] };
+    const key = dayStart.toDateString();
+    if (!buckets[key]) buckets[key] = { date: dayStart, events: [] };
     buckets[key].events.push({ ...e, _partner: name });
   };
   eventsA.forEach((e) => addEvent(e, partnerA));
