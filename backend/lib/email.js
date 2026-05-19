@@ -94,20 +94,10 @@ function buildHtml({ type, dateStr, alerts, partnerA, partnerB, weekBuckets }) {
     : `<div style="margin-bottom:24px">
          <div style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">Alerts</div>
          ${alerts.slice(0, 8).map((a) => `
-           <div style="border:1px solid ${severityColor[a.severity]}33;background:${severityBg[a.severity]};border-radius:8px;padding:12px 14px;margin-bottom:8px">
-             <table style="width:100%;border-collapse:collapse">
-               <tr>
-                 <td style="vertical-align:top;padding-right:8px;white-space:nowrap;width:1%">
-                   <span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;background:${severityColor[a.severity]};color:#fff">
-                     ${severityLabel[a.severity].toUpperCase()}
-                   </span>
-                 </td>
-                 <td style="vertical-align:top">
-                   <span style="font-size:14px;font-weight:600;color:#1e293b;line-height:1.4">${a.title}</span>
-                   ${a.body ? `<div style="margin-top:4px;font-size:13px;color:#475569;line-height:1.4">${a.body}</div>` : ''}
-                 </td>
-               </tr>
-             </table>
+           <div style="border-left:3px solid ${severityColor[a.severity]};background:${severityBg[a.severity]};border-radius:0 8px 8px 0;padding:10px 14px;margin-bottom:8px">
+             <div style="font-size:10px;font-weight:700;color:${severityColor[a.severity]};letter-spacing:.6px;margin-bottom:4px">${severityLabel[a.severity].toUpperCase()}</div>
+             <div style="font-size:14px;font-weight:600;color:#1e293b;line-height:1.4">${a.title}</div>
+             ${a.body ? `<div style="margin-top:4px;font-size:13px;color:#475569;line-height:1.4">${a.body}</div>` : ''}
            </div>`).join('')}
          ${alerts.length > 8 ? `<div style="font-size:13px;color:#94a3b8;margin-top:4px;padding-left:2px">+${alerts.length - 8} more — open Calvin to see all</div>` : ''}
        </div>`;
