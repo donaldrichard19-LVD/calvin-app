@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const { defaultLimiter } = require('./middleware/rateLimit');
 const { startCronJob, runAnalysisForHousehold } = require('./jobs/analyze');
+const { startDigestCronJob } = require('./jobs/emailDigest');
 
 const app = express();
 
@@ -68,4 +69,5 @@ const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Family HQ backend running on http://localhost:${PORT}`);
   startCronJob();
+  startDigestCronJob();
 });

@@ -52,6 +52,9 @@ export default function SettingsView({ householdInfo, integrations }) {
   const [leaving, setLeaving]         = useState(false);
   const [leaveConfirm, setLeaveConfirm] = useState(false);
   const [inAppAlerts, setInAppAlerts] = useState(getInAppAlertsEnabled);
+  const [mcpInfo, setMcpInfo]         = useState(null);
+  const [mcpCopied, setMcpCopied]     = useState(false);
+  const [digestSaving, setDigestSaving] = useState(false);
 
   const [context, setContext]         = useState({ members: [], notes: '' });
   const [contextSaving, setContextSaving] = useState(false);
@@ -61,6 +64,7 @@ export default function SettingsView({ householdInfo, integrations }) {
     apiFetch('/api/household/context')
       .then((d) => setContext(d.context?.members ? d.context : { members: d.context?.members || [], notes: d.context?.notes || '' }))
       .catch(() => {});
+    apiFetch('/api/household/mcp-info').then(setMcpInfo).catch(() => {});
   }, []);
 
   function addMember() {
@@ -86,6 +90,23 @@ export default function SettingsView({ householdInfo, integrations }) {
       setTimeout(() => setContextSaved(false), 2000);
     } catch {}
     setContextSaving(false);
+  }
+
+  function copyMcpUrl() {
+    if (!mcpInfo?.mcp_url) return;
+    navigator.clipboard.writeText(mcpInfo.mcp_url).then(() => {
+      setMcpCopied(true);
+      setTimeout(() => setMcpCopied(false), 2000);
+    });
+  }
+
+  async function updateDigest(updates) {
+    setDigestSaving(true);
+    try {
+      await apiFetch('/api/household/notifications', { method: 'PATCH', body: JSON.stringify(updates) });
+      setMcpInfo((prev) => ({ ...prev, ...updates }));
+    } catch {}
+    setDigestSaving(false);
   }
 
   function toggleInAppAlerts() {
@@ -215,6 +236,69 @@ export default function SettingsView({ householdInfo, integrations }) {
               inAppAlerts ? 'translate-x-5' : 'translate-x-0.5'
             }`} />
           </button>
+        </div>
+      </Section>
+
+      <Section title="Calvin AI">
+        <div className="px-4 py-3 space-y-4">
+          <div>
+            <div className="text-[11px] text-light mb-1.5">Claude connector URL</div>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 text-[12px] font-mono bg-gray-50 border border-border rounded-lg px-3 py-2 truncate text-mid">
+                {mcpInfo?.mcp_url || 'Loading…'}
+              </div>
+              <button
+                onClick={copyMcpUrl}
+                disabled={!mcpInfo}
+                className="text-[12px] font-semibold text-blurple hover:opacity-75 shrink-0 disabled:opacity-40"
+              >
+                {mcpCopied ? 'Copied!' : 'Copy'}
+              </button>
+            </div>
+            <p className="text-[11px] text-light mt-1.5 leading-relaxed">
+              Paste into Claude Cowork → Customize → Connectors to give Claude access to your Calvin alerts and calendar.
+            </p>
+          </div>
+
+          <div className="border-t border-border pt-4">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <div className="text-[14px] font-medium text-dark">Email digest</div>
+                <div className="text-[11px] text-light">Receive a briefing from hello@calvinai.co</div>
+              </div>
+              <button
+                onClick={() => updateDigest({ digest_email_enabled: !mcpInfo?.digest_email_enabled })}
+                disabled={!mcpInfo || digestSaving}
+                className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors duration-200 focus:outline-none disabled:opacity-50 ${
+                  mcpInfo?.digest_email_enabled ? 'bg-blurple' : 'bg-gray-200'
+                }`}
+                role="switch"
+                aria-checked={mcpInfo?.digest_email_enabled}
+              >
+                <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform duration-200 mt-0.5 ${
+                  mcpInfo?.digest_email_enabled ? 'translate-x-5' : 'translate-x-0.5'
+                }`} />
+              </button>
+            </div>
+            {mcpInfo?.digest_email_enabled && (
+              <div className="flex gap-2 mt-2">
+                {['daily', 'weekly'].map((freq) => (
+                  <button
+                    key={freq}
+                    onClick={() => updateDigest({ digest_email_frequency: freq })}
+                    disabled={digestSaving}
+                    className={`text-[12px] font-semibold px-3 py-1 rounded-full border transition-colors disabled:opacity-50 ${
+                      mcpInfo?.digest_email_frequency === freq
+                        ? 'bg-blurple text-white border-blurple'
+                        : 'text-mid border-border hover:border-blurple hover:text-blurple'
+                    }`}
+                  >
+                    {freq.charAt(0).toUpperCase() + freq.slice(1)}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </Section>
 

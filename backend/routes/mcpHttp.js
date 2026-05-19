@@ -263,20 +263,9 @@ function createServer(householdId) {
   return server;
 }
 
-// ── HTTP handler ─────────────────────────────────────────────────────────────
+// ── HTTP handlers ─────────────────────────────────────────────────────────────
 
-router.all('/', async (req, res) => {
-  const authHeader = req.headers.authorization;
-  const key = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : req.query.key;
-  if (!process.env.CALVIN_MCP_API_KEY || key !== process.env.CALVIN_MCP_API_KEY) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-
-  const householdId = process.env.CALVIN_MCP_HOUSEHOLD_ID;
-  if (!householdId) {
-    return res.status(500).json({ error: 'Server not configured — CALVIN_MCP_HOUSEHOLD_ID missing' });
-  }
-
+async function handleMcp(req, res, householdId) {
   try {
     const mcpServer = createServer(householdId);
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
@@ -286,6 +275,30 @@ router.all('/', async (req, res) => {
     console.error('[mcp-http]', err.message);
     if (!res.headersSent) res.status(500).json({ error: err.message });
   }
+}
+
+// Token-based auth — per-household URL for Cowork / remote connectors
+router.all('/:token', async (req, res) => {
+  const { data: household } = await supabase
+    .from('households')
+    .select('id')
+    .eq('mcp_token', req.params.token)
+    .single();
+
+  if (!household) return res.status(401).json({ error: 'Invalid token' });
+  await handleMcp(req, res, household.id);
+});
+
+// API-key auth — backward compat for env-var-configured Claude Code setup
+router.all('/', async (req, res) => {
+  const authHeader = req.headers.authorization;
+  const key = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : req.query.key;
+  if (!process.env.CALVIN_MCP_API_KEY || key !== process.env.CALVIN_MCP_API_KEY) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  const householdId = process.env.CALVIN_MCP_HOUSEHOLD_ID;
+  if (!householdId) return res.status(500).json({ error: 'CALVIN_MCP_HOUSEHOLD_ID not configured' });
+  await handleMcp(req, res, householdId);
 });
 
 module.exports = router;

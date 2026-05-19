@@ -223,6 +223,52 @@ router.patch('/context', requireAuth, async (req, res) => {
   }
 });
 
+router.get('/mcp-info', requireAuth, async (req, res) => {
+  try {
+    const partner = await getPartner(req.auth.userId);
+    if (!partner?.household_id) return res.status(400).json({ error: 'No household' });
+
+    const { data: household } = await supabase
+      .from('households')
+      .select('mcp_token, digest_email_enabled, digest_email_frequency')
+      .eq('id', partner.household_id)
+      .single();
+
+    let token = household?.mcp_token;
+    if (!token) {
+      token = require('crypto').randomUUID();
+      await supabase.from('households').update({ mcp_token: token }).eq('id', partner.household_id);
+    }
+
+    const base = (process.env.BACKEND_URL || 'https://calvin-app-production.up.railway.app').replace(/\/$/, '');
+    res.json({
+      mcp_url: `${base}/mcp/${token}`,
+      digest_email_enabled: household?.digest_email_enabled ?? false,
+      digest_email_frequency: household?.digest_email_frequency || 'daily',
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.patch('/notifications', requireAuth, async (req, res) => {
+  try {
+    const partner = await getPartner(req.auth.userId);
+    if (!partner?.household_id) return res.status(400).json({ error: 'No household' });
+
+    const { digest_email_enabled, digest_email_frequency } = req.body;
+    const update = {};
+    if (digest_email_enabled !== undefined) update.digest_email_enabled = digest_email_enabled;
+    if (digest_email_frequency !== undefined) update.digest_email_frequency = digest_email_frequency;
+
+    const { error } = await supabase.from('households').update(update).eq('id', partner.household_id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.post('/analyze', requireAuth, async (req, res) => {
   try {
     const partner = await getPartner(req.auth.userId);
