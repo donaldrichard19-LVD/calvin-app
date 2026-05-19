@@ -137,6 +137,18 @@ function createServer(householdId) {
         const cal = intg?.is_active ? `✅ Google (${intg.account_email || 'connected'})` : '❌ No Google Calendar';
         lines.push(`  👤 ${p.display_name || 'Unknown'}${p.phone ? ` · ${p.phone}` : ''} — ${cal}`);
       }
+      const members = household?.context?.members || [];
+      if (members.length) {
+        lines.push('\n👨‍👩‍👧 Household members:');
+        for (const m of members) {
+          const age = m.age ? `, age ${m.age}` : '';
+          const notes = m.notes ? ` — ${m.notes}` : '';
+          lines.push(`  • ${m.name} (${m.role}${age})${notes}`);
+        }
+      }
+      if (household?.context?.notes) {
+        lines.push(`\n📝 Notes: ${household.context.notes}`);
+      }
       return { content: [{ type: 'text', text: lines.join('\n') }] };
     }
   );
