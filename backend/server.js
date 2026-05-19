@@ -13,6 +13,9 @@ app.use(cors({
   origin: allowedOrigin,
   credentials: true,
 }));
+// Webhook routes need raw body for signature verification — must come before express.json()
+app.use('/api/webhooks', express.raw({ type: 'application/json' }), require('./routes/webhooks'));
+
 app.use(express.json());
 app.use(defaultLimiter);
 
