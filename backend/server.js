@@ -27,6 +27,7 @@ app.use('/api/briefing', require('./routes/briefing'));
 app.use('/api/chat', require('./routes/chat'));
 app.use('/api/sms', require('./routes/sms'));
 app.use('/api/calendar', require('./routes/calendar'));
+app.use('/api/mcp', require('./routes/mcp'));
 
 const { requireAuth } = require('./middleware/auth');
 const { supabase } = require('./lib/supabase');
