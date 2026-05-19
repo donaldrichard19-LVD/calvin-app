@@ -4,6 +4,7 @@ const { requireApiKey } = require('../middleware/apiKey');
 const { supabase } = require('../lib/supabase');
 const { getCalendarEvents, createCalendarEvent } = require('../lib/google');
 const { sendSMS } = require('../lib/twilio');
+const { sendDigestEmail } = require('../lib/email');
 const { runAnalysisForHousehold } = require('../jobs/analyze');
 
 router.use(requireApiKey);
@@ -206,6 +207,17 @@ router.get('/digest', async (req, res) => {
     }
 
     res.json({ text, type, alerts_count: activeAlerts.length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/mcp/digest/email?type=daily|weekly
+router.post('/digest/email', async (req, res) => {
+  try {
+    const { type = 'daily' } = req.query;
+    const result = await sendDigestEmail(req.householdId, type);
+    res.json({ success: true, ...result });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

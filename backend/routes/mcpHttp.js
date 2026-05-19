@@ -7,6 +7,7 @@ const { z } = require('zod');
 const { supabase } = require('../lib/supabase');
 const { getCalendarEvents, createCalendarEvent } = require('../lib/google');
 const { sendSMS } = require('../lib/twilio');
+const { sendDigestEmail } = require('../lib/email');
 const { runAnalysisForHousehold } = require('../jobs/analyze');
 
 const SEVERITY_ORDER = { high: 0, medium: 1, low: 2 };
@@ -247,6 +248,15 @@ function createServer(householdId) {
         sendSMS(p.phone, text).then(() => `✅ ${p.display_name}`).catch((e) => `❌ ${p.display_name}: ${e.message}`)
       ));
       return { content: [{ type: 'text', text: `Digest SMS sent:\n${results.join('\n')}` }] };
+    }
+  );
+
+  server.tool('send_email_digest',
+    'Generate and email the daily or weekly Calvin digest to all connected household partners.',
+    { type: z.enum(['daily', 'weekly']).optional().default('daily').describe('Digest type') },
+    async ({ type }) => {
+      const result = await sendDigestEmail(householdId, type);
+      return { content: [{ type: 'text', text: `📧 ${type === 'weekly' ? 'Weekly digest' : 'Daily briefing'} emailed to: ${result.to.join(', ')}` }] };
     }
   );
 
