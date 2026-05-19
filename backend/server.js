@@ -10,11 +10,18 @@ app.set('trust proxy', 1);
 
 const allowedOrigin = (process.env.FRONTEND_URL || 'http://localhost:5173').trim().replace(/\/$/, '');
 app.use(cors({
-  origin: allowedOrigin,
+  origin: (origin, cb) => {
+    // Allow the frontend, Anthropic's MCP cloud proxy, and server-to-server calls (no origin)
+    if (!origin || origin === allowedOrigin || origin.endsWith('.anthropic.com')) return cb(null, true);
+    cb(new Error('Not allowed by CORS'));
+  },
   credentials: true,
 }));
 // Webhook routes need raw body for signature verification — must come before express.json()
 app.use('/api/webhooks', express.raw({ type: 'application/json' }), require('./routes/webhooks'));
+
+// MCP HTTP transport — must handle raw body before express.json() for SSE negotiation
+app.use('/mcp', require('./routes/mcpHttp'));
 
 app.use(express.json());
 app.use(defaultLimiter);
