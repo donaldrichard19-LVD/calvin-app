@@ -42,24 +42,51 @@ const TABS = [
 
 export default function BottomNav({ active, onChange }) {
   return (
-    <nav className="fixed bottom-0 inset-x-0 h-16 bg-white border-t border-border z-40 flex items-center safe-bottom">
-      {TABS.map(({ id, label, icon }) => {
-        const isActive = active === id;
-        return (
-          <button
-            key={id}
-            onClick={() => onChange(id)}
-            className={`group flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-colors relative ${
-              isActive ? 'text-blurple' : 'text-light hover:text-mid'
-            }`}
-          >
-            <div className="relative transition-transform duration-100 ease-out group-active:scale-75">
-              {icon(isActive)}
-            </div>
-            <span className={`text-[10px] font-semibold leading-none ${isActive ? 'text-blurple' : ''}`}>{label}</span>
-          </button>
-        );
-      })}
-    </nav>
+    <>
+      {/* Desktop: left sidebar */}
+      <nav className="hidden md:flex fixed left-0 top-0 bottom-0 w-52 bg-white border-r border-border z-40 flex-col pt-6 pb-4">
+        <div className="px-5 mb-6">
+          <span className="text-[15px] font-bold text-dark tracking-tight">Calvin</span>
+        </div>
+        {TABS.map(({ id, label, icon }) => {
+          const isActive = active === id;
+          return (
+            <button
+              key={id}
+              onClick={() => onChange(id)}
+              className={`group flex items-center gap-3 mx-3 px-3 py-2.5 rounded-lg transition-colors text-left ${
+                isActive ? 'bg-blurple/10 text-blurple' : 'text-mid hover:bg-gray-50 hover:text-dark'
+              }`}
+            >
+              <div className="shrink-0 transition-transform duration-100 ease-out group-active:scale-75">
+                {icon(isActive)}
+              </div>
+              <span className={`text-[13px] font-semibold`}>{label}</span>
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* Mobile: bottom nav */}
+      <nav className="md:hidden fixed bottom-0 inset-x-0 h-16 bg-white border-t border-border z-40 flex items-center safe-bottom">
+        {TABS.map(({ id, label, icon }) => {
+          const isActive = active === id;
+          return (
+            <button
+              key={id}
+              onClick={() => onChange(id)}
+              className={`group flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-colors ${
+                isActive ? 'text-blurple' : 'text-light hover:text-mid'
+              }`}
+            >
+              <div className="transition-transform duration-100 ease-out group-active:scale-75">
+                {icon(isActive)}
+              </div>
+              <span className={`text-[10px] font-semibold leading-none ${isActive ? 'text-blurple' : ''}`}>{label}</span>
+            </button>
+          );
+        })}
+      </nav>
+    </>
   );
 }
