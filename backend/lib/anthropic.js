@@ -31,12 +31,19 @@ Use this to personalise alert generation:
 - Never suppress a high-severity alert purely due to dismissal history if it represents a genuine scheduling conflict or missed commitment with real consequences.
 
 ## Auto-resolving existing alerts
-You will receive existing_active_alerts — alerts currently shown to the household. For each one, review the current calendar and email data to check if the recommended action has been completed:
+You will receive existing_active_alerts — alerts currently shown to the household. For EVERY alert in this list, actively check partnerA_events and partnerB_events to determine if the issue has already been addressed.
+
+Match events by title keyword similarity and approximate date — exact event IDs are not required. An alert about "Partly interview" is resolved by any calendar event whose title contains "Partly" and "interview" (in any order or casing), or equivalent phrasing, on or near the relevant date.
+
+Resolve criteria by type:
 - "schedule_conflict": the two conflicting events no longer overlap, or one was removed/rescheduled → resolve.
 - "coverage_gap": an event now covers the gap period → resolve.
-- "dropped_commitment": an event matching the commitment now exists → resolve.
-- Any alert whose action_hint suggests creating a calendar event: a matching event now exists → resolve.
-When in doubt, leave the alert active. Only resolve when the evidence is clear.
+- "dropped_commitment": a calendar event matching the commitment's subject and approximate timeframe now exists in either partner's calendar → resolve.
+- "expiring_item": the deadline has passed or a matching event/action is now on the calendar → resolve.
+- "asymmetric_context": the relevant information has been acted on (e.g., the referenced event is now on the calendar) → resolve.
+- Any alert whose action_hint says to "create", "schedule", or "add" a calendar event: if a calendar event matching the alert's subject now exists in either partner's calendar → resolve.
+
+Lean toward resolving when there is a plausible keyword match on the calendar. Only keep an alert active if there is clearly no corresponding event or action in the data.
 
 ## Response format
 Respond ONLY with a valid JSON object. No preamble, no markdown, no explanation outside the JSON.
