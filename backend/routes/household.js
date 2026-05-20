@@ -240,7 +240,7 @@ router.get('/mcp-info', requireAuth, async (req, res) => {
       await supabase.from('households').update({ mcp_token: token }).eq('id', partner.household_id);
     }
 
-    const base = (process.env.BACKEND_URL || 'https://calvin-app-production.up.railway.app').replace(/\/$/, '');
+    const base = (process.env.BACKEND_URL || 'https://calvin-app.onrender.com').replace(/\/$/, '');
     res.json({
       mcp_url: `${base}/mcp/${token}`,
       digest_email_enabled: household?.digest_email_enabled ?? false,
