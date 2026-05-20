@@ -54,6 +54,8 @@ export default function SettingsView({ householdInfo, integrations }) {
   const [inAppAlerts, setInAppAlerts] = useState(getInAppAlertsEnabled);
   const [mcpInfo, setMcpInfo]         = useState(null);
   const [mcpCopied, setMcpCopied]     = useState(false);
+  const [gptSpecCopied, setGptSpecCopied] = useState(false);
+  const [gptKeyCopied, setGptKeyCopied]   = useState(false);
   const [digestSaving, setDigestSaving] = useState(false);
 
   const [context, setContext]         = useState({ members: [], notes: '' });
@@ -97,6 +99,27 @@ export default function SettingsView({ householdInfo, integrations }) {
     navigator.clipboard.writeText(mcpInfo.mcp_url).then(() => {
       setMcpCopied(true);
       setTimeout(() => setMcpCopied(false), 2000);
+    });
+  }
+
+  const gptSpecUrl = mcpInfo?.mcp_url
+    ? mcpInfo.mcp_url.replace(/\/mcp\/[^/]+$/, '') + '/api/gpt/openapi.json'
+    : null;
+  const gptApiKey = mcpInfo?.mcp_url ? mcpInfo.mcp_url.split('/').pop() : null;
+
+  function copyGptSpec() {
+    if (!gptSpecUrl) return;
+    navigator.clipboard.writeText(gptSpecUrl).then(() => {
+      setGptSpecCopied(true);
+      setTimeout(() => setGptSpecCopied(false), 2000);
+    });
+  }
+
+  function copyGptKey() {
+    if (!gptApiKey) return;
+    navigator.clipboard.writeText(gptApiKey).then(() => {
+      setGptKeyCopied(true);
+      setTimeout(() => setGptKeyCopied(false), 2000);
     });
   }
 
@@ -257,6 +280,45 @@ export default function SettingsView({ householdInfo, integrations }) {
             </div>
             <p className="text-[11px] text-light mt-1.5 leading-relaxed">
               Paste into Claude Cowork → Customize → Connectors to give Claude access to your Calvin alerts and calendar.
+            </p>
+          </div>
+
+          <div className="border-t border-border pt-4">
+            <div className="text-[11px] text-light mb-1.5">ChatGPT connector</div>
+            <div className="space-y-2">
+              <div>
+                <div className="text-[10px] text-light mb-1">Spec URL (paste into Custom GPT → Actions)</div>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 text-[12px] font-mono bg-gray-50 border border-border rounded-lg px-3 py-2 truncate text-mid">
+                    {gptSpecUrl || 'Loading…'}
+                  </div>
+                  <button
+                    onClick={copyGptSpec}
+                    disabled={!gptSpecUrl}
+                    className="text-[12px] font-semibold text-blurple hover:opacity-75 shrink-0 disabled:opacity-40"
+                  >
+                    {gptSpecCopied ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <div className="text-[10px] text-light mb-1">API key (paste into GPT Authentication → Bearer token)</div>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 text-[12px] font-mono bg-gray-50 border border-border rounded-lg px-3 py-2 truncate text-mid">
+                    {gptApiKey ? '••••••••••••••••' : 'Loading…'}
+                  </div>
+                  <button
+                    onClick={copyGptKey}
+                    disabled={!gptApiKey}
+                    className="text-[12px] font-semibold text-blurple hover:opacity-75 shrink-0 disabled:opacity-40"
+                  >
+                    {gptKeyCopied ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
+              </div>
+            </div>
+            <p className="text-[11px] text-light mt-2 leading-relaxed">
+              In ChatGPT → Create a GPT → Actions: import from the spec URL, then set Authentication to API Key (Bearer) and paste your API key.
             </p>
           </div>
 
