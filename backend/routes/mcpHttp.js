@@ -272,6 +272,72 @@ function createServer(householdId) {
     }
   );
 
+  // ── Context ──────────────────────────────────────────────────────────────────
+
+  server.tool('update_household_notes',
+    'Save or update freeform notes in the household context — use this to capture decisions, preferences, reminders, or summaries from this conversation so Calvin remembers them.',
+    {
+      notes: z.string().describe('The notes to save. Replaces existing notes unless append is true.'),
+      append: z.boolean().optional().default(false).describe('If true, appends to existing notes rather than replacing them.'),
+    },
+    async ({ notes, append }) => {
+      const { data: household, error } = await supabase
+        .from('households')
+        .select('context')
+        .eq('id', householdId)
+        .single();
+      if (error) throw new Error(error.message);
+
+      const existing = household?.context || {};
+      const updatedNotes = append && existing.notes
+        ? `${existing.notes}\n\n${notes}`
+        : notes;
+
+      const { error: updateError } = await supabase
+        .from('households')
+        .update({ context: { ...existing, notes: updatedNotes } })
+        .eq('id', householdId);
+      if (updateError) throw new Error(updateError.message);
+
+      return { content: [{ type: 'text', text: `✅ Household notes ${append ? 'updated' : 'saved'} to Calvin.` }] };
+    }
+  );
+
+  server.tool('add_household_member',
+    'Add a new person or pet to the household context — use this when you learn about a child, pet, grandparent, or other household member during conversation.',
+    {
+      name: z.string().describe('Name of the person or pet'),
+      role: z.enum(['child', 'pet', 'grandparent', 'parent', 'sibling', 'other']).describe('Their role in the household'),
+      age: z.string().optional().describe('Age (optional)'),
+      notes: z.string().optional().describe('Relevant notes — allergies, preferences, schedule, etc.'),
+    },
+    async ({ name, role, age, notes }) => {
+      const { data: household, error } = await supabase
+        .from('households')
+        .select('context')
+        .eq('id', householdId)
+        .single();
+      if (error) throw new Error(error.message);
+
+      const existing = household?.context || {};
+      const members = existing.members || [];
+
+      const duplicate = members.find((m) => m.name?.toLowerCase() === name.toLowerCase());
+      if (duplicate) {
+        return { content: [{ type: 'text', text: `⚠️ A member named "${name}" already exists in Calvin. Use update_household_notes to add details about them instead.` }] };
+      }
+
+      const newMember = { id: require('crypto').randomUUID(), name, role, age: age || '', notes: notes || '' };
+      const { error: updateError } = await supabase
+        .from('households')
+        .update({ context: { ...existing, members: [...members, newMember] } })
+        .eq('id', householdId);
+      if (updateError) throw new Error(updateError.message);
+
+      return { content: [{ type: 'text', text: `✅ Added ${name} (${role}) to Calvin household context.` }] };
+    }
+  );
+
   return server;
 }
 
