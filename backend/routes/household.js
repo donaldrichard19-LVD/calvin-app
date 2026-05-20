@@ -251,6 +251,56 @@ router.get('/mcp-info', requireAuth, async (req, res) => {
   }
 });
 
+router.get('/connections', requireAuth, async (req, res) => {
+  try {
+    const partner = await getPartner(req.auth.userId);
+    if (!partner?.household_id) return res.status(400).json({ error: 'No household' });
+
+    const { data: household } = await supabase
+      .from('households')
+      .select('claude_last_seen_at, chatgpt_last_seen_at')
+      .eq('id', partner.household_id)
+      .single();
+
+    const toStatus = (lastSeen) => {
+      if (!lastSeen) return { status: 'never', last_seen_at: null };
+      const mins = (Date.now() - new Date(lastSeen).getTime()) / 60000;
+      return {
+        status: mins < 5 ? 'live' : mins < 1440 ? 'recent' : 'inactive',
+        last_seen_at: lastSeen,
+      };
+    };
+
+    res.json({
+      claude: toStatus(household?.claude_last_seen_at),
+      chatgpt: toStatus(household?.chatgpt_last_seen_at),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/connections/revoke', requireAuth, async (req, res) => {
+  try {
+    const partner = await getPartner(req.auth.userId);
+    if (!partner?.household_id) return res.status(400).json({ error: 'No household' });
+
+    const newToken = require('crypto').randomUUID();
+    await supabase.from('households')
+      .update({
+        mcp_token: newToken,
+        claude_last_seen_at: null,
+        chatgpt_last_seen_at: null,
+      })
+      .eq('id', partner.household_id);
+
+    const base = (process.env.BACKEND_URL || 'https://calvin-app.onrender.com').replace(/\/$/, '');
+    res.json({ mcp_url: `${base}/mcp/${newToken}` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.patch('/notifications', requireAuth, async (req, res) => {
   try {
     const partner = await getPartner(req.auth.userId);

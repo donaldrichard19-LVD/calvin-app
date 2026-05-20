@@ -298,6 +298,10 @@ router.all('/:token', async (req, res) => {
     .single();
 
   if (!household) return res.status(401).json({ error: 'Invalid token' });
+  supabase.from('households')
+    .update({ claude_last_seen_at: new Date().toISOString() })
+    .eq('id', household.id)
+    .then(() => {}).catch(() => {});
   await handleMcp(req, res, household.id);
 });
 

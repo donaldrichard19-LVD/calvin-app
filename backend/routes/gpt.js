@@ -17,6 +17,10 @@ async function requireGptAuth(req, res, next) {
 
   if (!household) return res.status(401).json({ error: 'Invalid token' });
   req.householdId = household.id;
+  supabase.from('households')
+    .update({ chatgpt_last_seen_at: new Date().toISOString() })
+    .eq('id', household.id)
+    .then(() => {}).catch(() => {});
   next();
 }
 
