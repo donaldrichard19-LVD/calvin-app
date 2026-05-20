@@ -279,7 +279,7 @@ export default function SettingsView({ householdInfo, integrations }) {
               </button>
             </div>
             <p className="text-[11px] text-light mt-1.5 leading-relaxed">
-              Paste into Claude Cowork → Customize → Connectors to give Claude access to your Calvin alerts and calendar.
+              Paste into Claude Cowork → Customize → Connectors to give Claude access to your Calvin calendar, shared calendar and household context.
             </p>
           </div>
 
