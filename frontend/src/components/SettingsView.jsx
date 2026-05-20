@@ -57,6 +57,8 @@ export default function SettingsView({ householdInfo, integrations }) {
   const [gptSpecCopied, setGptSpecCopied] = useState(false);
   const [gptKeyCopied, setGptKeyCopied]   = useState(false);
   const [digestSaving, setDigestSaving] = useState(false);
+  const [connections, setConnections]  = useState(null);
+  const [revoking, setRevoking]        = useState(false);
 
   const [context, setContext]         = useState({ members: [], notes: '' });
   const [contextSaving, setContextSaving] = useState(false);
@@ -67,6 +69,7 @@ export default function SettingsView({ householdInfo, integrations }) {
       .then((d) => setContext(d.context?.members ? d.context : { members: d.context?.members || [], notes: d.context?.notes || '' }))
       .catch(() => {});
     apiFetch('/api/household/mcp-info').then(setMcpInfo).catch(() => {});
+    apiFetch('/api/household/connections').then(setConnections).catch(() => {});
   }, []);
 
   function addMember() {
@@ -121,6 +124,17 @@ export default function SettingsView({ householdInfo, integrations }) {
       setGptKeyCopied(true);
       setTimeout(() => setGptKeyCopied(false), 2000);
     });
+  }
+
+  async function handleRevoke() {
+    if (revoking) return;
+    setRevoking(true);
+    try {
+      const { mcp_url } = await apiFetch('/api/household/connections/revoke', { method: 'POST' });
+      setMcpInfo((prev) => ({ ...prev, mcp_url }));
+      setConnections({ claude: { status: 'never', last_seen_at: null }, chatgpt: { status: 'never', last_seen_at: null } });
+    } catch {}
+    setRevoking(false);
   }
 
   async function updateDigest(updates) {
@@ -262,9 +276,52 @@ export default function SettingsView({ householdInfo, integrations }) {
         </div>
       </Section>
 
-      <Section title="Calvin AI">
+      <Section title="Connected Apps">
         <div className="px-4 py-3 space-y-4">
+
+          {/* Active connections */}
           <div>
+            <div className="text-[11px] text-light mb-2">Active connections</div>
+            <div className="space-y-2">
+              {[
+                { key: 'claude', label: 'Claude', subtitle: 'Claude Cowork / Claude Code' },
+              ].map(({ key, label, subtitle }) => {
+                const conn = connections?.[key];
+                const statusColor = !conn || conn.status === 'never' ? 'bg-gray-300'
+                  : conn.status === 'live' ? 'bg-green-500'
+                  : conn.status === 'recent' ? 'bg-yellow-400'
+                  : 'bg-gray-300';
+                const statusText = !conn ? '—'
+                  : conn.status === 'never' ? 'Never connected'
+                  : conn.status === 'live' ? 'Live'
+                  : conn.status === 'recent' ? `Last seen ${timeSince(conn.last_seen_at)}`
+                  : `Inactive · last seen ${timeSince(conn.last_seen_at)}`;
+                return (
+                  <div key={key} className="flex items-center gap-3 py-1">
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${statusColor}`} />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[13px] font-medium text-dark">{label}</div>
+                      <div className="text-[11px] text-light">{subtitle}</div>
+                    </div>
+                    <div className="text-[11px] text-mid shrink-0">{statusText}</div>
+                  </div>
+                );
+              })}
+            </div>
+            <button
+              onClick={handleRevoke}
+              disabled={revoking}
+              className="mt-3 text-[12px] font-semibold text-red-500 hover:opacity-75 disabled:opacity-40 transition-opacity"
+            >
+              {revoking ? 'Revoking…' : 'Revoke all access'}
+            </button>
+            <p className="text-[11px] text-light mt-1 leading-relaxed">
+              Revoking generates a new connector URL, immediately disconnecting all active sessions. Re-share the new URL to reconnect.
+            </p>
+          </div>
+
+          {/* Claude connector URL */}
+          <div className="border-t border-border pt-4">
             <div className="text-[11px] text-light mb-1.5">Claude connector URL</div>
             <div className="flex items-center gap-2">
               <div className="flex-1 text-[12px] font-mono bg-gray-50 border border-border rounded-lg px-3 py-2 truncate text-mid">
@@ -279,48 +336,10 @@ export default function SettingsView({ householdInfo, integrations }) {
               </button>
             </div>
             <p className="text-[11px] text-light mt-1.5 leading-relaxed">
-              Paste into Claude Cowork → Customize → Connectors to give Claude access to your Calvin calendar, shared calendar and household context.
+              Paste URL into Claude: Settings → Customize → Connectors to Add Custom Connector, Name the Connector and Paste URL to give Claude access to your Calvin briefings, shared calendar and household context.
             </p>
           </div>
 
-          <div className="border-t border-border pt-4">
-            <div className="text-[11px] text-light mb-1.5">ChatGPT connector</div>
-            <div className="space-y-2">
-              <div>
-                <div className="text-[10px] text-light mb-1">Spec URL (paste into Custom GPT → Actions)</div>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 text-[12px] font-mono bg-gray-50 border border-border rounded-lg px-3 py-2 truncate text-mid">
-                    {gptSpecUrl || 'Loading…'}
-                  </div>
-                  <button
-                    onClick={copyGptSpec}
-                    disabled={!gptSpecUrl}
-                    className="text-[12px] font-semibold text-blurple hover:opacity-75 shrink-0 disabled:opacity-40"
-                  >
-                    {gptSpecCopied ? 'Copied!' : 'Copy'}
-                  </button>
-                </div>
-              </div>
-              <div>
-                <div className="text-[10px] text-light mb-1">API key (paste into GPT Authentication → Bearer token)</div>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 text-[12px] font-mono bg-gray-50 border border-border rounded-lg px-3 py-2 truncate text-mid">
-                    {gptApiKey ? '••••••••••••••••' : 'Loading…'}
-                  </div>
-                  <button
-                    onClick={copyGptKey}
-                    disabled={!gptApiKey}
-                    className="text-[12px] font-semibold text-blurple hover:opacity-75 shrink-0 disabled:opacity-40"
-                  >
-                    {gptKeyCopied ? 'Copied!' : 'Copy'}
-                  </button>
-                </div>
-              </div>
-            </div>
-            <p className="text-[11px] text-light mt-2 leading-relaxed">
-              In ChatGPT → Create a GPT → Actions: import from the spec URL, then set Authentication to API Key (Bearer) and paste your API key.
-            </p>
-          </div>
 
           <div className="border-t border-border pt-4">
             <div className="flex items-center justify-between mb-2">

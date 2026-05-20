@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { useAuth, useUser, SignIn } from '@clerk/clerk-react';
+import { useAuth, useUser, SignIn, SignUp } from '@clerk/clerk-react';
 import { setTokenGetter } from './lib/api';
 import { apiFetch } from './lib/api';
 import Dashboard from './pages/Dashboard';
@@ -49,6 +49,7 @@ function RootRedirect() {
 
 function LandingPage() {
   const isDemo = import.meta.env.VITE_IS_DEMO === 'true';
+  const [mode, setMode] = useState('signin');
   const [copied, setCopied] = useState(null);
 
   function copy(value, field) {
@@ -89,7 +90,37 @@ function LandingPage() {
           </div>
         )}
 
-        <SignIn routing="hash" afterSignInUrl="/" />
+        {mode === 'signin' ? (
+          <SignIn
+            routing="hash"
+            afterSignInUrl="/"
+            afterSignUpUrl="/"
+            appearance={{ elements: { footerAction: { display: 'none' } } }}
+          />
+        ) : (
+          <SignUp
+            routing="hash"
+            afterSignUpUrl="/"
+            afterSignInUrl="/"
+            appearance={{ elements: { footerAction: { display: 'none' } } }}
+          />
+        )}
+
+        <p className="text-[13px] text-mid mt-4">
+          {mode === 'signin' ? (
+            <>Don't have an account?{' '}
+              <button onClick={() => setMode('signup')} className="text-blurple font-semibold hover:opacity-75">
+                Sign up
+              </button>
+            </>
+          ) : (
+            <>Already have an account?{' '}
+              <button onClick={() => setMode('signin')} className="text-blurple font-semibold hover:opacity-75">
+                Sign in
+              </button>
+            </>
+          )}
+        </p>
       </div>
     </div>
   );
