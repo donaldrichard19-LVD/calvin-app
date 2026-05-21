@@ -46,7 +46,7 @@ export default function Signup() {
               <h2 className="text-[18px] font-bold text-dark mb-2">You're on the list</h2>
               <p className="text-mid text-[14px] leading-relaxed">
                 We'll be in touch soon with access. In the meantime,{' '}
-                <a href="/" className="text-blurple font-semibold hover:opacity-75">learn more about Calvin</a>.
+                <a href="/about" className="text-blurple font-semibold hover:opacity-75">learn more about Calvin</a>.
               </p>
             </div>
           ) : (

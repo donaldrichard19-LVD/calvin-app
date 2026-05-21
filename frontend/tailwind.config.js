@@ -29,6 +29,40 @@ export default {
         'card-hover': '0 2px 4px rgba(0,0,0,0.18), 0 8px 28px rgba(0,0,0,0.12)',
         drawer: '-4px 0 24px rgba(0,0,0,0.12)',
       },
+      keyframes: {
+        fadeInUp: {
+          '0%': { opacity: '0', transform: 'translateY(28px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-10px)' },
+        },
+        floatSlow: {
+          '0%, 100%': { transform: 'translateY(0px) rotate(-3deg)' },
+          '50%': { transform: 'translateY(-14px) rotate(3deg)' },
+        },
+        scalePop: {
+          '0%': { opacity: '0', transform: 'scale(0.85)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
+        },
+        shimmer: {
+          '0%': { backgroundPosition: '-200% center' },
+          '100%': { backgroundPosition: '200% center' },
+        },
+      },
+      animation: {
+        'fade-in-up': 'fadeInUp 0.55s ease-out both',
+        'fade-in': 'fadeIn 0.5s ease-out both',
+        'float': 'float 3.2s ease-in-out infinite',
+        'float-slow': 'floatSlow 4.5s ease-in-out infinite',
+        'scale-pop': 'scalePop 0.45s cubic-bezier(0.34,1.56,0.64,1) both',
+        'shimmer': 'shimmer 2.5s linear infinite',
+      },
     },
   },
   plugins: [],
