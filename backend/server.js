@@ -37,6 +37,7 @@ app.use('/api/sms', require('./routes/sms'));
 app.use('/api/calendar', require('./routes/calendar'));
 app.use('/api/mcp', require('./routes/mcp'));
 app.use('/api/gpt', require('./routes/gpt'));
+app.use('/api/waitlist', require('./routes/waitlist'));
 
 const { requireAuth } = require('./middleware/auth');
 const { supabase } = require('./lib/supabase');
