@@ -16,6 +16,15 @@ import InviteModal from '../components/InviteModal';
 const SPLASH_KEY = 'calvin_splash_shown';
 const POLL_INTERVAL = 90000;
 
+function getGoogleErrorMessage(errorCode) {
+  if (!errorCode) return null;
+  if (errorCode === 'google_auth_failed') return 'Google sign-in was cancelled or failed. Please try again.';
+  if (errorCode === 'partner_not_found') return 'Account setup is incomplete. Please complete onboarding first.';
+  if (errorCode.includes('invalid_client')) return 'There is a configuration issue with Google sign-in. Please contact support.';
+  if (errorCode.includes('access_denied')) return 'Access was denied. Please grant the required permissions and try again.';
+  return 'Google sign-in failed. Please try again.';
+}
+
 function getStoredEmoji(partnerId, fallback) {
   return localStorage.getItem(`calvin_emoji_${partnerId}`) || fallback;
 }
@@ -196,6 +205,7 @@ export default function Dashboard() {
     }
 
     const urlError = new URLSearchParams(window.location.search).get('error');
+    const friendlyError = getGoogleErrorMessage(urlError);
     return (
       <div className="min-h-screen bg-bg flex flex-col">
         <Header />
@@ -205,9 +215,9 @@ export default function Dashboard() {
           <p className="text-mid text-sm mb-6 max-w-xs">
             Calvin needs access to your calendar and inbox to detect gaps and conflicts.
           </p>
-          {urlError && (
+          {friendlyError && (
             <p className="text-red-500 text-xs mb-4 max-w-xs">
-              Last attempt failed ({urlError}). Try again below.
+              {friendlyError}
             </p>
           )}
           <button
@@ -222,7 +232,7 @@ export default function Dashboard() {
           <details className="mt-8 text-left max-w-xs w-full">
             <summary className="text-[11px] text-light cursor-pointer">Debug info</summary>
             <pre className="text-[10px] text-mid bg-gray-50 rounded p-2 mt-1 overflow-auto max-h-40">
-              {JSON.stringify({ myIntegrations, urlError }, null, 2)}
+              {JSON.stringify({ myIntegrations, errorCode: urlError }, null, 2)}
             </pre>
           </details>
         </div>
