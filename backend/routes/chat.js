@@ -92,6 +92,7 @@ Be concise and direct. Use the household context to personalise responses — re
       system: systemPrompt,
       messages: validMessages,
       tools: TOOLS,
+      tool_choice: { type: 'auto', disable_parallel_tool_use: true },
     });
 
     console.log('[chat] stop_reason:', response.stop_reason, '| content types:', response.content.map((b) => b.type));
@@ -146,6 +147,7 @@ Be concise and direct. Use the household context to personalise responses — re
           },
         ],
         tools: TOOLS,
+        tool_choice: { type: 'auto', disable_parallel_tool_use: true },
       });
     }
 
