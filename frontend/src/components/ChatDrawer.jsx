@@ -50,6 +50,7 @@ export default function ChatDrawer({ alert, onClose }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [drawerHeight, setDrawerHeight] = useState(null);
   const bottomRef = useRef(null);
 
   useEffect(() => {
@@ -60,6 +61,20 @@ export default function ChatDrawer({ alert, onClose }) {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
+
+  // Shrink drawer when the mobile keyboard opens so the input stays visible
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    function onResize() { setDrawerHeight(vv.height); }
+    onResize();
+    vv.addEventListener('resize', onResize);
+    vv.addEventListener('scroll', onResize);
+    return () => {
+      vv.removeEventListener('resize', onResize);
+      vv.removeEventListener('scroll', onResize);
+    };
+  }, []);
 
   async function sendMessage(text) {
     const trimmed = (text ?? input).trim();
@@ -98,8 +113,12 @@ export default function ChatDrawer({ alert, onClose }) {
     <>
       <div className="fixed inset-0 z-40 bg-black/20" onClick={onClose} />
       <div
-        className="fixed top-0 right-0 h-full z-50 bg-white flex flex-col"
-        style={{ width: 'clamp(320px, 420px, 100vw)', boxShadow: '-4px 0 24px rgba(0,0,0,0.12)' }}
+        className="fixed top-0 right-0 z-50 bg-white flex flex-col"
+        style={{
+          width: 'clamp(320px, 420px, 100vw)',
+          height: drawerHeight ? `${drawerHeight}px` : '100dvh',
+          boxShadow: '-4px 0 24px rgba(0,0,0,0.12)',
+        }}
       >
         {/* Header */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-border shrink-0">
