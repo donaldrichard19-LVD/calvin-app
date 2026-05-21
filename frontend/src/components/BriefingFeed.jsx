@@ -3,7 +3,7 @@ import AlertCard from './AlertCard';
 
 const FILTERS = ['All', 'High', 'Medium', 'Low'];
 
-export default function BriefingFeed({ alerts, meta, partnerA, partnerB, onDismiss, onSnooze, onResolve, onChat, sidebar = false }) {
+export default function BriefingFeed({ alerts, meta, partnerA, partnerB, onDismiss, onSnooze, onResolve, onChat, onUndo, onCancelEvent, sidebar = false }) {
   const [activeFilter, setActiveFilter] = useState('All');
   const [typeFilter, setTypeFilter] = useState(null);
 
@@ -69,7 +69,8 @@ export default function BriefingFeed({ alerts, meta, partnerA, partnerB, onDismi
                 <div className="space-y-2">
                   {high.map((a) => (
                     <AlertCard key={a.id} alert={a} partnerA={partnerA} partnerB={partnerB}
-                      onDismiss={onDismiss} onSnooze={onSnooze} onResolve={onResolve} onChat={onChat} />
+                      onDismiss={onDismiss} onSnooze={onSnooze} onResolve={onResolve} onChat={onChat}
+                      onUndo={onUndo} onCancelEvent={onCancelEvent} />
                   ))}
                 </div>
               </div>
@@ -80,7 +81,8 @@ export default function BriefingFeed({ alerts, meta, partnerA, partnerB, onDismi
                 <div className="space-y-2">
                   {medium.map((a) => (
                     <AlertCard key={a.id} alert={a} partnerA={partnerA} partnerB={partnerB}
-                      onDismiss={onDismiss} onSnooze={onSnooze} onResolve={onResolve} onChat={onChat} />
+                      onDismiss={onDismiss} onSnooze={onSnooze} onResolve={onResolve} onChat={onChat}
+                      onUndo={onUndo} onCancelEvent={onCancelEvent} />
                   ))}
                 </div>
               </div>
@@ -91,7 +93,8 @@ export default function BriefingFeed({ alerts, meta, partnerA, partnerB, onDismi
                 <div className="space-y-2">
                   {low.map((a) => (
                     <AlertCard key={a.id} alert={a} partnerA={partnerA} partnerB={partnerB}
-                      onDismiss={onDismiss} onSnooze={onSnooze} onResolve={onResolve} onChat={onChat} />
+                      onDismiss={onDismiss} onSnooze={onSnooze} onResolve={onResolve} onChat={onChat}
+                      onUndo={onUndo} onCancelEvent={onCancelEvent} />
                   ))}
                 </div>
               </div>

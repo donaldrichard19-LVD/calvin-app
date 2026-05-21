@@ -1,7 +1,7 @@
 require('dotenv').config();
 const cron = require('node-cron');
 const { supabase } = require('../lib/supabase');
-const { getCalendarEvents, getRecentEmails } = require('../lib/google');
+const { getCalendarEvents, getRecentEmails, cancelCalendarEvent } = require('../lib/google');
 const { analyzeHousehold } = require('../lib/anthropic');
 const { sendAlertSMS } = require('../lib/twilio');
 
@@ -94,8 +94,8 @@ async function runAnalysisForHousehold(householdId) {
     };
 
     console.log(`[analyze] Existing fingerprints: ${existingFingerprints.length}, active alerts: ${activeAlerts.length}`);
-    const { alerts, resolveIds } = await analyzeHousehold(context);
-    console.log(`[analyze] Claude returned ${alerts.length} new alerts, ${resolveIds.length} to auto-resolve`);
+    const { alerts, resolveIds, deleteEvents, confirmEvents } = await analyzeHousehold(context);
+    console.log(`[analyze] Claude returned ${alerts.length} new alerts, ${resolveIds.length} to auto-resolve, ${deleteEvents.length} events to cancel, ${confirmEvents.length} to confirm`);
     if (alerts.length) console.log('[analyze] New:', alerts.map((a) => `${a.severity}:${a.fingerprint}`));
 
     let created = 0;
@@ -184,6 +184,112 @@ async function runAnalysisForHousehold(householdId) {
       }
     }
 
+    // Soft-cancel calendar events whose underlying activities are confirmed complete
+    let cancelledEvents = 0;
+    for (const ev of deleteEvents) {
+      const integration = ev.partner === 'partnerB' ? intB : intA;
+      const partnerRecord = ev.partner === 'partnerB' ? partnerB : partnerA;
+      if (!integration || !partnerRecord) continue;
+
+      const cancelFingerprint = `auto-cancel-${ev.event_id}`;
+      if (existingFingerprints.includes(cancelFingerprint)) continue;
+
+      try {
+        await cancelCalendarEvent(integration, ev.event_id);
+        cancelledEvents++;
+        console.log(`[analyze] Soft-cancelled event ${ev.event_id} (${ev.partner}): ${ev.reason}`);
+
+        const { data: action } = await supabase
+          .from('calendar_actions')
+          .insert({
+            household_id: householdId,
+            event_id: ev.event_id,
+            event_title: ev.event_title || null,
+            partner: ev.partner,
+            partner_id: partnerRecord.id,
+            trigger_email_subject: ev.email_subject || null,
+            trigger_reason: ev.reason || null,
+          })
+          .select()
+          .single();
+
+        const { data: cancelAlert } = await supabase
+          .from('alerts')
+          .insert({
+            household_id: householdId,
+            type: 'event_auto_cancelled',
+            severity: 'low',
+            title: `Cancelled: ${ev.event_title || 'Calendar event'}`,
+            summary: `Calvin detected this was already done and removed it from your calendar. "${ev.email_subject || ev.reason}"`,
+            action_hint: 'Tap Undo if this was a mistake.',
+            source_data: {
+              event_id: ev.event_id,
+              partner: ev.partner,
+              trigger_email_subject: ev.email_subject || null,
+              action_id: action?.id || null,
+            },
+            relevant_to: [ev.partner],
+            status: 'active',
+          })
+          .select()
+          .single();
+
+        if (cancelAlert) {
+          await supabase.from('alert_fingerprints').upsert(
+            { household_id: householdId, fingerprint: cancelFingerprint, alert_id: cancelAlert.id },
+            { onConflict: 'household_id,fingerprint' }
+          );
+          if (action) {
+            await supabase.from('calendar_actions').update({ alert_id: cancelAlert.id }).eq('id', action.id);
+          }
+        }
+      } catch (err) {
+        console.error(`[analyze] Failed to cancel event ${ev.event_id}:`, err.message);
+      }
+    }
+
+    // Surface low-confidence matches as confirmation alerts
+    for (const ev of confirmEvents) {
+      const confirmFingerprint = `confirm-cancel-${ev.event_id}`;
+      if (existingFingerprints.includes(confirmFingerprint)) continue;
+
+      const confirmPartnerRecord = ev.partner === 'partnerB' ? partnerB : partnerA;
+
+      try {
+        const { data: confirmAlert } = await supabase
+          .from('alerts')
+          .insert({
+            household_id: householdId,
+            type: 'event_cancel_confirm',
+            severity: 'low',
+            title: `Should Calvin cancel: ${ev.event_title || 'Calendar event'}?`,
+            summary: `An email suggests this event may already be done: "${ev.email_subject}". ${ev.reason}`,
+            action_hint: 'Tap "Cancel it" to remove from calendar, or dismiss to keep it.',
+            source_data: {
+              event_id: ev.event_id,
+              partner: ev.partner,
+              partner_id: confirmPartnerRecord?.id || null,
+              trigger_email_subject: ev.email_subject || null,
+              trigger_reason: ev.reason || null,
+            },
+            relevant_to: [ev.partner],
+            status: 'active',
+          })
+          .select()
+          .single();
+
+        if (confirmAlert) {
+          await supabase.from('alert_fingerprints').upsert(
+            { household_id: householdId, fingerprint: confirmFingerprint, alert_id: confirmAlert.id },
+            { onConflict: 'household_id,fingerprint' }
+          );
+        }
+        console.log(`[analyze] Created confirm-cancel alert for event ${ev.event_id}`);
+      } catch (err) {
+        console.error(`[analyze] Failed to create confirm alert for ${ev.event_id}:`, err.message);
+      }
+    }
+
     const { data: expired } = await supabase
       .from('alerts')
       .select('id')
@@ -210,7 +316,7 @@ async function runAnalysisForHousehold(householdId) {
       })
       .eq('id', run.id);
 
-    console.log(`[analyze] Household ${householdId}: ${created} new, ${autoResolved} auto-resolved, ${resolvedCount} expired`);
+    console.log(`[analyze] Household ${householdId}: ${created} new, ${autoResolved} auto-resolved, ${resolvedCount} expired, ${cancelledEvents} events soft-cancelled`);
     return run.id;
   } catch (err) {
     console.error(`[analyze] Household ${householdId} failed:`, err.message);

@@ -5,6 +5,8 @@ import { setTokenGetter } from './lib/api';
 import { apiFetch } from './lib/api';
 import Dashboard from './pages/Dashboard';
 import Onboarding from './pages/Onboarding';
+import Privacy from './pages/Privacy';
+import Terms from './pages/Terms';
 
 function TokenBridge() {
   const { getToken } = useAuth();
@@ -121,6 +123,11 @@ function LandingPage() {
             </>
           )}
         </p>
+        <p className="text-[12px] text-light mt-3">
+          <a href="/privacy" className="hover:text-mid transition-colors">Privacy Policy</a>
+          <span className="mx-2">·</span>
+          <a href="/terms" className="hover:text-mid transition-colors">Terms of Service</a>
+        </p>
       </div>
     </div>
   );
@@ -155,6 +162,8 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<Terms />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

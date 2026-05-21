@@ -167,6 +167,20 @@ export default function Dashboard() {
     }));
   }
 
+  async function handleUndo(eventId, alertId) {
+    await apiFetch(`/api/calendar/restore/${eventId}`, { method: 'POST' });
+    setBriefing((prev) => ({
+      ...prev,
+      alerts: prev.alerts.filter((a) => a.id !== alertId),
+      meta: { ...prev.meta, total: Math.max(0, (prev.meta.total || 1) - 1) },
+    }));
+  }
+
+  async function handleCancelEvent(alertId) {
+    await apiFetch(`/api/briefing/${alertId}/cancel-event`, { method: 'POST' });
+    await fetchAll();
+  }
+
   // ── Splash / connect gates ────────────────────────────────────────────────
   const isDemo = import.meta.env.VITE_IS_DEMO === 'true';
   if (!isDemo && !loading && myIntegrations !== null && !myIntegration) {
@@ -218,14 +232,16 @@ export default function Dashboard() {
 
   // ── Shared props ──────────────────────────────────────────────────────────
   const briefingProps = {
-    alerts:    briefing.alerts,
-    meta:      briefing.meta,
-    partnerA:  partnerAData,
-    partnerB:  partnerBData,
-    onDismiss: handleDismiss,
-    onSnooze:  handleSnooze,
-    onResolve: handleResolve,
-    onChat:    setChatAlert,
+    alerts:         briefing.alerts,
+    meta:           briefing.meta,
+    partnerA:       partnerAData,
+    partnerB:       partnerBData,
+    onDismiss:      handleDismiss,
+    onSnooze:       handleSnooze,
+    onResolve:      handleResolve,
+    onChat:         setChatAlert,
+    onUndo:         handleUndo,
+    onCancelEvent:  handleCancelEvent,
   };
 
   const timelineProps = {

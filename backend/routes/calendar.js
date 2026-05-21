@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { requireAuth } = require('../middleware/auth');
 const { supabase } = require('../lib/supabase');
-const { getCalendarEvents, createCalendarEvent, refreshIfNeeded } = require('../lib/google');
+const { getCalendarEvents, createCalendarEvent, restoreCalendarEvent, refreshIfNeeded } = require('../lib/google');
 const { decrypt } = require('../lib/crypto');
 
 router.get('/events', requireAuth, async (req, res) => {
@@ -108,6 +108,61 @@ router.post('/create', requireAuth, async (req, res) => {
         ? 'Calendar write access not granted. Go to Settings and reconnect Google.'
         : err.message,
     });
+  }
+});
+
+router.post('/restore/:eventId', requireAuth, async (req, res) => {
+  try {
+    const { data: me } = await supabase
+      .from('partners')
+      .select('id, household_id')
+      .eq('clerk_user_id', req.auth.userId)
+      .single();
+    if (!me?.household_id) return res.status(400).json({ error: 'No household found' });
+
+    const { data: action } = await supabase
+      .from('calendar_actions')
+      .select('*')
+      .eq('household_id', me.household_id)
+      .eq('event_id', req.params.eventId)
+      .is('restored_at', null)
+      .order('cancelled_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!action) return res.status(404).json({ error: 'No cancellation record found for this event' });
+
+    const { data: integration } = await supabase
+      .from('integrations')
+      .select('*')
+      .eq('partner_id', action.partner_id)
+      .eq('provider', 'google')
+      .eq('is_active', true)
+      .not('access_token', 'is', null)
+      .maybeSingle();
+
+    if (!integration) return res.status(400).json({ error: 'Google Calendar not connected for this partner' });
+
+    await restoreCalendarEvent(integration, req.params.eventId);
+
+    await supabase
+      .from('calendar_actions')
+      .update({ restored_at: new Date().toISOString() })
+      .eq('id', action.id);
+
+    if (action.alert_id) {
+      await supabase
+        .from('alerts')
+        .update({ status: 'resolved', updated_at: new Date().toISOString() })
+        .eq('id', action.alert_id)
+        .eq('household_id', me.household_id);
+    }
+
+    console.log(`[calendar] Restored event ${req.params.eventId} for household ${me.household_id}`);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[calendar/restore]', err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 

@@ -7,6 +7,8 @@ const TYPE_META = {
   invisible_dependency: { icon: '🔗', label: 'Invisible Dependency' },
   expiring_item:        { icon: '⏰', label: 'Expiring Soon' },
   asymmetric_context:   { icon: '📨', label: 'Heads Up' },
+  event_auto_cancelled: { icon: '✓', label: 'Auto-Cancelled' },
+  event_cancel_confirm: { icon: '🗑️', label: 'Cancel Event?' },
 };
 
 function timeAgo(dateStr) {
@@ -31,10 +33,11 @@ function PartnerChip({ partner, isA }) {
   );
 }
 
-export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnooze, onResolve, onChat }) {
+export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnooze, onResolve, onChat, onUndo, onCancelEvent }) {
   const [expanded, setExpanded] = useState(false);
   const [resolving, setResolving] = useState(false);
   const [fadingOut, setFadingOut] = useState(false);
+  const [acting, setActing] = useState(false);
 
   const meta = TYPE_META[alert.type] || { icon: '•', label: alert.type };
   const cardClass = { high: 'alert-card-high', medium: 'alert-card-medium', low: 'alert-card-low' }[alert.severity] || 'alert-card-low';
@@ -47,6 +50,29 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
       setTimeout(() => onResolve(alert.id), 250);
     }, 700);
   }
+
+  async function handleUndo() {
+    if (acting) return;
+    setActing(true);
+    try {
+      await onUndo(alert.source_data?.event_id, alert.id);
+    } finally {
+      setActing(false);
+    }
+  }
+
+  async function handleCancelEvent() {
+    if (acting) return;
+    setActing(true);
+    try {
+      await onCancelEvent(alert.id);
+    } finally {
+      setActing(false);
+    }
+  }
+
+  const isAutoCancelled = alert.type === 'event_auto_cancelled';
+  const isCancelConfirm = alert.type === 'event_cancel_confirm';
 
   return (
     <div className={`card ${cardClass} p-4 relative overflow-hidden ${fadingOut ? 'card-fade-out' : ''}`}>
@@ -97,26 +123,63 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => onChat(alert)}
-            className="text-[12px] font-semibold text-blurple border border-blurple rounded-full px-3 py-1 hover:bg-blurpleLight transition-colors"
-          >
-            Ask follow-up
-          </button>
-          <button
-            onClick={handleResolve}
-            disabled={resolving}
-            className="text-[12px] font-semibold text-green-700 border border-green-600 rounded-full px-3 py-1 hover:bg-green-50 transition-colors disabled:opacity-50"
-          >
-            Resolve
-          </button>
-          <button
-            onClick={() => onDismiss(alert.id)}
-            className="text-[12px] text-light hover:text-mid transition-colors px-1"
-            title="Dismiss"
-          >
-            ✕
-          </button>
+          {isAutoCancelled ? (
+            <>
+              <button
+                onClick={handleUndo}
+                disabled={acting}
+                className="text-[12px] font-semibold text-amber border border-amber rounded-full px-3 py-1 hover:bg-amber/10 transition-colors disabled:opacity-50"
+              >
+                {acting ? '...' : 'Undo'}
+              </button>
+              <button
+                onClick={() => onDismiss(alert.id)}
+                className="text-[12px] text-light hover:text-mid transition-colors px-1"
+                title="Dismiss"
+              >
+                ✕
+              </button>
+            </>
+          ) : isCancelConfirm ? (
+            <>
+              <button
+                onClick={handleCancelEvent}
+                disabled={acting}
+                className="text-[12px] font-semibold text-red-600 border border-red-400 rounded-full px-3 py-1 hover:bg-red-50 transition-colors disabled:opacity-50"
+              >
+                {acting ? '...' : 'Cancel it'}
+              </button>
+              <button
+                onClick={() => onDismiss(alert.id)}
+                className="text-[12px] font-semibold text-mid border border-border rounded-full px-3 py-1 hover:bg-gray-50 transition-colors"
+              >
+                Keep it
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => onChat(alert)}
+                className="text-[12px] font-semibold text-blurple border border-blurple rounded-full px-3 py-1 hover:bg-blurpleLight transition-colors"
+              >
+                Ask follow-up
+              </button>
+              <button
+                onClick={handleResolve}
+                disabled={resolving}
+                className="text-[12px] font-semibold text-green-700 border border-green-600 rounded-full px-3 py-1 hover:bg-green-50 transition-colors disabled:opacity-50"
+              >
+                Resolve
+              </button>
+              <button
+                onClick={() => onDismiss(alert.id)}
+                className="text-[12px] text-light hover:text-mid transition-colors px-1"
+                title="Dismiss"
+              >
+                ✕
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

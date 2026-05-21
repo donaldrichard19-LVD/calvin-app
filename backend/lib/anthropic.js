@@ -38,15 +38,43 @@ You will receive existing_active_alerts — alerts currently shown to the househ
 - Any alert whose action_hint suggests creating a calendar event: a matching event now exists → resolve.
 When in doubt, leave the alert active. Only resolve when the evidence is clear.
 
+## Removing stale calendar events
+You will receive partnerA_events and partnerB_events — upcoming calendar events for both partners. Some events may be for activities that email evidence shows have already been completed. When you can match an email confirmation to a future calendar event, classify the match as high or low confidence and place it in the appropriate array.
+
+Signals that an activity is DONE (high confidence → delete_events):
+- Pickup confirmation email that says the order was actually picked up (e.g. "Your order was picked up", "Thanks for picking up your order")
+- Delivery confirmation email confirming a delivery already occurred
+- "Thank you for your visit" or similar post-activity confirmation
+- Appointment cancellation or rescheduling confirmation email
+
+Signals that an activity MAY be done (low confidence → confirm_events):
+- Pickup-ready notification (item is ready but not yet confirmed picked up)
+- A receipt or purchase confirmation that implies the errand was run but doesn't explicitly confirm pickup/visit
+- Any other email suggesting the activity might be complete but without explicit confirmation
+
+Matching rules (apply to both arrays):
+- Match on retailer/service name and proximity of dates. Do not match if the confirmation is clearly for a different date or order.
+- Never match recurring events, all-day multi-day events, or events not clearly tied to a specific errand or order.
+- Never match an event on a partner's calendar that the other partner would need to confirm (flag it in confirm_events instead).
+- If in doubt, omit it entirely — do not guess.
+
 ## Response format
 Respond ONLY with a valid JSON object. No preamble, no markdown, no explanation outside the JSON.
 
 {
   "resolve": ["uuid-of-alert-1", "uuid-of-alert-2"],
+  "delete_events": [
+    { "event_id": "google-event-id", "event_title": "Target Run", "partner": "partnerA", "reason": "Order pickup confirmed by email", "email_subject": "You picked up your Target order" }
+  ],
+  "confirm_events": [
+    { "event_id": "google-event-id", "event_title": "Target Run", "partner": "partnerA", "reason": "Pickup-ready email received — may already be done", "email_subject": "Your Target order is ready for pickup" }
+  ],
   "alerts": []
 }
 
 "resolve" is an array of alert IDs from existing_active_alerts[].id whose recommended actions are now completed.
+"delete_events" is an array of calendar events Calvin will auto-cancel because email confirms the activity is complete. Each entry must include event_id, event_title, partner (partnerA or partnerB), reason, and email_subject.
+"confirm_events" is an array of calendar events where Calvin is uncertain — it will surface an alert asking the household to confirm before cancelling. Same fields as delete_events.
 "alerts" is an array of new alert objects to create.
 
 Each new alert object must have these exact fields:
@@ -87,6 +115,8 @@ async function analyzeHousehold(householdContext) {
   // Support legacy array format in case of partial rollout
   const rawAlerts = Array.isArray(parsed) ? parsed : (parsed.alerts || []);
   const resolveIds = Array.isArray(parsed) ? [] : (parsed.resolve || []);
+  const deleteEvents = Array.isArray(parsed) ? [] : (parsed.delete_events || []);
+  const confirmEvents = Array.isArray(parsed) ? [] : (parsed.confirm_events || []);
 
   return {
     alerts: rawAlerts.map((alert) => ({
@@ -94,6 +124,8 @@ async function analyzeHousehold(householdContext) {
       _md5: crypto.createHash('md5').update(alert.fingerprint || JSON.stringify(alert)).digest('hex'),
     })),
     resolveIds,
+    deleteEvents,
+    confirmEvents,
   };
 }
 

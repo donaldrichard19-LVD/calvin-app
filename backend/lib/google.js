@@ -173,4 +173,39 @@ async function getRecentEmails(integration, maxResults = 50) {
   });
 }
 
-module.exports = { getAuthUrl, getTokensFromCode, refreshIfNeeded, getCalendarEvents, createCalendarEvent, getRecentEmails };
+async function deleteCalendarEvent(integration, eventId) {
+  const accessToken = await refreshIfNeeded(integration);
+  const oauth2Client = createOAuth2Client();
+  oauth2Client.setCredentials({ access_token: accessToken });
+
+  const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+  await calendar.events.delete({ calendarId: 'primary', eventId });
+}
+
+async function cancelCalendarEvent(integration, eventId) {
+  const accessToken = await refreshIfNeeded(integration);
+  const oauth2Client = createOAuth2Client();
+  oauth2Client.setCredentials({ access_token: accessToken });
+
+  const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+  await calendar.events.patch({
+    calendarId: 'primary',
+    eventId,
+    requestBody: { status: 'cancelled' },
+  });
+}
+
+async function restoreCalendarEvent(integration, eventId) {
+  const accessToken = await refreshIfNeeded(integration);
+  const oauth2Client = createOAuth2Client();
+  oauth2Client.setCredentials({ access_token: accessToken });
+
+  const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+  await calendar.events.patch({
+    calendarId: 'primary',
+    eventId,
+    requestBody: { status: 'confirmed' },
+  });
+}
+
+module.exports = { getAuthUrl, getTokensFromCode, refreshIfNeeded, getCalendarEvents, createCalendarEvent, deleteCalendarEvent, cancelCalendarEvent, restoreCalendarEvent, getRecentEmails };
