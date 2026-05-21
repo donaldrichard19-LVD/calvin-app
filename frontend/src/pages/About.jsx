@@ -88,7 +88,7 @@ export default function About() {
           className="text-xl sm:text-2xl font-medium text-slate-300 animate-fade-in-up max-w-xl leading-snug"
           style={{ animationDelay: '0.15s' }}
         >
-          The coordination layer your household has been missing.
+          Multiple schedules. Now in sync.
         </p>
 
         <p
