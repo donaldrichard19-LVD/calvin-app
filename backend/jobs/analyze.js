@@ -52,13 +52,33 @@ async function runAnalysisForHousehold(householdId) {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
     const [fingerprintsResult, activeAlertsResult, householdResult, dismissedResult] = await Promise.all([
       supabase.from('alert_fingerprints').select('fingerprint').eq('household_id', householdId),
-      supabase.from('alerts').select('id, type, title, summary, action_hint, source_data, status').eq('household_id', householdId).in('status', ['active', 'snoozed']),
+      supabase.from('alerts').select('id, type, title, summary, action_hint, source_data, status, created_at').eq('household_id', householdId).in('status', ['active', 'snoozed']),
       supabase.from('households').select('id, name').eq('id', householdId).single(),
       supabase.from('alerts').select('type, title').eq('household_id', householdId).eq('status', 'dismissed').gte('updated_at', thirtyDaysAgo),
     ]);
 
     const existingFingerprints = (fingerprintsResult.data || []).map((f) => f.fingerprint);
     const activeAlerts = activeAlertsResult.data || [];
+
+    // Dismiss duplicate event_auto_cancelled alerts — keep the newest, dismiss the rest
+    const cancelAlertsByEventId = {};
+    for (const a of activeAlerts) {
+      if (a.type !== 'event_auto_cancelled') continue;
+      const eid = a.source_data?.event_id;
+      if (!eid) continue;
+      if (!cancelAlertsByEventId[eid]) cancelAlertsByEventId[eid] = [];
+      cancelAlertsByEventId[eid].push(a);
+    }
+    const staleIds = [];
+    for (const alerts of Object.values(cancelAlertsByEventId)) {
+      if (alerts.length <= 1) continue;
+      alerts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      staleIds.push(...alerts.slice(1).map((a) => a.id));
+    }
+    if (staleIds.length) {
+      await supabase.from('alerts').update({ status: 'dismissed', updated_at: new Date().toISOString() }).in('id', staleIds);
+      console.log(`[analyze] Cleaned up ${staleIds.length} duplicate event_auto_cancelled alert(s)`);
+    }
 
     const dismissedAlerts = dismissedResult.data || [];
     const dismissalsByType = dismissedAlerts.reduce((acc, a) => {
