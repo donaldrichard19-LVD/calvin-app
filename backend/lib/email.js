@@ -209,4 +209,120 @@ async function sendDigestEmail(householdId, type = 'daily') {
   return { id: data?.id, to: toAddresses };
 }
 
-module.exports = { sendDigestEmail };
+function buildWelcomeHtml({ firstName }) {
+  const name = firstName ? `Hi ${firstName}` : 'Hi there';
+  const APP_URL_LOCAL = 'https://calvinai.co';
+
+  const valueProps = [
+    {
+      icon: '📅',
+      heading: 'Conflicts caught before they happen',
+      body: 'Calvin reads both calendars and both inboxes simultaneously — spotting double-bookings, missing childcare coverage, and back-to-back commitments with no travel time.',
+    },
+    {
+      icon: '🔔',
+      heading: 'Actionable alerts, not noise',
+      body: 'Every alert is a specific, time-sensitive issue with a suggested next step. No generic reminders — just things that will cause a problem if nobody acts.',
+    },
+    {
+      icon: '🔄',
+      heading: 'Stays in sync with what you do',
+      body: 'When you create an event, pick up an order, or complete a task, Calvin detects it and resolves the alert automatically. No manual housekeeping required.',
+    },
+    {
+      icon: '🤝',
+      heading: 'Both partners, one picture',
+      body: 'Calvin flags when one partner knows something the other doesn\'t — medication schedules, vet appointments, pickups — so nothing falls through the cracks.',
+    },
+  ];
+
+  const propCards = valueProps.map((p) => `
+    <tr>
+      <td style="padding:0 0 16px">
+        <table style="width:100%;border-collapse:collapse;background:#f8fafc;border-radius:10px;overflow:hidden">
+          <tr>
+            <td style="width:48px;padding:16px 0 16px 16px;vertical-align:top">
+              <div style="font-size:24px;line-height:1">${p.icon}</div>
+            </td>
+            <td style="padding:16px 16px 16px 12px;vertical-align:top">
+              <div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:4px">${p.heading}</div>
+              <div style="font-size:13px;color:#475569;line-height:1.5">${p.body}</div>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>`).join('');
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Welcome to Calvin</title>
+</head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <div style="display:none;max-height:0;overflow:hidden;color:#f1f5f9">Welcome to Calvin — your family's coordination layer.&nbsp;‌&nbsp;‌&nbsp;‌&nbsp;‌&nbsp;‌&nbsp;‌&nbsp;‌&nbsp;‌</div>
+  <div style="max-width:580px;margin:32px auto 48px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08)">
+
+    <!-- Header -->
+    <div style="background:#0f172a;padding:28px 32px 24px">
+      <div style="font-size:22px;font-weight:800;color:#fff;letter-spacing:-.5px">Calvin</div>
+      <div style="font-size:13px;color:#64748b;margin-top:3px">Your family's coordination layer</div>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:28px 32px 24px">
+      <div style="font-size:18px;font-weight:700;color:#0f172a;margin-bottom:8px">${name}, welcome aboard.</div>
+      <div style="font-size:14px;color:#475569;line-height:1.6;margin-bottom:24px">
+        Calvin works quietly in the background — reading both partners' calendars and inboxes,
+        detecting gaps and conflicts, and surfacing only the things that actually need attention.
+        Here's what it does for you:
+      </div>
+
+      <!-- Value props -->
+      <table style="width:100%;border-collapse:collapse">
+        ${propCards}
+      </table>
+
+      <!-- CTA -->
+      <div style="text-align:center;margin:8px 0 24px">
+        <a href="${APP_URL_LOCAL}" style="display:inline-block;background:#0f172a;color:#fff;text-decoration:none;font-size:14px;font-weight:600;padding:13px 32px;border-radius:8px;letter-spacing:-.1px">
+          Get started →
+        </a>
+      </div>
+
+      <div style="font-size:13px;color:#94a3b8;text-align:center;line-height:1.5">
+        Connect your Google Calendar and Gmail to activate Calvin's analysis.<br>
+        It takes about 60 seconds.
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="padding:16px 32px 24px;border-top:1px solid #f1f5f9">
+      <div style="font-size:11px;color:#cbd5e1;text-align:center">
+        Sent by <a href="${APP_URL_LOCAL}" style="color:#94a3b8;text-decoration:none">Calvin</a> · Your family coordination assistant
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>`;
+}
+
+async function sendWelcomeEmail({ email, firstName }) {
+  if (!email) throw new Error('email is required');
+  const resend = getClient();
+  const html = buildWelcomeHtml({ firstName });
+  const fromAddress = process.env.RESEND_FROM_EMAIL || 'Calvin <hello@calvinai.co>';
+
+  const { data, error } = await resend.emails.send({
+    from: fromAddress,
+    to: email,
+    subject: 'Welcome to Calvin',
+    html,
+  });
+  if (error) throw new Error(error.message);
+  return { id: data?.id };
+}
+
+module.exports = { sendDigestEmail, sendWelcomeEmail };

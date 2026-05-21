@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { Webhook } = require('svix');
 const { supabase } = require('../lib/supabase');
+const { sendWelcomeEmail } = require('../lib/email');
 
 router.post('/clerk', async (req, res) => {
   const secret = process.env.CLERK_WEBHOOK_SECRET;
@@ -24,7 +25,7 @@ router.post('/clerk', async (req, res) => {
   }
 
   if (event.type === 'user.created') {
-    const { id, email_addresses, created_at } = event.data;
+    const { id, email_addresses, first_name, created_at } = event.data;
     const email = email_addresses?.[0]?.email_address ?? null;
 
     const { error } = await supabase.from('signups').insert({
@@ -35,6 +36,12 @@ router.post('/clerk', async (req, res) => {
 
     if (error) console.error('[webhook] insert error:', error.message);
     else console.log('[webhook] signup recorded:', email);
+
+    if (email) {
+      sendWelcomeEmail({ email, firstName: first_name || null }).catch((err) =>
+        console.error('[webhook] welcome email failed:', err.message)
+      );
+    }
   }
 
   res.json({ received: true });
