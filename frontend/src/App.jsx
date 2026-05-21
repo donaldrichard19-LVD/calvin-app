@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard';
 import Onboarding from './pages/Onboarding';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
+import Signup from './pages/Signup';
 
 function TokenBridge() {
   const { getToken } = useAuth();
@@ -162,6 +163,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/signup" element={<Signup />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="*" element={<Navigate to="/" replace />} />
