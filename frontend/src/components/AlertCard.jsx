@@ -7,7 +7,7 @@ const TYPE_META = {
   invisible_dependency: { icon: '🔗', label: 'Invisible Dependency' },
   expiring_item:        { icon: '⏰', label: 'Expiring Soon' },
   asymmetric_context:   { icon: '📨', label: 'Heads Up' },
-  event_auto_cancelled: { icon: '✓', label: 'Auto-Cancelled' },
+  event_auto_cancelled: { icon: '✅', label: 'Auto-Cancelled' },
   event_cancel_confirm: { icon: '🗑️', label: 'Cancel Event?' },
 };
 

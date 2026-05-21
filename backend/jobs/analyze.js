@@ -186,6 +186,16 @@ async function runAnalysisForHousehold(householdId) {
 
     // Soft-cancel calendar events whose underlying activities are confirmed complete
     let cancelledEvents = 0;
+
+    // Guard against duplicates within this run and against already-active undo alerts
+    const activeCancelledEventIds = new Set(
+      activeAlerts
+        .filter((a) => a.type === 'event_auto_cancelled')
+        .map((a) => a.source_data?.event_id)
+        .filter(Boolean)
+    );
+    const processedEventIds = new Set(); // tracks event_ids handled this run
+
     for (const ev of deleteEvents) {
       const integration = ev.partner === 'partnerB' ? intB : intA;
       const partnerRecord = ev.partner === 'partnerB' ? partnerB : partnerA;
@@ -193,10 +203,13 @@ async function runAnalysisForHousehold(householdId) {
 
       const cancelFingerprint = `auto-cancel-${ev.event_id}`;
       if (existingFingerprints.includes(cancelFingerprint)) continue;
+      if (activeCancelledEventIds.has(ev.event_id)) continue;
+      if (processedEventIds.has(ev.event_id)) continue;
 
       try {
         await cancelCalendarEvent(integration, ev.event_id);
         cancelledEvents++;
+        processedEventIds.add(ev.event_id);
         console.log(`[analyze] Soft-cancelled event ${ev.event_id} (${ev.partner}): ${ev.reason}`);
 
         const { data: action } = await supabase
@@ -250,6 +263,9 @@ async function runAnalysisForHousehold(householdId) {
 
     // Surface low-confidence matches as confirmation alerts
     for (const ev of confirmEvents) {
+      if (processedEventIds.has(ev.event_id)) continue; // already auto-cancelled this run
+      if (activeCancelledEventIds.has(ev.event_id)) continue; // already have an undo alert
+
       const confirmFingerprint = `confirm-cancel-${ev.event_id}`;
       if (existingFingerprints.includes(confirmFingerprint)) continue;
 
