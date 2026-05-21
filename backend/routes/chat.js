@@ -42,6 +42,7 @@ const TOOLS = [
       },
       required: ['title', 'start', 'end'],
     },
+    cache_control: { type: 'ephemeral' },
   },
 ];
 
