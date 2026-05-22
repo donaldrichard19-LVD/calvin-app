@@ -98,11 +98,12 @@ async function runAnalysisForHousehold(householdId) {
     ].filter(Boolean));
 
     const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
-    const [fingerprintsResult, activeAlertsResult, householdResult, dismissedResult] = await Promise.all([
+    const [fingerprintsResult, activeAlertsResult, householdResult, dismissedResult, resolvedResult] = await Promise.all([
       supabase.from('alert_fingerprints').select('fingerprint').eq('household_id', householdId),
       supabase.from('alerts').select('id, type, title, summary, action_hint, source_data, status, created_at').eq('household_id', householdId).in('status', ['active', 'snoozed']),
       supabase.from('households').select('id, name').eq('id', householdId).single(),
       supabase.from('alerts').select('type, title').eq('household_id', householdId).eq('status', 'dismissed').gte('updated_at', thirtyDaysAgo),
+      supabase.from('alerts').select('type, title, updated_at').eq('household_id', householdId).eq('status', 'resolved').gte('updated_at', thirtyDaysAgo).order('updated_at', { ascending: false }).limit(50),
     ]);
 
     const existingFingerprints = (fingerprintsResult.data || []).map((f) => f.fingerprint);
@@ -157,6 +158,11 @@ async function runAnalysisForHousehold(householdId) {
         status: a.status,
       })),
       dismissal_patterns: dismissalPatterns,
+      resolved_topics: (resolvedResult.data || []).map((a) => ({
+        type: a.type,
+        title: a.title,
+        resolved_at: a.updated_at,
+      })),
       current_time: new Date().toISOString(),
       timezone: 'America/New_York',
     };

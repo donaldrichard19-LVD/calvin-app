@@ -30,6 +30,13 @@ For each underlying event, person, task, or situation, generate EXACTLY ONE aler
 - If two potential alerts reference the same calendar event IDs, email IDs, person, or date — that is one issue, not two. Emit only the higher-severity one.
 - When in doubt between two types, prefer: schedule_conflict > coverage_gap > dropped_commitment > invisible_dependency > expiring_item > asymmetric_context.
 
+## Resolved topics — do not resurface
+You will receive resolved_topics: a list of alerts the household has explicitly marked as resolved in the past 30 days, each with type, title, and resolved_at.
+
+If a candidate new alert describes the same specific situation as a recently resolved alert — same piece of equipment to return, same library book, same event, same person/task combination — do not create it, even if a new email or reminder has arrived about the same thing. The household already handled it.
+
+Only override this suppression when there is clear, unambiguous evidence that the situation has materially changed and a genuinely new action is needed — for example, a missed deadline with a penalty, a second separate item requiring return, or an explicit re-opening of the task. A follow-up reminder email alone is not enough reason to resurface a resolved alert.
+
 ## Dismissal preferences
 You will receive dismissal_patterns showing what this household has dismissed over the past 30 days:
 - dismissal_patterns.by_type: count of dismissals per alert type (e.g. { "dropped_commitment": 6, "asymmetric_context": 4 })
