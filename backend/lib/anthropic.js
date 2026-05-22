@@ -46,6 +46,8 @@ You will receive existing_active_alerts — alerts currently shown to the househ
 - "coverage_gap": an event now covers the gap period → resolve.
 - "dropped_commitment": an event matching the commitment now exists → resolve.
 - Any alert whose action_hint suggests creating a calendar event: a matching event now exists → resolve.
+- Any alert about a pending pickup, errand, grocery run, or order: if the emails contain a pickup confirmation, delivery confirmation, "order picked up", "thanks for shopping", "your visit", or any post-completion confirmation matching the same retailer/service → resolve immediately. Do not wait for the calendar event to disappear.
+- "event_cancel_confirm" alerts (asking the household whether to cancel an event): if new emails now show high-confidence completion (the order was actually picked up or delivered, not just ready), escalate — add the event to delete_events AND put the alert ID in resolve.
 When in doubt, leave the alert active. Only resolve when the evidence is clear.
 
 ## Removing stale calendar events

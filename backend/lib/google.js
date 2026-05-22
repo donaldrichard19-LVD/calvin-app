@@ -136,10 +136,9 @@ async function getRecentEmails(integration, maxResults = 50) {
   const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
 
   const sevenDaysAgo = Math.floor((Date.now() - 7 * 86400000) / 1000);
-  const twoDaysAgo  = Math.floor((Date.now() - 48 * 3600000) / 1000);
-  // Include recent inbox emails so transactional completion confirmations
-  // (pickup-ready, delivery, order-picked-up) are captured even when already read.
-  const query = `(is:unread OR is:starred OR label:IMPORTANT OR (in:sent after:${sevenDaysAgo}) OR (in:inbox after:${twoDaysAgo}))`;
+  // Use 7-day window for inbox so pickup confirmations, delivery notices, and
+  // order-completed emails aren't missed if the analysis cycle runs days later.
+  const query = `(is:unread OR is:starred OR label:IMPORTANT OR (in:sent after:${sevenDaysAgo}) OR (in:inbox after:${sevenDaysAgo}))`;
 
   const listRes = await gmail.users.messages.list({
     userId: 'me',
