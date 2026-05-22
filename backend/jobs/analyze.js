@@ -32,8 +32,28 @@ async function runAnalysisForHousehold(householdId) {
     const getIntegration = (partnerId) =>
       integrations?.find((i) => i.partner_id === partnerId) || null;
 
-    const intA = getIntegration(partnerA?.id);
-    const intB = partnerB ? getIntegration(partnerB.id) : null;
+    let intA = getIntegration(partnerA?.id);
+    let intB = partnerB ? getIntegration(partnerB.id) : null;
+
+    // Fallback: integrations created before household_id was backfilled may be missing it
+    const missingIds = [
+      !intA && partnerA?.id,
+      !intB && partnerB?.id,
+    ].filter(Boolean);
+    if (missingIds.length) {
+      const { data: fallbacks } = await supabase
+        .from('integrations')
+        .select('*')
+        .in('partner_id', missingIds)
+        .eq('is_active', true)
+        .not('access_token', 'is', null);
+      for (const fb of fallbacks || []) {
+        await supabase.from('integrations').update({ household_id: householdId }).eq('id', fb.id);
+        if (!intA && fb.partner_id === partnerA?.id) intA = fb;
+        if (!intB && partnerB && fb.partner_id === partnerB.id) intB = fb;
+      }
+      if (fallbacks?.length) console.log(`[analyze] Backfilled household_id for ${fallbacks.length} integration(s)`);
+    }
 
     const [eventsA, emailsA, eventsB, emailsB] = await Promise.all([
       intA ? getCalendarEvents(intA).catch((err) => { console.error('[analyze] eventsA failed:', err.message); return []; }) : Promise.resolve([]),
