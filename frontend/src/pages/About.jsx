@@ -129,7 +129,7 @@ export default function About() {
       {/* ── Value props ── */}
       <section className="px-6 pb-24 max-w-2xl mx-auto">
         <h2
-          className="text-center text-[13px] font-bold uppercase tracking-widest text-slate-500 mb-12 animate-fade-in-up"
+          className="text-center text-2xl sm:text-3xl font-bold text-white mb-12 animate-fade-in-up"
           style={{ animationDelay: '0.1s' }}
         >
           What Calvin does
@@ -156,7 +156,7 @@ export default function About() {
 
       {/* ── How it works ── */}
       <section className="px-6 pb-24 max-w-2xl mx-auto">
-        <h2 className="text-center text-[13px] font-bold uppercase tracking-widest text-slate-500 mb-12 animate-fade-in-up">
+        <h2 className="text-center text-2xl sm:text-3xl font-bold text-white mb-12 animate-fade-in-up">
           How it works
         </h2>
 
