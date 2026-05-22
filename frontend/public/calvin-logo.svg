@@ -16,7 +16,7 @@
   <ellipse cx="500" cy="470" rx="380" ry="300" fill="url(#glow)"/>
 
   <!-- House icon — centre piece -->
-  <g transform="translate(500, 430)">
+  <g transform="translate(500, 500) scale(1.7)">
     <!-- Roof -->
     <polygon points="0,-145 155,30 -155,30" fill="#5865f2" opacity="0.95"/>
     <!-- Roof highlight -->
@@ -43,29 +43,4 @@
   <circle cx="330" cy="620" r="5" fill="#7c87f5" opacity="0.3"/>
   <circle cx="670" cy="600" r="7" fill="#5865f2" opacity="0.4"/>
 
-  <!-- Wordmark -->
-  <text
-    x="500"
-    y="760"
-    font-family="'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
-    font-size="112"
-    font-weight="700"
-    letter-spacing="-2"
-    fill="white"
-    text-anchor="middle"
-    dominant-baseline="middle"
-  >Calvin</text>
-
-  <!-- Tagline -->
-  <text
-    x="500"
-    y="845"
-    font-family="'SF Pro Text', 'Helvetica Neue', Arial, sans-serif"
-    font-size="36"
-    font-weight="400"
-    fill="#94a3b8"
-    text-anchor="middle"
-    dominant-baseline="middle"
-    letter-spacing="1"
-  >Family coordination AI</text>
 </svg>
