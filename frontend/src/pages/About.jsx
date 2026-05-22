@@ -50,7 +50,7 @@ export default function About() {
         />
 
         {/* Floating emoji cluster */}
-        <div className="relative mb-10 h-24 w-40 mx-auto select-none">
+        <div className="relative mb-10 h-32 w-64 mx-auto select-none">
           <span
             className="absolute text-5xl animate-float"
             style={{ top: 0, left: '50%', transform: 'translateX(-50%)', animationDelay: '0s' }}
@@ -59,26 +59,26 @@ export default function About() {
           </span>
           <span
             className="absolute text-3xl animate-float-slow"
-            style={{ top: 10, left: 0, animationDelay: '0.6s' }}
+            style={{ top: 16, left: 8, animationDelay: '0.6s' }}
           >
             📬
           </span>
           <span
             className="absolute text-3xl animate-float"
-            style={{ top: 10, right: 0, animationDelay: '1.1s' }}
+            style={{ top: 16, right: 8, animationDelay: '1.1s' }}
           >
             ✅
           </span>
           <span
             className="absolute text-2xl animate-float-slow"
-            style={{ bottom: 0, left: '30%', animationDelay: '0.3s' }}
+            style={{ bottom: 0, left: '50%', transform: 'translateX(-50%)', animationDelay: '0.3s' }}
           >
             🔔
           </span>
         </div>
 
         <h1
-          className="text-5xl sm:text-6xl font-extrabold tracking-tight animate-fade-in-up mb-4"
+          className="w-full text-center text-5xl sm:text-6xl font-extrabold tracking-tight animate-fade-in-up mb-4"
           style={{ animationDelay: '0.05s' }}
         >
           Calvin
