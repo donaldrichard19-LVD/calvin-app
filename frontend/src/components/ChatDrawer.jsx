@@ -1,6 +1,53 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { apiFetch } from '../lib/api';
 
+function renderContent(text) {
+  if (!text) return null;
+  const lines = text.split('\n');
+  const output = [];
+  let listItems = [];
+
+  function flushList() {
+    if (!listItems.length) return;
+    output.push(
+      <ul key={output.length} className="list-none space-y-1 mt-1">
+        {listItems.map((item, i) => (
+          <li key={i} className="flex gap-2">
+            <span className="text-blurple shrink-0">•</span>
+            <span>{renderInline(item)}</span>
+          </li>
+        ))}
+      </ul>
+    );
+    listItems = [];
+  }
+
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+    const bulletMatch = line.match(/^[\s]*[-*•]\s+(.+)/);
+    const numberedMatch = line.match(/^[\s]*\d+[.)]\s+(.+)/);
+    if (bulletMatch || numberedMatch) {
+      listItems.push((bulletMatch || numberedMatch)[1]);
+    } else {
+      flushList();
+      if (line.trim()) {
+        output.push(<p key={output.length} className="mt-1 first:mt-0">{renderInline(line)}</p>);
+      }
+    }
+  }
+  flushList();
+  return <div className="space-y-1">{output}</div>;
+}
+
+function renderInline(text) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((p, i) =>
+    p.startsWith('**') && p.endsWith('**')
+      ? <strong key={i}>{p.slice(2, -2)}</strong>
+      : p
+  );
+}
+
 const SUGGESTIONS = [
   '📅 Create a calendar event for this',
   'What are my options here?',
@@ -50,7 +97,6 @@ export default function ChatDrawer({ alert, onClose }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [drawerHeight, setDrawerHeight] = useState(null);
   const bottomRef = useRef(null);
 
   useEffect(() => {
@@ -61,20 +107,6 @@ export default function ChatDrawer({ alert, onClose }) {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
-
-  // Shrink drawer when the mobile keyboard opens so the input stays visible
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-    function onResize() { setDrawerHeight(vv.height); }
-    onResize();
-    vv.addEventListener('resize', onResize);
-    vv.addEventListener('scroll', onResize);
-    return () => {
-      vv.removeEventListener('resize', onResize);
-      vv.removeEventListener('scroll', onResize);
-    };
-  }, []);
 
   async function sendMessage(text) {
     const trimmed = (text ?? input).trim();
@@ -116,7 +148,7 @@ export default function ChatDrawer({ alert, onClose }) {
         className="fixed top-0 right-0 z-50 bg-white flex flex-col"
         style={{
           width: 'clamp(320px, 420px, 100vw)',
-          height: drawerHeight ? `${drawerHeight}px` : '100dvh',
+          height: '100dvh',
           boxShadow: '-4px 0 24px rgba(0,0,0,0.12)',
         }}
       >
@@ -166,7 +198,7 @@ export default function ChatDrawer({ alert, onClose }) {
                     : 'bg-white border border-border text-dark rounded-bl-sm shadow-card'
                 }`}
               >
-                {m.content}
+                {m.role === 'assistant' ? renderContent(m.content) : m.content}
                 {m.eventCreated && <CalendarEventCard event={m.eventCreated} />}
               </div>
             </div>
@@ -190,8 +222,9 @@ export default function ChatDrawer({ alert, onClose }) {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKey}
               placeholder="Ask a follow-up or say 'Create an event…'"
-              rows={2}
-              className="flex-1 resize-none border border-border rounded-lg px-3 py-2 text-[13px] text-dark placeholder-light focus:outline-none focus:border-blurple transition-colors"
+              rows={1}
+              style={{ fontSize: '16px' }}
+              className="flex-1 resize-none border border-border rounded-lg px-3 py-2.5 text-dark placeholder-light focus:outline-none focus:border-blurple transition-colors leading-snug"
             />
             <button
               onClick={() => sendMessage()}
