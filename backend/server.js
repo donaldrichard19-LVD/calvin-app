@@ -69,6 +69,10 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+app.get('/manifest.json', (req, res) => {
+  res.sendFile(require('path').join(__dirname, 'manifest.json'));
+});
+
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ error: 'Internal server error' });
