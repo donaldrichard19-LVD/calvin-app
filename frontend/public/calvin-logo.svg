@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1000" viewBox="0 0 1000 1000">
+  <!-- Background -->
+  <rect width="1000" height="1000" rx="200" fill="#0b1120"/>
+
+  <!-- Soft radial glow -->
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="48%" r="45%">
+      <stop offset="0%" stop-color="#5865f2" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#0b1120" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="iconGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#5865f2" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#5865f2" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <ellipse cx="500" cy="470" rx="380" ry="300" fill="url(#glow)"/>
+
+  <!-- House icon — centre piece -->
+  <g transform="translate(500, 430)">
+    <!-- Roof -->
+    <polygon points="0,-145 155,30 -155,30" fill="#5865f2" opacity="0.95"/>
+    <!-- Roof highlight -->
+    <polygon points="0,-145 155,30 -155,30" fill="none" stroke="#7c87f5" stroke-width="3" opacity="0.6"/>
+    <!-- Wall body -->
+    <rect x="-110" y="30" width="220" height="145" rx="8" fill="#5865f2" opacity="0.9"/>
+    <!-- Door -->
+    <rect x="-32" y="95" width="64" height="80" rx="8" fill="#0b1120" opacity="0.8"/>
+    <!-- Door knob -->
+    <circle cx="22" cy="137" r="5" fill="#7c87f5"/>
+    <!-- Left window -->
+    <rect x="-95" y="50" width="48" height="40" rx="6" fill="#0b1120" opacity="0.6"/>
+    <line x1="-71" y1="50" x2="-71" y2="90" stroke="#5865f2" stroke-width="2" opacity="0.5"/>
+    <line x1="-95" y1="70" x2="-47" y2="70" stroke="#5865f2" stroke-width="2" opacity="0.5"/>
+    <!-- Right window -->
+    <rect x="47" y="50" width="48" height="40" rx="6" fill="#0b1120" opacity="0.6"/>
+    <line x1="71" y1="50" x2="71" y2="90" stroke="#5865f2" stroke-width="2" opacity="0.5"/>
+    <line x1="47" y1="70" x2="95" y2="70" stroke="#5865f2" stroke-width="2" opacity="0.5"/>
+  </g>
+
+  <!-- Small orbiting accent dots -->
+  <circle cx="310" cy="320" r="8" fill="#5865f2" opacity="0.5"/>
+  <circle cx="690" cy="350" r="6" fill="#5865f2" opacity="0.35"/>
+  <circle cx="330" cy="620" r="5" fill="#7c87f5" opacity="0.3"/>
+  <circle cx="670" cy="600" r="7" fill="#5865f2" opacity="0.4"/>
+
+  <!-- Wordmark -->
+  <text
+    x="500"
+    y="760"
+    font-family="'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
+    font-size="112"
+    font-weight="700"
+    letter-spacing="-2"
+    fill="white"
+    text-anchor="middle"
+    dominant-baseline="middle"
+  >Calvin</text>
+
+  <!-- Tagline -->
+  <text
+    x="500"
+    y="845"
+    font-family="'SF Pro Text', 'Helvetica Neue', Arial, sans-serif"
+    font-size="36"
+    font-weight="400"
+    fill="#94a3b8"
+    text-anchor="middle"
+    dominant-baseline="middle"
+    letter-spacing="1"
+  >Family coordination AI</text>
+</svg>
