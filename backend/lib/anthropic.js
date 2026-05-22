@@ -22,6 +22,7 @@ Do NOT skip these just because the event exists on one partner's calendar. A car
 - Do not recommend creating a calendar event if a matching event (same date, same participants, same purpose) already exists in partnerA_events or partnerB_events.
 - Do not flag a conflict or gap that the current calendar data shows has already been resolved.
 - Do not surface routine care events more than 48 hours away unless there is a specific coordination problem (conflict, missing coverage, asymmetric awareness).
+- Do not create a pickup, order, or errand alert if the email data already contains a pickup confirmation, delivery confirmation, or post-visit email from the same retailer or service for the same order — even if a pickup-ready or order-ready notification is also present. "Beep beep! Your order was picked up", "We hope you enjoy your Drive Up order", "Your order has been delivered", or any similar post-completion email means the alert is not needed.
 
 ## One alert per issue — strictly enforced
 For each underlying event, person, task, or situation, generate EXACTLY ONE alert. This is the most important rule.
