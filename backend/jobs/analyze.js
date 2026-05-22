@@ -1,9 +1,37 @@
 require('dotenv').config();
 const cron = require('node-cron');
+const crypto = require('crypto');
 const { supabase } = require('../lib/supabase');
 const { getCalendarEvents, getRecentEmails, cancelCalendarEvent } = require('../lib/google');
 const { analyzeHousehold } = require('../lib/anthropic');
 const { sendAlertSMS } = require('../lib/twilio');
+
+// Deterministic fingerprint so the same issue isn't re-created across runs
+// even when Claude phrases its fingerprint string differently.
+function computeFingerprint(alert) {
+  const parts = [alert.type || 'unknown'];
+  const eventIds = (alert.source_data?.event_ids || []).filter(Boolean).sort();
+  const emailIds = (alert.source_data?.email_ids || []).filter(Boolean).sort();
+  const dates    = (alert.source_data?.dates    || []).filter(Boolean).sort();
+
+  if (eventIds.length) {
+    parts.push('ev:' + eventIds.join(','));
+  } else if (emailIds.length) {
+    parts.push('em:' + emailIds.join(','));
+  } else if (dates.length) {
+    parts.push('dt:' + dates.join(','));
+    parts.push('to:' + (alert.relevant_to || []).sort().join(','));
+  } else {
+    const normTitle = (alert.title || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    parts.push('t:' + normTitle);
+    parts.push('to:' + (alert.relevant_to || []).sort().join(','));
+  }
+
+  return crypto.createHash('md5').update(parts.join('|')).digest('hex');
+}
 
 async function runAnalysisForHousehold(householdId) {
   const { data: run, error: runErr } = await supabase
@@ -151,8 +179,10 @@ async function runAnalysisForHousehold(householdId) {
     }
 
     for (const alert of alerts) {
-      const fp = alert.fingerprint || alert._md5;
+      const fp = computeFingerprint(alert);
       if (existingFingerprints.includes(fp)) { console.log(`[analyze] Skipping duplicate fingerprint: ${fp}`); continue; }
+      // Secondary check: also honour Claude's own fingerprint if provided
+      if (alert.fingerprint && existingFingerprints.includes(alert.fingerprint)) { console.log(`[analyze] Skipping claude-fingerprint duplicate: ${alert.fingerprint}`); continue; }
 
       const titleKey = `${alert.type}::${alert.title?.toLowerCase()}`;
       if (activeTitles.has(titleKey)) { console.log(`[analyze] Skipping duplicate active title: ${alert.title}`); continue; }
@@ -187,10 +217,12 @@ async function runAnalysisForHousehold(householdId) {
       activeTitles.add(titleKey);
       newEventIds.forEach((id) => activeEventIds.add(id));
       newEmailIds.forEach((id) => activeEmailIds.add(id));
-      await supabase.from('alert_fingerprints').upsert(
-        { household_id: householdId, fingerprint: fp, alert_id: inserted.id },
-        { onConflict: 'household_id,fingerprint' }
-      );
+      existingFingerprints.push(fp); // prevent duplicates within the same run
+      const fpRows = [{ household_id: householdId, fingerprint: fp, alert_id: inserted.id }];
+      if (alert.fingerprint && alert.fingerprint !== fp) {
+        fpRows.push({ household_id: householdId, fingerprint: alert.fingerprint, alert_id: inserted.id });
+      }
+      await supabase.from('alert_fingerprints').upsert(fpRows, { onConflict: 'household_id,fingerprint' });
 
       created++;
       if (alert.severity === 'high' || alert.severity === 'medium') smsAlerts.push(alert);
