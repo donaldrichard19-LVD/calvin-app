@@ -1,0 +1,51 @@
+{
+  "schema_version": "0.2",
+  "name": "Calvin",
+  "tagline": "Family coordination AI — alerts, calendar, and household context in Claude.",
+  "description": "Calvin reads both partners' Google Calendars and Gmail inboxes to surface scheduling conflicts, coverage gaps, and dropped commitments. Connect Calvin to Claude to view and manage household alerts, create calendar events, get daily briefings, and keep both partners in sync — all through natural conversation.",
+  "logo_url": "https://calvinai.co/calvin-logo.png",
+  "favicon_url": "https://calvinai.co/favicon.ico",
+  "contact_email": "donald.richard19@gmail.com",
+  "homepage_url": "https://calvinai.co",
+  "privacy_policy_url": "https://calvinai.co/privacy",
+  "terms_of_service_url": "https://calvinai.co/terms",
+
+  "auth": {
+    "type": "oauth2",
+    "authorization_url": "https://calvin-app.onrender.com/api/oauth/authorize",
+    "token_url": "https://calvin-app.onrender.com/api/oauth/token",
+    "scopes": ["household:read", "household:write"]
+  },
+
+  "transport": {
+    "type": "streamable-http",
+    "url": "https://calvin-app.onrender.com/mcp/{access_token}"
+  },
+
+  "privacy_policies": [
+    {
+      "description": "Calvin does not store calendar or email content. It reads Gmail and Google Calendar at analysis time, generates structured alerts, and stores only the alert metadata in a private household database. No email bodies or calendar descriptions are retained after analysis.",
+      "data_collected": ["alert metadata", "household context (member names, notes)", "Google OAuth tokens (encrypted at rest)"],
+      "third_party_sharing": "none",
+      "retention": "Alert data is retained until dismissed or resolved by the household. OAuth tokens are stored encrypted and deleted when the user disconnects Google.",
+      "contact": "donald.richard19@gmail.com"
+    }
+  ],
+
+  "tools": [
+    { "name": "get_alerts",          "title": "Get Alerts",            "readOnlyHint": true },
+    { "name": "dismiss_alert",       "title": "Dismiss Alert",         "destructiveHint": true },
+    { "name": "snooze_alert",        "title": "Snooze Alert",          "destructiveHint": false },
+    { "name": "resolve_alert",       "title": "Resolve Alert",         "destructiveHint": true },
+    { "name": "get_calendar",        "title": "Get Calendar",          "readOnlyHint": true },
+    { "name": "create_calendar_event","title": "Create Calendar Event","destructiveHint": false },
+    { "name": "get_household",       "title": "Get Household",         "readOnlyHint": true },
+    { "name": "trigger_analysis",    "title": "Trigger Analysis",      "destructiveHint": false },
+    { "name": "get_digest",          "title": "Get Digest",            "readOnlyHint": true },
+    { "name": "send_sms",            "title": "Send SMS",              "destructiveHint": false },
+    { "name": "send_digest_sms",     "title": "Send Digest SMS",       "destructiveHint": false },
+    { "name": "send_email_digest",   "title": "Send Email Digest",     "destructiveHint": false },
+    { "name": "update_household_notes","title": "Update Household Notes","destructiveHint": false },
+    { "name": "add_household_member","title": "Add Household Member",  "destructiveHint": false }
+  ]
+}

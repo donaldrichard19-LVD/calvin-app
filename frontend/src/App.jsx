@@ -9,6 +9,7 @@ import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import Signup from './pages/Signup';
 import About from './pages/About';
+import OAuthConsent from './pages/OAuthConsent';
 
 function TokenBridge() {
   const { getToken } = useAuth();
@@ -166,6 +167,7 @@ export default function App() {
         />
         <Route path="/signup" element={<Signup />} />
         <Route path="/about" element={<About />} />
+        <Route path="/oauth" element={<OAuthConsent />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="*" element={<Navigate to="/" replace />} />

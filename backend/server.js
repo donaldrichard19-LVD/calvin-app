@@ -12,8 +12,14 @@ app.set('trust proxy', 1);
 const allowedOrigin = (process.env.FRONTEND_URL || 'http://localhost:5173').trim().replace(/\/$/, '');
 app.use(cors({
   origin: (origin, cb) => {
-    // Allow the frontend, Anthropic's MCP cloud proxy, and server-to-server calls (no origin)
-    if (!origin || origin === allowedOrigin || origin.endsWith('.anthropic.com')) return cb(null, true);
+    // Allow the frontend, Anthropic/Claude OAuth redirect, MCP cloud proxy, and server-to-server calls
+    if (
+      !origin ||
+      origin === allowedOrigin ||
+      origin.endsWith('.anthropic.com') ||
+      origin.endsWith('.claude.ai') ||
+      origin === 'https://claude.ai'
+    ) return cb(null, true);
     cb(new Error('Not allowed by CORS'));
   },
   credentials: true,
@@ -38,6 +44,7 @@ app.use('/api/calendar', require('./routes/calendar'));
 app.use('/api/mcp', require('./routes/mcp'));
 app.use('/api/gpt', require('./routes/gpt'));
 app.use('/api/waitlist', require('./routes/waitlist'));
+app.use('/api/oauth', require('./routes/oauth'));
 
 const { requireAuth } = require('./middleware/auth');
 const { supabase } = require('./lib/supabase');
