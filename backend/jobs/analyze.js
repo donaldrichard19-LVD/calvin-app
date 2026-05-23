@@ -100,7 +100,7 @@ async function runAnalysisForHousehold(householdId) {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
     const [fingerprintsResult, activeAlertsResult, householdResult, dismissedResult, resolvedResult] = await Promise.all([
       supabase.from('alert_fingerprints').select('fingerprint').eq('household_id', householdId),
-      supabase.from('alerts').select('id, type, title, summary, action_hint, source_data, status, created_at').eq('household_id', householdId).in('status', ['active', 'snoozed']),
+      supabase.from('alerts').select('id, type, title, summary, action_hint, source_data, status, created_at, severity, relevant_to').eq('household_id', householdId).in('status', ['active', 'snoozed']),
       supabase.from('households').select('id, name').eq('id', householdId).single(),
       supabase.from('alerts').select('type, title').eq('household_id', householdId).eq('status', 'dismissed').gte('updated_at', thirtyDaysAgo),
       supabase.from('alerts').select('type, title, updated_at').eq('household_id', householdId).eq('status', 'resolved').gte('updated_at', thirtyDaysAgo).order('updated_at', { ascending: false }).limit(50),
@@ -108,6 +108,15 @@ async function runAnalysisForHousehold(householdId) {
 
     const existingFingerprints = (fingerprintsResult.data || []).map((f) => f.fingerprint);
     const activeAlerts = activeAlertsResult.data || [];
+
+    // Returns the set of meaningful words from an alert title for fuzzy deduplication
+    function titleWordSet(title) {
+      const STOP = new Set(['the', 'and', 'for', 'you', 'your', 'with', 'has', 'have', 'are', 'this', 'that', 'from', 'not']);
+      return new Set(
+        (title || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter((w) => w.length > 2 && !STOP.has(w))
+      );
+    }
+    const activeTitleWordSets = activeAlerts.map((a) => ({ alert: a, words: titleWordSet(a.title) }));
 
     // Dismiss duplicate event_auto_cancelled alerts — keep the newest, dismiss the rest
     const cancelAlertsByEventId = {};
@@ -219,6 +228,21 @@ async function runAnalysisForHousehold(householdId) {
 
       const titleKey = `${alert.type}::${alert.title?.toLowerCase()}`;
       if (activeTitles.has(titleKey)) { console.log(`[analyze] Skipping duplicate active title: ${alert.title}`); continue; }
+
+      // Fuzzy title overlap — catches same issue rephrased slightly between runs
+      const newWords = titleWordSet(alert.title);
+      if (newWords.size > 0) {
+        const fuzzyMatch = activeTitleWordSets.find(({ alert: a, words }) => {
+          if (a.type !== alert.type || words.size === 0) return false;
+          const overlap = [...newWords].filter((w) => words.has(w)).length;
+          return overlap / Math.max(newWords.size, words.size) >= 0.6;
+        });
+        if (fuzzyMatch) {
+          await upgradeAlertSeverityIfNeeded(fuzzyMatch.alert, alert.severity);
+          console.log(`[analyze] Skipping — fuzzy title match with existing: "${alert.title}"`);
+          continue;
+        }
+      }
 
       // Source ID overlap — upgrade severity if needed, then skip insert
       const newEventIds = alert.source_data?.event_ids || [];
