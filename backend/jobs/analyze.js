@@ -99,13 +99,14 @@ async function runAnalysisForHousehold(householdId) {
       intB && supabase.from('integrations').update({ last_synced_at: new Date().toISOString() }).eq('id', intB.id),
     ].filter(Boolean));
 
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
+    const thirtyDaysAgo  = new Date(Date.now() -  30 * 86400000).toISOString();
+    const ninetyDaysAgo  = new Date(Date.now() -  90 * 86400000).toISOString();
     const [fingerprintsResult, activeAlertsResult, householdResult, dismissedResult, resolvedResult] = await Promise.all([
       supabase.from('alert_fingerprints').select('fingerprint').eq('household_id', householdId),
       supabase.from('alerts').select('id, type, title, summary, action_hint, source_data, status, created_at, severity, relevant_to').eq('household_id', householdId).in('status', ['active', 'snoozed']),
       supabase.from('households').select('id, name').eq('id', householdId).single(),
       supabase.from('alerts').select('type, title').eq('household_id', householdId).eq('status', 'dismissed').gte('updated_at', thirtyDaysAgo),
-      supabase.from('alerts').select('type, title, updated_at').eq('household_id', householdId).eq('status', 'resolved').gte('updated_at', thirtyDaysAgo).order('updated_at', { ascending: false }).limit(50),
+      supabase.from('alerts').select('type, title, source_data, relevant_to, updated_at').eq('household_id', householdId).eq('status', 'resolved').gte('updated_at', ninetyDaysAgo).order('updated_at', { ascending: false }).limit(100),
     ]);
 
     const existingFingerprints = (fingerprintsResult.data || []).map((f) => f.fingerprint);
@@ -194,6 +195,8 @@ async function runAnalysisForHousehold(householdId) {
       resolved_topics: (resolvedResult.data || []).map((a) => ({
         type: a.type,
         title: a.title,
+        source_data: a.source_data || {},
+        relevant_to: a.relevant_to || [],
         resolved_at: a.updated_at,
       })),
       current_time: new Date().toISOString(),

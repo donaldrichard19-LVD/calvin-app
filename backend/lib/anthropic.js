@@ -31,11 +31,18 @@ For each underlying event, person, task, or situation, generate EXACTLY ONE aler
 - When in doubt between two types, prefer: schedule_conflict > coverage_gap > dropped_commitment > invisible_dependency > expiring_item > asymmetric_context.
 
 ## Resolved topics — do not resurface
-You will receive resolved_topics: a list of alerts the household has explicitly marked as resolved in the past 30 days, each with type, title, and resolved_at.
+You will receive resolved_topics: a list of alerts the household has explicitly marked as resolved in the past 90 days. Each entry has type, title, source_data (with event_ids, email_ids, and dates), and resolved_at.
 
-If a candidate new alert describes the same specific situation as a recently resolved alert — same piece of equipment to return, same library book, same event, same person/task combination — do not create it, even if a new email or reminder has arrived about the same thing. The household already handled it.
+**Hard rule: do not generate a new alert for any resolved topic or event.**
 
-Only override this suppression when there is clear, unambiguous evidence that the situation has materially changed and a genuinely new action is needed — for example, a missed deadline with a penalty, a second separate item requiring return, or an explicit re-opening of the task. A follow-up reminder email alone is not enough reason to resurface a resolved alert.
+Match a candidate alert against resolved_topics using these signals, in priority order:
+1. **Event ID match** — if any event_id in the candidate's source_data appears in a resolved entry's source_data.event_ids, it is the same event. Do not create the alert.
+2. **Date + participant match** — if the candidate and a resolved entry share the same date(s) and the same relevant_to partners, it is the same situation. Do not create the alert.
+3. **Title similarity** — if the candidate title describes the same specific topic, person, task, or situation as a resolved entry's title (even if worded differently), do not create the alert.
+
+This suppression is permanent within the 90-day window. A follow-up email, reminder notification, or recurring calendar nudge about the same event or task is NOT grounds to resurface it — the household already handled it.
+
+The only exception is when there is unambiguous evidence of a genuinely new, distinct occurrence: a separate appointment on a different date, a second item (not the same one), or explicit evidence the original resolution failed (e.g. a missed-deadline penalty email). A vague new email about the same topic is not enough.
 
 ## Dismissal preferences
 You will receive dismissal_patterns showing what this household has dismissed over the past 30 days:
