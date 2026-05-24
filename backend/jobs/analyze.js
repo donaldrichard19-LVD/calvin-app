@@ -6,6 +6,8 @@ const { getCalendarEvents, getRecentEmails, cancelCalendarEvent } = require('../
 const { analyzeHousehold } = require('../lib/anthropic');
 const { sendAlertSMS } = require('../lib/twilio');
 
+const SEVERITY_RANK = { high: 3, medium: 2, low: 1 };
+
 // Deterministic fingerprint so the same issue isn't re-created across runs
 // even when Claude phrases its fingerprint string differently.
 function computeFingerprint(alert) {
@@ -118,6 +120,28 @@ async function runAnalysisForHousehold(householdId) {
     }
     const activeTitleWordSets = activeAlerts.map((a) => ({ alert: a, words: titleWordSet(a.title) }));
 
+    // Clean up any existing duplicate active alerts — keep highest severity per type+title cluster
+    {
+      const bestByCluster = new Map(); // clusterKey → alert with highest severity
+      for (const a of activeAlerts) {
+        const wordKey = [...titleWordSet(a.title)].sort().join(',');
+        const clusterKey = `${a.type}::${wordKey}`;
+        const current = bestByCluster.get(clusterKey);
+        if (!current || (SEVERITY_RANK[a.severity] || 0) > (SEVERITY_RANK[current.severity] || 0)) {
+          bestByCluster.set(clusterKey, a);
+        }
+      }
+      const dupIds = activeAlerts.filter((a) => {
+        const wordKey = [...titleWordSet(a.title)].sort().join(',');
+        const best = bestByCluster.get(`${a.type}::${wordKey}`);
+        return best && best.id !== a.id;
+      }).map((a) => a.id);
+      if (dupIds.length) {
+        await supabase.from('alerts').update({ status: 'dismissed', updated_at: new Date().toISOString() }).in('id', dupIds);
+        console.log(`[analyze] Cleaned up ${dupIds.length} existing duplicate active alert(s)`);
+      }
+    }
+
     // Dismiss duplicate event_auto_cancelled alerts — keep the newest, dismiss the rest
     const cancelAlertsByEventId = {};
     for (const a of activeAlerts) {
@@ -180,8 +204,6 @@ async function runAnalysisForHousehold(householdId) {
     const { alerts, resolveIds, deleteEvents, confirmEvents } = await analyzeHousehold(context);
     console.log(`[analyze] Claude returned ${alerts.length} new alerts, ${resolveIds.length} to auto-resolve, ${deleteEvents.length} events to cancel, ${confirmEvents.length} to confirm`);
     if (alerts.length) console.log('[analyze] New:', alerts.map((a) => `${a.severity}:${a.fingerprint}`));
-
-    const SEVERITY_RANK = { high: 3, medium: 2, low: 1 };
 
     let created = 0;
     const smsAlerts = [];
