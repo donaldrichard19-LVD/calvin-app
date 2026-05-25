@@ -45,6 +45,7 @@ app.use('/api/mcp', require('./routes/mcp'));
 app.use('/api/gpt', require('./routes/gpt'));
 app.use('/api/waitlist', require('./routes/waitlist'));
 app.use('/api/oauth', require('./routes/oauth'));
+app.use('/api/funnel', require('./routes/funnel'));
 
 const { requireAuth } = require('./middleware/auth');
 const { supabase } = require('./lib/supabase');

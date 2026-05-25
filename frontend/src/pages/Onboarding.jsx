@@ -104,6 +104,13 @@ function Spinner({ className = 'w-4 h-4' }) {
 
 const IS_DEMO = import.meta.env.VITE_IS_DEMO === 'true';
 
+function trackEvent(event, metadata) {
+  apiFetch('/api/funnel/event', {
+    method: 'POST',
+    body: JSON.stringify({ event, metadata }),
+  }).catch(() => {});
+}
+
 export default function Onboarding() {
   const { isLoaded, isSignedIn } = useAuth();
   const navigate = useNavigate();
@@ -145,10 +152,16 @@ export default function Onboarding() {
           if (data.partner?.display_name) setDisplayName(data.partner.display_name);
           if (data.partner?.phone) setPhone(data.partner.phone);
           setChecking(false);
+          trackEvent('onboarding_started');
         }
       })
       .catch(() => setChecking(false));
   }, [isLoaded, isSignedIn]);
+
+  // Track when the invite-code screen and connect screen are reached
+  useEffect(() => {
+    if (step === 2) trackEvent('invite_viewed');
+  }, [step]);
 
   // Poll for Google integration once on the connect step
   useEffect(() => {
@@ -159,7 +172,12 @@ export default function Onboarding() {
       try {
         const data = await apiFetch('/api/integrations/household');
         const me = (data || []).find((i) => i.is_active && i.provider === 'google');
-        if (me) setMyIntegration(me);
+        if (me) {
+          setMyIntegration((prev) => {
+            if (!prev) trackEvent('google_connected');
+            return me;
+          });
+        }
       } catch {}
     }
 
@@ -179,6 +197,7 @@ export default function Onboarding() {
         method: 'PUT',
         body: JSON.stringify({ display_name: displayName.trim(), phone: phone.trim() || null }),
       });
+      trackEvent('info_submitted', { has_phone: !!(phone.trim()) });
       setStep(1);
     } catch (err) {
       setError(err.message);
@@ -196,6 +215,7 @@ export default function Onboarding() {
         method: 'POST',
         body: JSON.stringify({ name: `${displayName.trim()}'s Household` }),
       });
+      trackEvent('household_created');
       setCreatedCode(invite_code);
       setShowSplash(true);
     } catch (err) {
@@ -221,6 +241,7 @@ export default function Onboarding() {
         method: 'POST',
         body: JSON.stringify({ invite_code: inviteCode.trim() }),
       });
+      trackEvent('household_joined');
       setShowSplash(true);
     } catch (err) {
       if (err.message === 'Already in a household') {
@@ -237,6 +258,7 @@ export default function Onboarding() {
   async function handleConnectGoogle() {
     setIsConnecting(true);
     setError('');
+    trackEvent('google_connect_clicked');
     try {
       const { url } = await apiFetch('/api/google/connect');
       window.location.href = url;
@@ -485,7 +507,10 @@ export default function Onboarding() {
 
             {myIntegration && (
               <div className="step-enter">
-                <button onClick={() => navigate('/dashboard')} className="btn-primary w-full py-3 text-[15px]">
+                <button
+                  onClick={() => { trackEvent('onboarding_completed'); navigate('/dashboard'); }}
+                  className="btn-primary w-full py-3 text-[15px]"
+                >
                   Go to dashboard →
                 </button>
               </div>
