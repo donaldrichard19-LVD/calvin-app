@@ -200,6 +200,31 @@ Complete the remaining steps to get Calvin listed in the Claude MCP connector di
 
 **Notes:** The MCP access token is the household's `mcp_token` field from Supabase — no separate token infrastructure needed. The `oauth_codes` table in Supabase stores short-lived auth codes (5 min TTL, single-use).
 
+### Build iMessage app for Calvin
+Native iOS iMessage app extension so partners can view and act on Calvin alerts directly inside the Messages app.
+
+**Architecture:**
+- `ios/CalvinApp/` — iOS container app (required by Apple); handles `calvin://` deep link to store auth token
+- `ios/CalvinMessages/` — `MSMessagesAppViewController` iMessage extension; compact tray + full TabView
+- `ios/CalvinShared/` — shared Swift code: `APIClient.swift`, `Models.swift`, `KeychainStore.swift`
+- App Group `group.co.calvinai.shared` lets the extension read the Keychain token stored by the container app
+
+**Auth:** Uses the existing `households.mcp_token` (same as MCP/Claude connector) — no Clerk on iOS. Web settings page generates a `calvin://connect?token=<mcp_token>&api=https://calvin-app.onrender.com` deep link the user taps on their iPhone.
+
+**Backend additions (minimal):**
+- `middleware/requireMcpToken.js` — validates Bearer token against `households.mcp_token`, sets `req.householdId`
+- `routes/ios.js` — thin proxy routes using mcp_token auth: `GET /api/ios/briefing`, `PATCH /api/ios/briefing/:id/:action`, `GET /api/ios/calendar`, `GET /api/ios/household`, `POST /api/ios/apns`
+
+**Frontend addition:** New "iMessage App" section in `SettingsView.jsx` with a deep link button and QR code.
+
+**Phase plan:**
+- Phase 1 (days 1–3): Backend middleware + ios routes; Settings deep link; Xcode scaffold + Keychain; API client
+- Phase 2 (days 3–6): Compact tray (alert cards + dismiss/snooze/resolve); expanded TabView (Briefing + Calendar)
+- Phase 3 (days 6–9): Interactive `MSMessage` bubbles — share an alert card into the thread; partner taps to act on it
+- Phase 4 (days 9–14): APNs push notifications for high-severity alerts; skeleton loaders, haptics
+
+**Notes:** Minimum deployment iOS 16. Compilation and TestFlight upload require Xcode on macOS. Both partners share the household mcp_token — correct access level. Build constraint: backend + Swift source files can be scaffolded in CI; actual binary build needs a Mac.
+
 ### Build ChatGPT app for Calvin
 Create a Custom GPT on ChatGPT that connects to Calvin via GPT Actions.
 
