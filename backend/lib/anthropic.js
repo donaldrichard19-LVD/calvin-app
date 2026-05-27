@@ -120,11 +120,11 @@ Each new alert object must have these exact fields:
 Severity: high = needs action today/tomorrow or causes immediate conflict. medium = needs action this week. low = worth knowing, no deadline.`;
 
 async function analyzeHousehold(householdContext) {
-  const userMessage = JSON.stringify(householdContext, null, 2);
+  const userMessage = JSON.stringify(householdContext);
 
   const message = await client.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 4096,
+    max_tokens: 1500,
     system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
     messages: [{ role: 'user', content: userMessage }],
   });
