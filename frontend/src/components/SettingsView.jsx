@@ -220,6 +220,12 @@ export default function SettingsView({ householdInfo, integrations, partnerEmoji
         </div>
       )}
 
+      <Section title="Your profile">
+        <Row label="Name" value={partner?.display_name} />
+        <Row label="Phone" value={partner?.phone} />
+        {myIntegration && <Row label="Google account" value={myIntegration.account_email} />}
+      </Section>
+
       <Section title="Account connections">
         {[
           { p: partner, intg: myIntegration, tag: 'You' },
@@ -249,12 +255,6 @@ export default function SettingsView({ householdInfo, integrations, partnerEmoji
             )}
           </div>
         )}
-      </Section>
-
-      <Section title="Your profile">
-        <Row label="Name" value={partner?.display_name} />
-        <Row label="Phone" value={partner?.phone} />
-        {myIntegration && <Row label="Google account" value={myIntegration.account_email} />}
       </Section>
 
       <Section title="Google Calendar & Gmail">
