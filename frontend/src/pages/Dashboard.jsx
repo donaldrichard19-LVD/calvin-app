@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { apiFetch } from '../lib/api';
 import BriefingFeed from '../components/BriefingFeed';
+import EmojiAvatar from '../components/EmojiAvatar';
 import TimelineView from '../components/TimelineView';
 import InsightsView from '../components/InsightsView';
 import SettingsView, { getInAppAlertsEnabled } from '../components/SettingsView';
@@ -268,6 +269,19 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-[#FAF8F5] flex flex-col md:pl-52">
+      {/* User avatar — fixed top right */}
+      {partnerAData && (
+        <div className="fixed top-4 right-4 z-30 flex items-center gap-2">
+          <span className="hidden sm:block text-[13px] font-semibold text-dark">{partnerAData.display_name}</span>
+          <EmojiAvatar
+            emoji={partnerAData.emoji}
+            isA
+            name={partnerAData.display_name}
+            onChangeEmoji={(e) => handleChangeEmoji(partnerAData.id, e)}
+            alignRight
+          />
+        </div>
+      )}
       {/* ── Main content ── */}
       <div className="flex-1 overflow-y-auto pb-28 md:pb-0">
         {view === 'briefings' && (

@@ -1,6 +1,4 @@
 import React from 'react';
-import EmojiAvatar from './EmojiAvatar';
-
 const TABS = [
   {
     id: 'briefings',
@@ -79,18 +77,6 @@ export default function BottomNav({ active, onChange, onSync, spinning, partner,
           })}
         </div>
 
-        {/* User avatar — bottom */}
-        {partner && (
-          <div className="px-4 py-4 border-t border-white/20 flex items-center gap-2.5">
-            <EmojiAvatar
-              emoji={partner.emoji}
-              isA
-              name={partner.display_name}
-              onChangeEmoji={(e) => onChangeEmoji?.(partner.id, e)}
-            />
-            <span className="text-[13px] font-medium text-white truncate">{partner.display_name}</span>
-          </div>
-        )}
       </nav>
 
       {/* Mobile: floating pill nav */}
