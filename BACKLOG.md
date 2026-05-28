@@ -1,5 +1,27 @@
 # Calvin — Backlog
 
+## SMS version of Calvin (two-way text interface)
+Let partners interact with Calvin entirely over SMS — receive alerts as texts and reply to act on them or ask questions, no app required.
+
+**Scope:**
+
+- **Supabase**: new `sms_threads` table — `partner_id`, `household_id`, `messages` (JSONB array of `{role, content, ts}`), `last_active_at`; new `last_sms_alert_id` column on `partners` to track which alert was most recently texted so replies have context
+- **Backend — inbound webhook** (`POST /api/sms/incoming`, no auth middleware): validate Twilio request signature, look up partner by `From` phone number, reject unknown numbers with a polite reply; fetch household context (recent alerts, calendar events) fresh on each turn; retrieve last N SMS turns from `sms_threads`; call Claude with SMS-adapted prompt; send response via `sendSMS`; persist both turns back to `sms_threads`
+- **Backend — Twilio webhook config**: point the Twilio number's inbound message URL at the new route; set HTTP POST method
+- **Claude SMS prompt**: general household assistant (not alert-specific); receives active alerts, today's calendar events, household context, and last 10 SMS turns; instructed to keep replies under 300 chars unless the user explicitly asks for more; tools: `dismiss_alert`, `snooze_alert`, `resolve_alert`, `create_calendar_event`
+- **Alert reply routing**: when Calvin texts an alert notification, store `alert_id` in `last_sms_alert_id` on the partner row; if the user's next reply is a short action word ("dismiss", "snooze", "done", "ignore") with no other context, treat it as acting on that alert before passing to the general Claude loop
+- **Response length management**: trim Claude output to fit SMS segments; if response exceeds ~600 chars, send as two messages with a natural break
+- **`lib/twilio.js`**: update `sendAlertSMS` to store the alert ID on the partner row after sending, so inbound replies have context
+- **Rate limiting**: max 20 inbound SMS per partner per hour to prevent runaway Claude calls
+
+**Out of scope for MVP:** group SMS threads, MMS/media, proactive check-in messages (those are a separate feature)
+
+**Effort:** 3–4 days
+
+**Notes:** The existing `routes/chat.js` is coupled to Clerk auth and a specific `alertId` — the SMS path is a parallel system, not an extension of it. Phone number is the identity anchor; partners must have a `phone` value in the `partners` table (already collected in SettingsView).
+
+---
+
 ## Invite link referral tracking
 Track how many users share the invite link and how many sign up through it.
 
