@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useClerk } from '@clerk/clerk-react';
 import { apiFetch } from '../lib/api';
+import EmojiAvatar from './EmojiAvatar';
 
 const ROLES = ['child', 'pet', 'grandparent', 'parent', 'sibling', 'other'];
 function newMember() {
@@ -44,7 +45,7 @@ export function getInAppAlertsEnabled() {
   return localStorage.getItem(INAPP_ALERTS_KEY) !== 'false';
 }
 
-export default function SettingsView({ householdInfo, integrations }) {
+export default function SettingsView({ householdInfo, integrations, partnerEmoji, onChangeEmoji }) {
   const { signOut } = useClerk();
   const [copied, setCopied]           = useState(false);
   const [connecting, setConnecting]   = useState(false);
@@ -205,7 +206,20 @@ export default function SettingsView({ householdInfo, integrations }) {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 pt-4 pb-6 space-y-6">
+    <div className="max-w-2xl mx-auto px-4 pt-4 pb-6 space-y-6 relative">
+      {/* Mobile emoji picker — top right corner */}
+      {partner && onChangeEmoji && (
+        <div className="md:hidden absolute top-4 right-4 z-10">
+          <EmojiAvatar
+            emoji={partnerEmoji || '😊'}
+            isA
+            name={partner.display_name}
+            onChangeEmoji={onChangeEmoji}
+            alignRight
+          />
+        </div>
+      )}
+
       <Section title="Account connections">
         {[
           { p: partner, intg: myIntegration, tag: 'You' },
