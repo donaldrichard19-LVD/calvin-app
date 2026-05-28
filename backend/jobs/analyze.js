@@ -539,7 +539,7 @@ function buildCronExpr(intervalMinutes) {
 }
 
 function startCronJob() {
-  const interval = parseInt(process.env.ANALYSIS_INTERVAL_MINUTES || '120', 10);
+  const interval = parseInt(process.env.ANALYSIS_INTERVAL_MINUTES || '60', 10);
   const cronExpr = buildCronExpr(interval);
   console.log(`[analyze] Cron job starting, interval: every ${interval} minutes`);
   cron.schedule(cronExpr, () => {
