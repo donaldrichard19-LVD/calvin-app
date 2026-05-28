@@ -68,7 +68,7 @@ export default function Header({ householdInfo, integrations, onRefresh, onInvit
     : null;
 
   return (
-    <header className="h-14 bg-white border-b border-border flex items-center px-4 shrink-0 relative">
+    <header className="h-12 sm:h-14 bg-white border-b border-border flex items-center px-3 sm:px-4 shrink-0 relative">
       {/* House icon — left */}
       <div ref={dropRef} className="relative z-50">
         <button
