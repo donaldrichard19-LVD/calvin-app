@@ -268,15 +268,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-[#FAF8F5] flex flex-col md:pl-52">
-      {/* User avatar — fixed top right, mobile only, display-only */}
-      {partnerAData && (
-        <div className="md:hidden fixed top-4 right-4 z-30 flex items-center gap-2">
-          <span className="text-[13px] font-semibold text-dark">{partnerAData.display_name}</span>
-          <span className="w-9 h-9 rounded-full flex items-center justify-center text-xl border-2 border-coral bg-white select-none">
-            {partnerAData.emoji}
-          </span>
-        </div>
-      )}
       {/* ── Main content ── */}
       <div className="flex-1 overflow-y-auto pb-28 md:pb-0">
         {view === 'briefings' && (
