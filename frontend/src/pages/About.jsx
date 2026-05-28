@@ -4,7 +4,7 @@ export default function About() {
       emoji: '📅',
       floatClass: 'animate-float',
       delay: 'animation-delay-[100ms]',
-      color: 'from-blurple/20 to-transparent border-blurple/30',
+      color: 'from-blurple/10 to-transparent border-blurple/30',
       label: 'Conflicts caught early',
       body: "Calvin reads both partners’ calendars and inboxes simultaneously — spotting double-bookings, missing coverage, and back-to-back commitments with no travel time before they become a problem.",
     },
@@ -12,7 +12,7 @@ export default function About() {
       emoji: '🔔',
       floatClass: 'animate-float-slow',
       delay: 'animation-delay-[200ms]',
-      color: 'from-amber/20 to-transparent border-amber/30',
+      color: 'from-amber/10 to-transparent border-amber/30',
       label: 'Actionable alerts, not noise',
       body: 'Every alert is a specific, time-sensitive issue with one suggested next step. No general reminders — only things that will actually cause a problem if nobody acts.',
     },
@@ -20,7 +20,7 @@ export default function About() {
       emoji: '🔄',
       floatClass: 'animate-float',
       delay: 'animation-delay-[300ms]',
-      color: 'from-green/20 to-transparent border-green/30',
+      color: 'from-green/10 to-transparent border-green/30',
       label: 'Self-resolving',
       body: 'When you create an event, complete a pickup, or tick off a task, Calvin detects it and clears the alert automatically. No manual cleanup needed.',
     },
@@ -28,14 +28,14 @@ export default function About() {
       emoji: '🤝',
       floatClass: 'animate-float-slow',
       delay: 'animation-delay-[400ms]',
-      color: 'from-coral/20 to-transparent border-coral/30',
+      color: 'from-coral/10 to-transparent border-coral/30',
       label: 'Both partners, one picture',
       body: "Calvin flags when one partner knows something the other doesn't — medication schedules, vet visits, school pickups — so nothing falls through the cracks.",
     },
   ];
 
   return (
-    <div className="min-h-screen bg-[#0b1120] text-white overflow-x-hidden">
+    <div className="min-h-screen bg-white text-blurple overflow-x-hidden">
 
       {/* ── Hero ── */}
       <section className="relative flex flex-col items-center justify-center min-h-[90vh] px-6 text-center">
@@ -45,7 +45,7 @@ export default function About() {
           className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              'radial-gradient(ellipse 70% 50% at 50% 40%, rgba(88,101,242,0.18) 0%, transparent 70%)',
+              'radial-gradient(ellipse 70% 50% at 50% 40%, rgba(88,101,242,0.08) 0%, transparent 70%)',
           }}
         />
 
@@ -85,14 +85,14 @@ export default function About() {
         </h1>
 
         <p
-          className="text-xl sm:text-2xl font-medium text-slate-300 animate-fade-in-up max-w-xl leading-snug"
+          className="text-xl sm:text-2xl font-medium text-blurple/70 animate-fade-in-up max-w-xl leading-snug"
           style={{ animationDelay: '0.15s' }}
         >
-          Multiple schedules. Now in sync.
+          Never drop the ball again.
         </p>
 
         <p
-          className="mt-5 text-slate-400 text-[15px] max-w-md leading-relaxed animate-fade-in-up"
+          className="mt-5 text-blurple/60 text-[15px] max-w-md leading-relaxed animate-fade-in-up"
           style={{ animationDelay: '0.25s' }}
         >
           Calvin works quietly in the background — reading both partners' calendars
@@ -111,7 +111,7 @@ export default function About() {
           </a>
           <a
             href="/"
-            className="px-7 py-3 rounded-xl font-semibold text-[15px] bg-white/10 hover:bg-white/15 transition-colors text-white border border-white/10"
+            className="px-7 py-3 rounded-xl font-semibold text-[15px] bg-blurple/10 hover:bg-blurple/15 transition-colors text-blurple border border-blurple/20"
           >
             Sign in
           </a>
@@ -119,7 +119,7 @@ export default function About() {
 
         {/* Scroll hint */}
         <p
-          className="absolute bottom-8 text-slate-500 text-[13px] animate-fade-in"
+          className="absolute bottom-8 text-blurple/40 text-[13px] animate-fade-in"
           style={{ animationDelay: '1s' }}
         >
           ↓ See how it works
@@ -129,7 +129,7 @@ export default function About() {
       {/* ── Value props ── */}
       <section className="px-6 pb-24 max-w-2xl mx-auto">
         <h2
-          className="text-center text-2xl sm:text-3xl font-bold text-white mb-12 animate-fade-in-up"
+          className="text-center text-2xl sm:text-3xl font-bold text-blurple mb-12 animate-fade-in-up"
           style={{ animationDelay: '0.1s' }}
         >
           What Calvin does
@@ -146,8 +146,8 @@ export default function About() {
                 {p.emoji}
               </span>
               <div>
-                <div className="text-[16px] font-bold text-white mb-1">{p.label}</div>
-                <div className="text-[14px] text-slate-300 leading-relaxed">{p.body}</div>
+                <div className="text-[16px] font-bold text-blurple mb-1">{p.label}</div>
+                <div className="text-[14px] text-blurple/70 leading-relaxed">{p.body}</div>
               </div>
             </div>
           ))}
@@ -156,13 +156,13 @@ export default function About() {
 
       {/* ── How it works ── */}
       <section className="px-6 pb-24 max-w-2xl mx-auto">
-        <h2 className="text-center text-2xl sm:text-3xl font-bold text-white mb-12 animate-fade-in-up">
+        <h2 className="text-center text-2xl sm:text-3xl font-bold text-blurple mb-12 animate-fade-in-up">
           How it works
         </h2>
 
         <div className="relative">
           {/* Vertical line */}
-          <div className="absolute left-[22px] top-3 bottom-3 w-px bg-white/10" />
+          <div className="absolute left-[22px] top-3 bottom-3 w-px bg-blurple/20" />
 
           {[
             { emoji: '🔗', step: 'Connect', desc: 'Link your Google Calendar and Gmail. Takes 60 seconds.' },
@@ -175,12 +175,12 @@ export default function About() {
               className="flex gap-5 mb-8 animate-fade-in-up"
               style={{ animationDelay: `${0.1 + i * 0.1}s` }}
             >
-              <div className="shrink-0 w-11 h-11 rounded-full bg-white/10 border border-white/15 flex items-center justify-center text-xl z-10">
+              <div className="shrink-0 w-11 h-11 rounded-full bg-blurple/10 border border-blurple/20 flex items-center justify-center text-xl z-10">
                 {s.emoji}
               </div>
               <div className="pt-1">
-                <div className="text-[15px] font-bold text-white">{s.step}</div>
-                <div className="text-[14px] text-slate-400 mt-0.5 leading-relaxed">{s.desc}</div>
+                <div className="text-[15px] font-bold text-blurple">{s.step}</div>
+                <div className="text-[14px] text-blurple/60 mt-0.5 leading-relaxed">{s.desc}</div>
               </div>
             </div>
           ))}
@@ -189,10 +189,10 @@ export default function About() {
 
       {/* ── CTA ── */}
       <section className="px-6 pb-24 text-center animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-        <div className="inline-block rounded-2xl border border-white/10 bg-white/5 px-10 py-10 max-w-md">
+        <div className="inline-block rounded-2xl border border-blurple/20 bg-blurple/5 px-10 py-10 max-w-md">
           <div className="text-3xl mb-4 animate-float">🏠</div>
-          <div className="text-[20px] font-bold text-white mb-2">Ready to try it?</div>
-          <div className="text-slate-400 text-[14px] mb-6 leading-relaxed">
+          <div className="text-[20px] font-bold text-blurple mb-2">Ready to try it?</div>
+          <div className="text-blurple/60 text-[14px] mb-6 leading-relaxed">
             Calvin is in early access. Request your spot and we'll add you as soon as a slot opens.
           </div>
           <a
@@ -205,10 +205,10 @@ export default function About() {
       </section>
 
       {/* ── Footer ── */}
-      <footer className="text-center pb-10 text-[12px] text-slate-600">
-        <a href="/privacy" className="hover:text-slate-400 transition-colors">Privacy Policy</a>
+      <footer className="text-center pb-10 text-[12px] text-blurple/40">
+        <a href="/privacy" className="hover:text-blurple/70 transition-colors">Privacy Policy</a>
         <span className="mx-2">·</span>
-        <a href="/terms" className="hover:text-slate-400 transition-colors">Terms of Service</a>
+        <a href="/terms" className="hover:text-blurple/70 transition-colors">Terms of Service</a>
       </footer>
 
     </div>

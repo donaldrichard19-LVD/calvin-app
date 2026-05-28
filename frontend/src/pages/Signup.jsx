@@ -35,7 +35,7 @@ export default function Signup() {
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-dark">Calvin</h1>
           <p className="text-mid text-[15px] mt-2 leading-relaxed">
-            Family coordination, handled.
+            Never drop the ball again.
           </p>
         </div>
 
