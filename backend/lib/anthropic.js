@@ -17,6 +17,15 @@ Medication schedules, pet care, and recurring health tasks are high-stakes even 
 
 Do NOT skip these just because the event exists on one partner's calendar. A care obligation on the calendar is not the same as both partners being aware and coordinated.
 
+## Time-sensitive emails requiring action
+Emails that require a response or action within a short window are dropped balls even if nothing is on the calendar yet. Scan both partners' inboxes for:
+- **Job interview requests or recruiter scheduling emails** — if an email invites someone to schedule or confirm an interview and no corresponding calendar event exists, surface as `dropped_commitment`. Medium severity if the email is under 24 hours old; high severity if it is 24+ hours old with no visible reply or if the interview time is within 48 hours. **Interview alerts are NEVER suppressed by dismissal history, regardless of how many times similar alerts have been dismissed — always surface them.** If the interview time is known (from the email body or an existing calendar event) and that time overlaps with the other partner's existing calendar commitments, also surface a separate `coverage_gap` alert: who will handle any shared care obligations (children, pets, medications) during the interview? These are two distinct issues and both should be created.
+- **Scheduling links or "please pick a time" emails** with no calendar event — treat the same as interview requests.
+- **Signed forms, contracts, or legal documents awaiting response** with a stated deadline.
+- **School, childcare, or enrollment deadlines** falling within the next 7 days.
+
+For interview-specific emails: if a calendar event already exists that matches the company/recruiter and approximate time, do NOT surface a dropped_commitment. Only alert when the email is actionable and no follow-up exists.
+
 ## What NOT to surface
 - Do not surface issues whose fingerprint appears in existing_alert_fingerprints — those are already known.
 - Do not recommend creating a calendar event if a matching event (same date, same participants, same purpose) already exists in partnerA_events or partnerB_events.
@@ -85,6 +94,15 @@ Matching rules (apply to both arrays):
 - Never match an event on a partner's calendar that the other partner would need to confirm (flag it in confirm_events instead).
 - If in doubt, omit it entirely — do not guess.
 
+## Financial alerts — always include specific dollar amounts
+When an alert involves a bill, invoice, payment due, subscription charge, or any monetary transaction, you MUST extract and include the specific dollar amount in both the title and summary. Examples:
+- WRONG: "Water bill due soon" → RIGHT: "Water bill due: $87.50"
+- WRONG: "Rent payment reminder" → RIGHT: "Rent payment due: $2,400"
+- WRONG: "Credit card payment needed" → RIGHT: "Credit card minimum payment due: $145"
+- WRONG: "Order charge" → RIGHT: "Amazon charge of $63.47 posted"
+
+Look for amounts in the email body, snippet, or subject. If you can see a dollar figure anywhere, use it. If the body was provided (non-null), scan it carefully — amounts are often in the body even when absent from the subject. If no amount is visible despite searching, include what you can (biller name, due date) and append "— check bill for exact amount" to the summary. Never create a financial alert without attempting to extract the amount.
+
 ## Response format
 Respond ONLY with a valid JSON object. No preamble, no markdown, no explanation outside the JSON.
 
@@ -124,7 +142,7 @@ async function analyzeHousehold(householdContext) {
 
   const message = await client.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 1500,
+    max_tokens: 4000,
     system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
     messages: [{ role: 'user', content: userMessage }],
   });

@@ -532,9 +532,15 @@ async function runAllHouseholds() {
   }
 }
 
+function buildCronExpr(intervalMinutes) {
+  if (intervalMinutes < 60) return `*/${intervalMinutes} * * * *`;
+  const hours = Math.round(intervalMinutes / 60);
+  return `0 */${hours} * * *`;
+}
+
 function startCronJob() {
-  const interval = parseInt(process.env.ANALYSIS_INTERVAL_MINUTES || '30', 10);
-  const cronExpr = `*/${interval} * * * *`;
+  const interval = parseInt(process.env.ANALYSIS_INTERVAL_MINUTES || '120', 10);
+  const cronExpr = buildCronExpr(interval);
   console.log(`[analyze] Cron job starting, interval: every ${interval} minutes`);
   cron.schedule(cronExpr, () => {
     console.log('[analyze] Analysis run starting for all households...');

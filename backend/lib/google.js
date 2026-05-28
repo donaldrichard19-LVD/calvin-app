@@ -128,6 +128,36 @@ async function createCalendarEvent(integration, { title, start, end, description
   };
 }
 
+function extractEmailBody(payload) {
+  if (!payload) return null;
+  const search = (parts) => {
+    for (const part of parts || []) {
+      if (part.mimeType === 'text/plain' && part.body?.data) {
+        return Buffer.from(part.body.data, 'base64').toString('utf-8');
+      }
+      if (part.parts) {
+        const nested = search(part.parts);
+        if (nested) return nested;
+      }
+    }
+    return null;
+  };
+  if (payload.body?.data && payload.mimeType === 'text/plain') {
+    return Buffer.from(payload.body.data, 'base64').toString('utf-8');
+  }
+  return search(payload.parts);
+}
+
+function isRecruiterEmail(subject, from, snippet) {
+  const text = `${subject} ${from} ${snippet}`.toLowerCase();
+  return /interview|recruiter|recruiting|talent\s+acquisition|hiring manager|phone\s+screen|technical\s+screen|onsite|availability.*role|schedule.*call|please\s+pick|calendly|job\s+opportunity|open\s+position/.test(text);
+}
+
+function isFinancialEmail(subject, from, snippet) {
+  const text = `${subject} ${from} ${snippet}`.toLowerCase();
+  return /amount\s+due|payment\s+due|bill\s+(ready|available|is\s+due)|invoice|statement\s+ready|minimum\s+payment|autopay|auto-pay|balance\s+due|past\s+due|subscription\s+renewal|your\s+receipt|order\s+total|\$\d+|charged\s+to\s+your|payment\s+of|amount\s+charged/.test(text);
+}
+
 async function getRecentEmails(integration, maxResults = 50) {
   const accessToken = await refreshIfNeeded(integration);
   const oauth2Client = createOAuth2Client();
@@ -135,10 +165,9 @@ async function getRecentEmails(integration, maxResults = 50) {
 
   const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
 
-  const sevenDaysAgo = Math.floor((Date.now() - 7 * 86400000) / 1000);
-  // Use 7-day window for inbox so pickup confirmations, delivery notices, and
-  // order-completed emails aren't missed if the analysis cycle runs days later.
-  const query = `(is:unread OR is:starred OR label:IMPORTANT OR (in:sent after:${sevenDaysAgo}) OR (in:inbox after:${sevenDaysAgo}))`;
+  const fourteenDaysAgo = Math.floor((Date.now() - 14 * 86400000) / 1000);
+  // 14-day inbox window so recruiter threads and pickup confirmations aren't missed.
+  const query = `(is:unread OR is:starred OR label:IMPORTANT OR (in:sent after:${fourteenDaysAgo}) OR (in:inbox after:${fourteenDaysAgo}))`;
 
   const listRes = await gmail.users.messages.list({
     userId: 'me',
@@ -160,9 +189,38 @@ async function getRecentEmails(integration, maxResults = 50) {
     )
   );
 
+  // Fetch full body for recruiter/interview emails (scheduling links, proposed times)
+  // and financial emails (amounts, due dates) — snippets are too short for either.
+  const fullBodyIds = new Set(
+    fetched
+      .filter((res) => {
+        const headers = res.data.payload?.headers || [];
+        const h = (name) => headers.find((hh) => hh.name === name)?.value || '';
+        const subject = h('Subject');
+        const from = h('From');
+        const snippet = res.data.snippet || '';
+        return isRecruiterEmail(subject, from, snippet) || isFinancialEmail(subject, from, snippet);
+      })
+      .map((res) => res.data.id)
+  );
+
+  const bodyMap = {};
+  if (fullBodyIds.size) {
+    const bodyFetches = await Promise.all(
+      [...fullBodyIds].map((id) =>
+        gmail.users.messages.get({ userId: 'me', id, format: 'full' }).catch(() => null)
+      )
+    );
+    for (const bodyRes of bodyFetches) {
+      if (!bodyRes) continue;
+      const text = extractEmailBody(bodyRes.data.payload);
+      if (text) bodyMap[bodyRes.data.id] = text.slice(0, 800);
+    }
+  }
+
   return fetched.map((res) => {
     const headers = res.data.payload?.headers || [];
-    const h = (name) => headers.find((h) => h.name === name)?.value || '';
+    const h = (name) => headers.find((hh) => hh.name === name)?.value || '';
     return {
       id: res.data.id,
       subject: h('Subject'),
@@ -171,6 +229,7 @@ async function getRecentEmails(integration, maxResults = 50) {
       date: h('Date'),
       snippet: res.data.snippet || '',
       labels: res.data.labelIds || [],
+      body: bodyMap[res.data.id] || null,
     };
   });
 }
