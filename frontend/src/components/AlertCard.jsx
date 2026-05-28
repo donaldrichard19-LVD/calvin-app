@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 const TYPE_META = {
   schedule_conflict:    { icon: '🗓️', label: 'Schedule Conflict' },
   coverage_gap:         { icon: '🕳️', label: 'Coverage Gap' },
-  dropped_commitment:   { icon: '📧', label: 'Dropped Commitment' },
+  dropped_commitment:   { icon: '📧', label: 'Upcoming Commitment' },
   invisible_dependency: { icon: '🔗', label: 'Invisible Dependency' },
   expiring_item:        { icon: '⏰', label: 'Expiring Soon' },
   asymmetric_context:   { icon: '📨', label: 'Heads Up' },

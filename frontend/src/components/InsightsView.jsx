@@ -4,7 +4,7 @@ import { apiFetch } from '../lib/api';
 const TYPE_META = {
   schedule_conflict:    { label: 'Schedule conflicts', icon: '🗓️' },
   coverage_gap:         { label: 'Coverage gaps',      icon: '🕳️' },
-  dropped_commitment:   { label: 'Dropped commitments',icon: '📧' },
+  dropped_commitment:   { label: 'Upcoming commitments',icon: '📧' },
   invisible_dependency: { label: 'Hidden dependencies',icon: '🔗' },
   expiring_item:        { label: 'Expiring items',     icon: '⏰' },
   asymmetric_context:   { label: 'Asymmetric context', icon: '📨' },
