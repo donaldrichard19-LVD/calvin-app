@@ -269,10 +269,10 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-[#FAF8F5] flex flex-col md:pl-52">
-      {/* User avatar — fixed top right */}
+      {/* User avatar — fixed top right, mobile only */}
       {partnerAData && (
-        <div className="fixed top-4 right-4 z-30 flex items-center gap-2">
-          <span className="hidden sm:block text-[13px] font-semibold text-dark">{partnerAData.display_name}</span>
+        <div className="md:hidden fixed top-4 right-4 z-30 flex items-center gap-2">
+          <span className="text-[13px] font-semibold text-dark">{partnerAData.display_name}</span>
           <EmojiAvatar
             emoji={partnerAData.emoji}
             isA
@@ -287,7 +287,7 @@ export default function Dashboard() {
         {view === 'briefings' && (
           <div className="max-w-2xl mx-auto p-4">
             {firstName && (
-              <div className="md:hidden mb-4 pt-2">
+              <div className="mb-4 pt-2">
                 <h1 className="text-[26px] font-bold text-dark leading-tight">Hi {firstName}</h1>
                 <h2 className="text-[26px] font-bold text-dark leading-tight">Here's what's top of mind</h2>
               </div>
