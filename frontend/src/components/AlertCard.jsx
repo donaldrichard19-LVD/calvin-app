@@ -40,7 +40,6 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
   const [acting, setActing] = useState(false);
 
   const meta = TYPE_META[alert.type] || { icon: '•', label: alert.type };
-  const cardClass = { high: 'alert-card-high', medium: 'alert-card-medium', low: 'alert-card-low' }[alert.severity] || 'alert-card-low';
 
   function handleResolve() {
     if (resolving) return;
@@ -75,7 +74,7 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
   const isCancelConfirm = alert.type === 'event_cancel_confirm';
 
   return (
-    <div className={`card ${cardClass} p-4 relative overflow-hidden ${fadingOut ? 'card-fade-out' : ''}`}>
+    <div className={`alert-card p-4 relative overflow-hidden ${fadingOut ? 'card-fade-out' : ''}`}>
       {/* Green resolve overlay */}
       {resolving && (
         <div className="absolute inset-0 bg-green-50 flex items-center justify-center z-10 rounded-[12px]">
@@ -160,23 +159,31 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
             <>
               <button
                 onClick={() => onChat(alert)}
-                className="text-[12px] font-semibold text-blurple border border-blurple rounded-full px-3 py-1 hover:bg-blurpleLight transition-colors"
+                className="w-8 h-8 flex items-center justify-center rounded-full text-blurple hover:bg-blurpleLight transition-colors"
+                title="Ask follow-up"
               >
-                Ask follow-up
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
               </button>
               <button
                 onClick={handleResolve}
                 disabled={resolving}
-                className="text-[12px] font-semibold text-green-700 border border-green-600 rounded-full px-3 py-1 hover:bg-green-50 transition-colors disabled:opacity-50"
+                className="w-8 h-8 flex items-center justify-center rounded-full text-green-600 hover:bg-green-50 transition-colors disabled:opacity-50"
+                title="Resolve"
               >
-                Resolve
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
               </button>
               <button
                 onClick={() => onDismiss(alert.id)}
-                className="text-[12px] text-light hover:text-mid transition-colors px-1"
+                className="w-8 h-8 flex items-center justify-center rounded-full text-light hover:text-mid hover:bg-gray-100 transition-colors"
                 title="Dismiss"
               >
-                ✕
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </>
           )}

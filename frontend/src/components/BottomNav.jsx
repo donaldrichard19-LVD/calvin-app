@@ -1,4 +1,5 @@
 import React from 'react';
+import EmojiAvatar from './EmojiAvatar';
 
 const TABS = [
   {
@@ -40,31 +41,56 @@ const TABS = [
   },
 ];
 
-export default function BottomNav({ active, onChange }) {
+export default function BottomNav({ active, onChange, onSync, spinning, partner, onChangeEmoji }) {
   return (
     <>
-      {/* Desktop: left sidebar */}
-      <nav className="hidden md:flex fixed left-0 top-0 bottom-0 w-52 bg-white border-r border-border z-40 flex-col pt-6 pb-4">
-        <div className="px-5 mb-6">
-          <span className="text-[15px] font-bold text-dark tracking-tight">Calvin</span>
+      {/* Desktop: left sidebar — blurple */}
+      <nav className="hidden md:flex fixed left-0 top-0 bottom-0 w-52 bg-blurple z-40 flex-col">
+        {/* Calvin wordmark — click triggers sync */}
+        <button
+          onClick={onSync}
+          disabled={spinning}
+          className="px-5 pt-6 pb-3 text-left group disabled:opacity-70"
+          title="Sync Calvin"
+        >
+          <span className={`text-[17px] font-bold text-white tracking-tight transition-opacity ${spinning ? 'opacity-60' : 'group-hover:opacity-80'}`}>
+            {spinning ? 'Syncing…' : 'Calvin'}
+          </span>
+        </button>
+
+        {/* Nav items */}
+        <div className="flex-1 px-3 mt-2 space-y-0.5">
+          {TABS.map(({ id, label, icon }) => {
+            const isActive = active === id;
+            return (
+              <button
+                key={id}
+                onClick={() => onChange(id)}
+                className={`group flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-colors text-left ${
+                  isActive ? 'bg-white/20 text-white' : 'text-white/70 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                <div className="shrink-0 transition-transform duration-100 ease-out group-active:scale-75">
+                  {icon(isActive)}
+                </div>
+                <span className="text-[13px] font-semibold">{label}</span>
+              </button>
+            );
+          })}
         </div>
-        {TABS.map(({ id, label, icon }) => {
-          const isActive = active === id;
-          return (
-            <button
-              key={id}
-              onClick={() => onChange(id)}
-              className={`group flex items-center gap-3 mx-3 px-3 py-2.5 rounded-lg transition-colors text-left ${
-                isActive ? 'bg-blurple/10 text-blurple' : 'text-mid hover:bg-gray-50 hover:text-dark'
-              }`}
-            >
-              <div className="shrink-0 transition-transform duration-100 ease-out group-active:scale-75">
-                {icon(isActive)}
-              </div>
-              <span className={`text-[13px] font-semibold`}>{label}</span>
-            </button>
-          );
-        })}
+
+        {/* User avatar — bottom */}
+        {partner && (
+          <div className="px-4 py-4 border-t border-white/20 flex items-center gap-2.5">
+            <EmojiAvatar
+              emoji={partner.emoji}
+              isA
+              name={partner.display_name}
+              onChangeEmoji={(e) => onChangeEmoji?.(partner.id, e)}
+            />
+            <span className="text-[13px] font-medium text-white truncate">{partner.display_name}</span>
+          </div>
+        )}
       </nav>
 
       {/* Mobile: bottom nav */}

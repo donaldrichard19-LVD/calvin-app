@@ -13,10 +13,6 @@ export default function BriefingFeed({ alerts, meta, partnerA, partnerB, onDismi
     return true;
   });
 
-  const high   = filtered.filter((a) => a.severity === 'high');
-  const medium = filtered.filter((a) => a.severity === 'medium');
-  const low    = filtered.filter((a) => a.severity === 'low');
-
   return (
     <div className={`flex flex-col ${sidebar ? 'h-full' : ''}`}>
       <div className="px-4 pt-4 pb-2 shrink-0">
@@ -62,44 +58,13 @@ export default function BriefingFeed({ alerts, meta, partnerA, partnerB, onDismi
             )}
           </div>
         ) : (
-          <>
-            {high.length > 0 && (
-              <div>
-                <div className="text-[11px] font-bold uppercase tracking-wider text-red-500 mb-2">High priority</div>
-                <div className="space-y-2">
-                  {high.map((a) => (
-                    <AlertCard key={a.id} alert={a} partnerA={partnerA} partnerB={partnerB}
-                      onDismiss={onDismiss} onSnooze={onSnooze} onResolve={onResolve} onChat={onChat}
-                      onUndo={onUndo} onCancelEvent={onCancelEvent} />
-                  ))}
-                </div>
-              </div>
-            )}
-            {medium.length > 0 && (
-              <div>
-                <div className="text-[11px] font-bold uppercase tracking-wider text-amber mb-2">Medium Priority</div>
-                <div className="space-y-2">
-                  {medium.map((a) => (
-                    <AlertCard key={a.id} alert={a} partnerA={partnerA} partnerB={partnerB}
-                      onDismiss={onDismiss} onSnooze={onSnooze} onResolve={onResolve} onChat={onChat}
-                      onUndo={onUndo} onCancelEvent={onCancelEvent} />
-                  ))}
-                </div>
-              </div>
-            )}
-            {low.length > 0 && (
-              <div>
-                <div className="text-[11px] font-bold uppercase tracking-wider text-blue mb-2">Low Priority</div>
-                <div className="space-y-2">
-                  {low.map((a) => (
-                    <AlertCard key={a.id} alert={a} partnerA={partnerA} partnerB={partnerB}
-                      onDismiss={onDismiss} onSnooze={onSnooze} onResolve={onResolve} onChat={onChat}
-                      onUndo={onUndo} onCancelEvent={onCancelEvent} />
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
+          <div className="space-y-2">
+            {filtered.map((a) => (
+              <AlertCard key={a.id} alert={a} partnerA={partnerA} partnerB={partnerB}
+                onDismiss={onDismiss} onSnooze={onSnooze} onResolve={onResolve} onChat={onChat}
+                onUndo={onUndo} onCancelEvent={onCancelEvent} />
+            ))}
+          </div>
         )}
       </div>
     </div>

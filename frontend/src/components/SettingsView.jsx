@@ -206,6 +206,37 @@ export default function SettingsView({ householdInfo, integrations }) {
 
   return (
     <div className="max-w-2xl mx-auto px-4 pt-4 pb-6 space-y-6">
+      <Section title="Account connections">
+        {[
+          { p: partner, intg: myIntegration, tag: 'You' },
+          otherPartner ? { p: otherPartner, intg: partnerIntegration, tag: 'Partner' } : null,
+        ].filter(Boolean).map(({ p, intg, tag }) => (
+          <div key={p.id} className="flex items-center justify-between px-4 py-3">
+            <div className="flex items-center gap-2">
+              <span className={`w-2 h-2 rounded-full shrink-0 ${intg?.is_active ? 'bg-green-500' : 'bg-gray-300'}`} />
+              <span className="text-[14px] font-medium text-dark">{p.display_name}</span>
+              <span className="text-[11px] text-light">{tag}</span>
+            </div>
+            <span className={`text-[12px] font-semibold ${intg?.is_active ? 'text-green-600' : 'text-light'}`}>
+              {intg?.is_active ? 'Connected' : 'Not connected'}
+            </span>
+          </div>
+        ))}
+        {!otherPartner && (
+          <div className="flex items-center justify-between px-4 py-3">
+            <span className="text-[13px] text-light">No partner connected yet</span>
+            {inviteCode && (
+              <button
+                onClick={copyInvite}
+                className="text-[12px] font-semibold text-blurple hover:opacity-75"
+              >
+                {copied ? 'Copied!' : 'Invite partner'}
+              </button>
+            )}
+          </div>
+        )}
+      </Section>
+
       <Section title="Your profile">
         <Row label="Name" value={partner?.display_name} />
         <Row label="Phone" value={partner?.phone} />

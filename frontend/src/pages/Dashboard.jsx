@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@clerk/clerk-react';
 import { apiFetch } from '../lib/api';
-import Header from '../components/Header';
 import BriefingFeed from '../components/BriefingFeed';
 import TimelineView from '../components/TimelineView';
 import InsightsView from '../components/InsightsView';
@@ -37,10 +35,9 @@ export default function Dashboard() {
   const [splashDone, setSplashDone]     = useState(
     () => sessionStorage.getItem(SPLASH_KEY) === '1'
   );
-  const navigate = useNavigate();
-
   const [view, setView] = useState('briefings');
   const [emojis, setEmojis] = useState({});
+  const [spinning, setSpinning] = useState(false);
 
   function getEmoji(partnerId, fallback = '😊') {
     return emojis[partnerId] ?? getStoredEmoji(partnerId, fallback);
@@ -181,6 +178,17 @@ export default function Dashboard() {
     await fetchAll();
   }
 
+  async function handleSync() {
+    if (spinning) return;
+    setSpinning(true);
+    try {
+      await apiFetch('/api/analyze/trigger', { method: 'POST' });
+      await new Promise((r) => setTimeout(r, 12000));
+      fetchAll();
+    } catch {}
+    setSpinning(false);
+  }
+
   // ── Splash / connect gates ────────────────────────────────────────────────
   const isDemo = import.meta.env.VITE_IS_DEMO === 'true';
   if (!isDemo && !loading && myIntegrations !== null && !myIntegration) {
@@ -198,7 +206,9 @@ export default function Dashboard() {
     const urlError = new URLSearchParams(window.location.search).get('error');
     return (
       <div className="min-h-screen bg-bg flex flex-col">
-        <Header />
+        <div className="h-12 bg-white border-b border-border flex items-center justify-center shrink-0">
+          <span className="text-dark font-bold text-lg tracking-tight">Calvin</span>
+        </div>
         <div className="flex flex-col items-center justify-center flex-1 text-center p-8">
           <div className="text-4xl mb-4">🔌</div>
           <h2 className="text-xl font-bold text-dark mb-2">Connect your Google account</h2>
@@ -254,22 +264,20 @@ export default function Dashboard() {
     syncError:  calendarSyncError,
   };
 
-  return (
-    <div className="min-h-screen bg-bg flex flex-col md:pl-52">
-      <Header
-        householdInfo={householdInfo}
-        integrations={integrations}
-        onRefresh={fetchAll}
-        onInvite={() => setInviteOpen(true)}
-        showInvite={!otherPartner}
-        partner={partnerAData}
-        onChangeEmoji={handleChangeEmoji}
-      />
+  const firstName = partnerAData?.display_name?.split(' ')[0] || '';
 
+  return (
+    <div className="min-h-screen bg-[#FAF8F5] flex flex-col md:pl-52">
       {/* ── Main content ── */}
       <div className="flex-1 overflow-y-auto pb-16 md:pb-0">
         {view === 'briefings' && (
           <div className="max-w-2xl mx-auto p-4">
+            {firstName && (
+              <div className="md:hidden mb-4 pt-2">
+                <h1 className="text-[26px] font-bold text-dark leading-tight">Hi {firstName}</h1>
+                <h2 className="text-[26px] font-bold text-dark leading-tight">Here's what's top of mind</h2>
+              </div>
+            )}
             <BriefingFeed {...briefingProps} />
           </div>
         )}
@@ -297,7 +305,14 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <BottomNav active={view} onChange={setView} />
+      <BottomNav
+        active={view}
+        onChange={setView}
+        onSync={handleSync}
+        spinning={spinning}
+        partner={partnerAData}
+        onChangeEmoji={handleChangeEmoji}
+      />
 
       {chatAlert && (
         <ChatDrawer alert={chatAlert} onClose={() => setChatAlert(null)} />
