@@ -93,25 +93,27 @@ export default function BottomNav({ active, onChange, onSync, spinning, partner,
         )}
       </nav>
 
-      {/* Mobile: bottom nav */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 h-16 bg-white border-t border-border z-40 flex items-center safe-bottom">
-        {TABS.map(({ id, label, icon }) => {
-          const isActive = active === id;
-          return (
-            <button
-              key={id}
-              onClick={() => onChange(id)}
-              className={`group flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-colors ${
-                isActive ? 'text-blurple' : 'text-light hover:text-mid'
-              }`}
-            >
-              <div className="transition-transform duration-100 ease-out group-active:scale-75">
-                {icon(isActive)}
-              </div>
-              <span className={`text-[10px] font-semibold leading-none ${isActive ? 'text-blurple' : ''}`}>{label}</span>
-            </button>
-          );
-        })}
+      {/* Mobile: floating pill nav */}
+      <nav className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
+        <div className="flex items-center gap-1 bg-white/95 backdrop-blur-md rounded-full shadow-xl border border-border px-2 py-2">
+          {TABS.map(({ id, label, icon }) => {
+            const isActive = active === id;
+            return (
+              <button
+                key={id}
+                onClick={() => onChange(id)}
+                title={label}
+                className={`group flex items-center justify-center w-12 h-12 rounded-full transition-all duration-150 ${
+                  isActive ? 'bg-blurple text-white shadow-md' : 'text-light hover:text-mid hover:bg-gray-100'
+                }`}
+              >
+                <div className="transition-transform duration-100 ease-out group-active:scale-75">
+                  {icon(isActive)}
+                </div>
+              </button>
+            );
+          })}
+        </div>
       </nav>
     </>
   );

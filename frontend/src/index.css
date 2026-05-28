@@ -43,10 +43,22 @@ body {
 }
 
 .alert-card {
-  background: #FEFCF8;
   border-radius: 12px;
   border: 1px solid #E8E3DA;
   box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  background: #FEFCF8;
+}
+.alert-card-high {
+  background: #FEF2F2;
+  border-color: #FECACA;
+}
+.alert-card-medium {
+  background: #FFFBEB;
+  border-color: #FDE68A;
+}
+.alert-card-low {
+  background: #EFF6FF;
+  border-color: #BFDBFE;
 }
 
 /* Partner A = warm red, Partner B = dark */

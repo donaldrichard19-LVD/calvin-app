@@ -269,7 +269,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-[#FAF8F5] flex flex-col md:pl-52">
       {/* ── Main content ── */}
-      <div className="flex-1 overflow-y-auto pb-16 md:pb-0">
+      <div className="flex-1 overflow-y-auto pb-28 md:pb-0">
         {view === 'briefings' && (
           <div className="max-w-2xl mx-auto p-4">
             {firstName && (
@@ -296,7 +296,7 @@ export default function Dashboard() {
       </div>
 
       <div
-        className={`fixed bottom-16 left-0 right-0 flex justify-center px-4 z-40 pointer-events-none transition-all duration-300 ${
+        className={`fixed bottom-28 left-0 right-0 flex justify-center px-4 z-40 pointer-events-none transition-all duration-300 ${
           dismissToast ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
         }`}
       >

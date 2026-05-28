@@ -40,6 +40,7 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
   const [acting, setActing] = useState(false);
 
   const meta = TYPE_META[alert.type] || { icon: '•', label: alert.type };
+  const severityClass = { high: 'alert-card-high', medium: 'alert-card-medium', low: 'alert-card-low' }[alert.severity] || '';
 
   function handleResolve() {
     if (resolving) return;
@@ -74,7 +75,7 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
   const isCancelConfirm = alert.type === 'event_cancel_confirm';
 
   return (
-    <div className={`alert-card p-4 relative overflow-hidden ${fadingOut ? 'card-fade-out' : ''}`}>
+    <div className={`alert-card ${severityClass} p-4 relative overflow-hidden ${fadingOut ? 'card-fade-out' : ''}`}>
       {/* Green resolve overlay */}
       {resolving && (
         <div className="absolute inset-0 bg-green-50 flex items-center justify-center z-10 rounded-[12px]">
