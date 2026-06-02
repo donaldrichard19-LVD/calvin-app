@@ -2,7 +2,7 @@ export default function About() {
   const props = [
     {
       emoji: '📅',
-      floatClass: 'animate-float',
+      floatClass: '',
       delay: 'animation-delay-[100ms]',
       color: 'from-blurple/10 to-transparent border-blurple/30',
       label: 'Conflicts caught early',
@@ -10,7 +10,7 @@ export default function About() {
     },
     {
       emoji: '🔔',
-      floatClass: 'animate-float-slow',
+      floatClass: '',
       delay: 'animation-delay-[200ms]',
       color: 'from-amber/10 to-transparent border-amber/30',
       label: 'Actionable alerts, not noise',
@@ -18,7 +18,7 @@ export default function About() {
     },
     {
       emoji: '🔄',
-      floatClass: 'animate-float',
+      floatClass: '',
       delay: 'animation-delay-[300ms]',
       color: 'from-green/10 to-transparent border-green/30',
       label: 'Self-resolving',
@@ -26,7 +26,7 @@ export default function About() {
     },
     {
       emoji: '🤝',
-      floatClass: 'animate-float-slow',
+      floatClass: '',
       delay: 'animation-delay-[400ms]',
       color: 'from-coral/10 to-transparent border-coral/30',
       label: 'Both partners, one picture',
@@ -52,26 +52,26 @@ export default function About() {
         {/* Floating emoji cluster */}
         <div className="relative mb-10 h-32 w-64 mx-auto select-none">
           <span
-            className="absolute text-5xl animate-float"
-            style={{ top: 0, left: '50%', transform: 'translateX(-50%)', animationDelay: '0s' }}
+            className="absolute text-5xl"
+            style={{ top: 0, left: '50%', transform: 'translateX(-50%)' }}
           >
             📅
           </span>
           <span
-            className="absolute text-3xl animate-float-slow"
-            style={{ top: 16, left: 8, animationDelay: '0.6s' }}
+            className="absolute text-3xl"
+            style={{ top: 16, left: 8 }}
           >
             📬
           </span>
           <span
-            className="absolute text-3xl animate-float"
-            style={{ top: 16, right: 8, animationDelay: '1.1s' }}
+            className="absolute text-3xl"
+            style={{ top: 16, right: 8 }}
           >
             ✅
           </span>
           <span
-            className="absolute text-2xl animate-float-slow"
-            style={{ bottom: 0, left: '50%', transform: 'translateX(-50%)', animationDelay: '0.3s' }}
+            className="absolute text-2xl"
+            style={{ bottom: 0, left: '50%', transform: 'translateX(-50%)' }}
           >
             🔔
           </span>
@@ -190,7 +190,7 @@ export default function About() {
       {/* ── CTA ── */}
       <section className="px-6 pb-24 text-center animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
         <div className="inline-block rounded-2xl border border-blurple/20 bg-blurple/5 px-10 py-10 max-w-md">
-          <div className="text-3xl mb-4 animate-float">🏠</div>
+          <div className="text-3xl mb-4">🏠</div>
           <div className="text-[20px] font-bold text-blurple mb-2">Ready to try it?</div>
           <div className="text-blurple/60 text-[14px] mb-6 leading-relaxed">
             Calvin is in early access. Request your spot and we'll add you as soon as a slot opens.
