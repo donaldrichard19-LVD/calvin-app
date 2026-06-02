@@ -49,32 +49,63 @@ export default function About() {
           }}
         />
 
-        {/* Floating emoji cluster */}
-        <div className="relative mb-10 h-32 w-64 mx-auto select-none">
-          <span
-            className="absolute text-5xl"
-            style={{ top: 0, left: '50%', transform: 'translateX(-50%)' }}
-          >
-            📅
-          </span>
-          <span
-            className="absolute text-3xl"
-            style={{ top: 16, left: 8 }}
-          >
-            📬
-          </span>
-          <span
-            className="absolute text-3xl"
-            style={{ top: 16, right: 8 }}
-          >
-            ✅
-          </span>
-          <span
-            className="absolute text-2xl"
-            style={{ bottom: 0, left: '50%', transform: 'translateX(-50%)' }}
-          >
-            🔔
-          </span>
+        {/* Planetary orbital animation */}
+        <style>{`
+          @keyframes orbit-cw { to { transform: rotate(360deg); } }
+          @keyframes orbit-ccw { to { transform: rotate(-360deg); } }
+        `}</style>
+        <div className="relative mb-10 mx-auto select-none" style={{ width: 220, height: 220 }}>
+
+          {/* Ring guides */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div style={{ width: 168, height: 168, borderRadius: '50%', border: '1px solid rgba(88,101,242,0.2)' }} />
+          </div>
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div style={{ width: 100, height: 100, borderRadius: '50%', border: '1px solid rgba(88,101,242,0.15)' }} />
+          </div>
+
+          {/* Central bell */}
+          <div className="absolute inset-0 flex items-center justify-center text-4xl z-10">🔔</div>
+
+          {/* Outer ring — clockwise */}
+          <div className="absolute inset-0" style={{ animation: 'orbit-cw 24s linear infinite' }}>
+            {[
+              { emoji: '🏫', angle: 0 },
+              { emoji: '👨‍⚕️', angle: 90 },
+              { emoji: '⚽', angle: 180 },
+              { emoji: '📅', angle: 270 },
+            ].map(({ emoji, angle }) => {
+              const r = 84;
+              const rad = (angle * Math.PI) / 180;
+              const x = Math.round(r * Math.sin(rad));
+              const y = Math.round(-r * Math.cos(rad));
+              return (
+                <span key={emoji} style={{ position: 'absolute', left: `calc(50% + ${x}px)`, top: `calc(50% + ${y}px)`, transform: 'translate(-50%, -50%)' }}>
+                  <span className="text-2xl block" style={{ animation: 'orbit-ccw 24s linear infinite', lineHeight: 1 }}>{emoji}</span>
+                </span>
+              );
+            })}
+          </div>
+
+          {/* Inner ring — counter-clockwise */}
+          <div className="absolute inset-0" style={{ animation: 'orbit-ccw 18s linear infinite' }}>
+            {[
+              { emoji: '🚗', angle: 45 },
+              { emoji: '📬', angle: 135 },
+              { emoji: '✅', angle: 225 },
+              { emoji: '🏃', angle: 315 },
+            ].map(({ emoji, angle }) => {
+              const r = 50;
+              const rad = (angle * Math.PI) / 180;
+              const x = Math.round(r * Math.sin(rad));
+              const y = Math.round(-r * Math.cos(rad));
+              return (
+                <span key={emoji} style={{ position: 'absolute', left: `calc(50% + ${x}px)`, top: `calc(50% + ${y}px)`, transform: 'translate(-50%, -50%)' }}>
+                  <span className="text-xl block" style={{ animation: 'orbit-cw 18s linear infinite', lineHeight: 1 }}>{emoji}</span>
+                </span>
+              );
+            })}
+          </div>
         </div>
 
         <h1
