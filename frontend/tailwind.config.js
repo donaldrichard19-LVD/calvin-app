@@ -22,7 +22,8 @@ export default {
         bg: '#F7F7F7',
       },
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
+        sans: ['Geist', 'sans-serif'],
+        mono: ['Geist Mono', 'monospace'],
       },
       boxShadow: {
         card: '0 1px 2px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.05)',
