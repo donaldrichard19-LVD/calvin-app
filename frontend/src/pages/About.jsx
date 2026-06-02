@@ -119,7 +119,7 @@ export default function About() {
           className="text-xl sm:text-2xl font-medium text-blurple/70 animate-fade-in-up max-w-xl leading-snug"
           style={{ animationDelay: '0.15s' }}
         >
-          Never drop the ball again.
+          Less Planning Time, More Family Time.
         </p>
 
         <p
