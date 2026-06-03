@@ -148,24 +148,32 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
       {alert.action_hint && (
         <div
           className="rounded-xl p-4 mt-4 mb-2"
-          style={{ background: '#FFFBEB', border: '1.5px solid #FDE68A' }}
+          style={{
+            background: 'linear-gradient(135deg, #EEF2FF 0%, #F5F3FF 100%)',
+            border: '1.5px solid #A5B4FC',
+          }}
         >
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-[15px]">✨</span>
+            <span
+              className="text-[11px] flex items-center justify-center w-5 h-5 rounded-full shrink-0"
+              style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6)' }}
+            >
+              ✨
+            </span>
             <span
               className="text-[10px] font-bold uppercase tracking-wider"
-              style={{ color: '#D97706' }}
+              style={{ color: '#4338CA' }}
             >
               Suggested Next Step
             </span>
           </div>
-          <p className="text-[13px] mb-3 leading-relaxed" style={{ color: '#D97706' }}>
+          <p className="text-[13px] mb-3 leading-relaxed" style={{ color: '#4F46E5' }}>
             {alert.action_hint}
           </p>
           <button
             onClick={() => onChat(alert)}
-            className="text-[12px] font-semibold rounded-full px-4 py-1.5 transition-colors hover:bg-amber/10"
-            style={{ color: '#D97706', border: '1.5px solid #D97706', background: 'transparent' }}
+            className="text-[12px] font-semibold rounded-full px-4 py-1.5 transition-colors hover:bg-indigo-100"
+            style={{ color: '#4F46E5', border: '1.5px solid #818CF8', background: 'transparent' }}
           >
             → Take this action
           </button>
