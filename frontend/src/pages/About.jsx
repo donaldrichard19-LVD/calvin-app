@@ -150,7 +150,7 @@ export default function About() {
 
         {/* Scroll hint */}
         <p
-          className="absolute bottom-8 text-blurple/40 text-[13px] animate-fade-in"
+          className="mt-8 text-blurple/40 text-[13px] animate-fade-in"
           style={{ animationDelay: '1s' }}
         >
           ↓ See how it works
