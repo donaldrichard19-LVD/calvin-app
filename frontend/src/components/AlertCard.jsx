@@ -172,26 +172,18 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
           </p>
           <button
             onClick={() => onChat(alert)}
-            className="text-[12px] font-semibold rounded-full px-4 py-1.5 transition-colors hover:bg-indigo-100"
-            style={{ color: '#4F46E5', border: '1.5px solid #818CF8', background: 'transparent' }}
+            className="text-[12px] font-semibold rounded-full px-4 py-1.5 transition-colors"
+            style={{ color: '#fff', background: '#3730A3', border: 'none' }}
+            onMouseEnter={e => e.currentTarget.style.background = '#312E81'}
+            onMouseLeave={e => e.currentTarget.style.background = '#3730A3'}
           >
-            → Take this action
+            Take this action
           </button>
         </div>
       )}
 
       {/* Footer */}
       <div className="flex items-center justify-between pt-4 mt-2 border-t border-black/5">
-        <div className="flex items-center gap-1">
-          {(alert.relevant_to || []).map((r) => (
-            <PartnerChip
-              key={r}
-              partner={r === 'partnerA' ? partnerA : partnerB}
-              isA={r === 'partnerA'}
-            />
-          ))}
-        </div>
-
         <div className="flex items-center gap-2">
           {isAutoCancelled ? (
             <>
@@ -260,6 +252,16 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
               </button>
             </>
           )}
+        </div>
+
+        <div className="flex items-center gap-1">
+          {(alert.relevant_to || []).map((r) => (
+            <PartnerChip
+              key={r}
+              partner={r === 'partnerA' ? partnerA : partnerB}
+              isA={r === 'partnerA'}
+            />
+          ))}
         </div>
       </div>
     </div>
