@@ -113,7 +113,7 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
           className="text-[11px] font-semibold uppercase tracking-wider rounded-full px-3 py-1"
           style={{ color: '#E8352A', border: '1.5px solid #E8352A' }}
         >
-          •• {meta.label}
+          {meta.icon} {meta.label}
         </span>
         <span className="text-[11px] shrink-0" style={{ color: '#B0B0B0' }}>
           {timeAgo(alert.created_at)}
