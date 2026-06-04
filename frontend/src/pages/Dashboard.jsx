@@ -53,8 +53,14 @@ export default function Dashboard() {
   const [alertVisible, setAlertVisible] = useState(false);
   const alertShownRef = useRef(false);
   const [inviteOpen, setInviteOpen]   = useState(false);
-  const [dismissToast, setDismissToast] = useState(false);
-  const dismissToastTimer = useRef(null);
+  const [toast, setToast] = useState(null);
+  const toastTimer = useRef(null);
+
+  function showToast(msg) {
+    clearTimeout(toastTimer.current);
+    setToast(msg);
+    toastTimer.current = setTimeout(() => setToast(null), 3500);
+  }
 
   const fetchAll = useCallback(async () => {
     try {
@@ -138,9 +144,7 @@ export default function Dashboard() {
       alerts: prev.alerts.filter((a) => a.id !== alertId),
       meta: { ...prev.meta, total: (prev.meta.total || 1) - 1 },
     }));
-    clearTimeout(dismissToastTimer.current);
-    setDismissToast(true);
-    dismissToastTimer.current = setTimeout(() => setDismissToast(false), 3500);
+    showToast('Calvin uses dismissals to learn your preferences');
   }
 
   async function handleSnooze(alertId, hours) {
@@ -176,6 +180,20 @@ export default function Dashboard() {
   async function handleCancelEvent(alertId) {
     await apiFetch(`/api/briefing/${alertId}/cancel-event`, { method: 'POST' });
     await fetchAll();
+  }
+
+  async function handleTackle(alert) {
+    const data = await apiFetch('/api/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        alertId: alert.id,
+        messages: [{ role: 'user', content: alert.action_hint }],
+      }),
+    });
+    const msg = data.eventCreated
+      ? `Added to your calendar: ${data.eventCreated.summary || 'Event created'} ✓`
+      : 'Done! Calvin took care of it ✓';
+    showToast(msg);
   }
 
   async function handleSync() {
@@ -250,6 +268,7 @@ export default function Dashboard() {
     onSnooze:       handleSnooze,
     onResolve:      handleResolve,
     onChat:         setChatAlert,
+    onTackle:       handleTackle,
     onUndo:         handleUndo,
     onCancelEvent:  handleCancelEvent,
   };
@@ -302,11 +321,11 @@ export default function Dashboard() {
 
       <div
         className={`fixed bottom-28 left-0 right-0 flex justify-center px-4 z-40 pointer-events-none transition-all duration-300 ${
-          dismissToast ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+          toast ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
         }`}
       >
         <div className="bg-dark text-white text-[12px] font-medium px-4 py-2.5 rounded-full shadow-lg max-w-xs text-center">
-          Calvin uses dismissals to learn your preferences
+          {toast}
         </div>
       </div>
 

@@ -43,11 +43,12 @@ function parseSummaryLines(summary) {
   return [summary];
 }
 
-export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnooze, onResolve, onChat, onUndo, onCancelEvent }) {
+export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnooze, onResolve, onChat, onTackle, onUndo, onCancelEvent }) {
   const [expanded, setExpanded] = useState(false);
   const [resolving, setResolving] = useState(false);
   const [fadingOut, setFadingOut] = useState(false);
   const [acting, setActing] = useState(false);
+  const [tackling, setTackling] = useState(false);
 
   const meta = TYPE_META[alert.type] || { icon: '•', label: alert.type };
   const isAutoCancelled = alert.type === 'event_auto_cancelled';
@@ -84,6 +85,16 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
       await onCancelEvent(alert.id);
     } finally {
       setActing(false);
+    }
+  }
+
+  async function handleTackle() {
+    if (tackling) return;
+    setTackling(true);
+    try {
+      await onTackle(alert);
+    } finally {
+      setTackling(false);
     }
   }
 
@@ -172,13 +183,14 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
           </p>
           {alert.source_data?.calvin_can_act && (
             <button
-              onClick={() => onChat(alert)}
-              className="text-[12px] font-semibold rounded-full px-4 py-1.5 transition-colors"
+              onClick={handleTackle}
+              disabled={tackling}
+              className="text-[12px] font-semibold rounded-full px-4 py-1.5 transition-colors disabled:opacity-60"
               style={{ color: '#fff', background: '#3730A3', border: 'none' }}
-              onMouseEnter={e => e.currentTarget.style.background = '#312E81'}
-              onMouseLeave={e => e.currentTarget.style.background = '#3730A3'}
+              onMouseEnter={e => { if (!tackling) e.currentTarget.style.background = '#312E81'; }}
+              onMouseLeave={e => { if (!tackling) e.currentTarget.style.background = '#3730A3'; }}
             >
-              Take this action
+              {tackling ? 'Working…' : 'Take this action'}
             </button>
           )}
         </div>
