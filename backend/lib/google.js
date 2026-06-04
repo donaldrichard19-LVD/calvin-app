@@ -165,8 +165,8 @@ async function getRecentEmails(integration, maxResults = 50) {
 
   const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
 
-  const sevenDaysAgo = Math.floor((Date.now() - 7 * 86400000) / 1000);
-  const query = `(is:unread OR is:starred OR label:IMPORTANT OR (in:sent after:${sevenDaysAgo}) OR (in:inbox after:${sevenDaysAgo}))`;
+  const tenDaysAgo = Math.floor((Date.now() - 10 * 86400000) / 1000);
+  const query = `(is:unread OR is:starred OR label:IMPORTANT OR (in:sent after:${tenDaysAgo}) OR (in:inbox after:${tenDaysAgo}))`;
 
   const listRes = await gmail.users.messages.list({
     userId: 'me',
