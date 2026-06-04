@@ -167,18 +167,20 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
               Suggested Next Step
             </span>
           </div>
-          <p className="text-[13px] mb-3 leading-relaxed" style={{ color: '#4F46E5' }}>
+          <p className={`text-[13px] leading-relaxed ${alert.source_data?.calvin_can_act ? 'mb-3' : 'mb-0'}`} style={{ color: '#4F46E5' }}>
             {alert.action_hint}
           </p>
-          <button
-            onClick={() => onChat(alert)}
-            className="text-[12px] font-semibold rounded-full px-4 py-1.5 transition-colors"
-            style={{ color: '#fff', background: '#3730A3', border: 'none' }}
-            onMouseEnter={e => e.currentTarget.style.background = '#312E81'}
-            onMouseLeave={e => e.currentTarget.style.background = '#3730A3'}
-          >
-            Take this action
-          </button>
+          {alert.source_data?.calvin_can_act && (
+            <button
+              onClick={() => onChat(alert)}
+              className="text-[12px] font-semibold rounded-full px-4 py-1.5 transition-colors"
+              style={{ color: '#fff', background: '#3730A3', border: 'none' }}
+              onMouseEnter={e => e.currentTarget.style.background = '#312E81'}
+              onMouseLeave={e => e.currentTarget.style.background = '#3730A3'}
+            >
+              Take this action
+            </button>
+          )}
         </div>
       )}
 
