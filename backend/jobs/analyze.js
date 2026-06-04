@@ -8,6 +8,34 @@ const { sendAlertSMS } = require('../lib/twilio');
 
 const SEVERITY_RANK = { high: 3, medium: 2, low: 1 };
 
+function trimEmail(email) {
+  const addrMatch = (email.from || '').match(/<([^>]+)>/);
+  const from = addrMatch ? addrMatch[1] : (email.from || '');
+  return {
+    id: email.id,
+    subject: email.subject,
+    from,
+    date: email.date,
+    snippet: (email.snippet || '').slice(0, 150),
+    unread: (email.labels || []).includes('UNREAD'),
+    important: (email.labels || []).includes('IMPORTANT'),
+    ...(email.body ? { body: email.body.slice(0, 500) } : {}),
+  };
+}
+
+function trimCalendarEvent(event) {
+  return {
+    id: event.id,
+    title: event.title,
+    start: event.start,
+    end: event.end,
+    ...(event.location ? { location: event.location } : {}),
+    ...(event.attendees?.length ? { attendees: event.attendees } : {}),
+    ...(event.description ? { description: event.description.slice(0, 200) } : {}),
+    isAllDay: event.isAllDay,
+  };
+}
+
 // Deterministic fingerprint so the same issue isn't re-created across runs
 // even when Claude phrases its fingerprint string differently.
 function computeFingerprint(alert) {
@@ -177,10 +205,10 @@ async function runAnalysisForHousehold(householdId) {
       household: { id: householdId, name: householdResult.data?.name },
       partnerA: { id: partnerA?.id, display_name: partnerA?.display_name, email: intA?.account_email },
       partnerB: partnerB ? { id: partnerB.id, display_name: partnerB.display_name, email: intB?.account_email } : null,
-      partnerA_events: eventsA,
-      partnerB_events: eventsB,
-      partnerA_emails: emailsA,
-      partnerB_emails: emailsB,
+      partnerA_events: eventsA.map(trimCalendarEvent),
+      partnerB_events: eventsB.map(trimCalendarEvent),
+      partnerA_emails: emailsA.map(trimEmail),
+      partnerB_emails: emailsB.map(trimEmail),
       existing_alert_fingerprints: existingFingerprints,
       existing_active_alerts: activeAlerts.map((a) => ({
         id: a.id,
@@ -203,7 +231,8 @@ async function runAnalysisForHousehold(householdId) {
       timezone: 'America/New_York',
     };
 
-    console.log(`[analyze] Existing fingerprints: ${existingFingerprints.length}, active alerts: ${activeAlerts.length}`);
+    const contextBytes = Buffer.byteLength(JSON.stringify(context));
+    console.log(`[analyze] Existing fingerprints: ${existingFingerprints.length}, active alerts: ${activeAlerts.length}, context payload: ${(contextBytes / 1024).toFixed(1)}KB`);
     const { alerts, resolveIds, deleteEvents, confirmEvents } = await analyzeHousehold(context);
     console.log(`[analyze] Claude returned ${alerts.length} new alerts, ${resolveIds.length} to auto-resolve, ${deleteEvents.length} events to cancel, ${confirmEvents.length} to confirm`);
     if (alerts.length) console.log('[analyze] New:', alerts.map((a) => `${a.severity}:${a.fingerprint}`));
