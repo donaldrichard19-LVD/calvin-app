@@ -130,14 +130,22 @@ async function runAnalysisForHousehold(householdId) {
     const thirtyDaysAgo  = new Date(Date.now() -  30 * 86400000).toISOString();
     const ninetyDaysAgo  = new Date(Date.now() -  90 * 86400000).toISOString();
     const [fingerprintsResult, activeAlertsResult, householdResult, dismissedResult, resolvedResult] = await Promise.all([
-      supabase.from('alert_fingerprints').select('fingerprint').eq('household_id', householdId),
+      supabase.from('alert_fingerprints').select('fingerprint, alert_id').eq('household_id', householdId),
       supabase.from('alerts').select('id, type, title, summary, action_hint, source_data, status, created_at, severity, relevant_to').eq('household_id', householdId).in('status', ['active', 'snoozed']),
       supabase.from('households').select('id, name').eq('id', householdId).single(),
       supabase.from('alerts').select('type, title').eq('household_id', householdId).eq('status', 'dismissed').gte('updated_at', thirtyDaysAgo),
       supabase.from('alerts').select('type, title, source_data, relevant_to, updated_at').eq('household_id', householdId).eq('status', 'resolved').gte('updated_at', ninetyDaysAgo).order('updated_at', { ascending: false }).limit(100),
     ]);
 
-    const existingFingerprints = (fingerprintsResult.data || []).map((f) => f.fingerprint);
+    const activeAlertIds = new Set((activeAlertsResult.data || []).map((a) => a.id));
+    // Only treat a fingerprint as a blocker if its alert is still active/snoozed,
+    // OR if it's an auto-cancel/confirm fingerprint (to prevent double-cancellation).
+    const existingFingerprints = (fingerprintsResult.data || [])
+      .filter((f) => {
+        if (f.fingerprint.startsWith('auto-cancel-') || f.fingerprint.startsWith('confirm-cancel-')) return true;
+        return f.alert_id && activeAlertIds.has(f.alert_id);
+      })
+      .map((f) => f.fingerprint);
     const activeAlerts = activeAlertsResult.data || [];
 
     // Returns the set of meaningful words from an alert title for fuzzy deduplication
