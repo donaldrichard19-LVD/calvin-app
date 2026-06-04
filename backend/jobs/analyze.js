@@ -8,9 +8,21 @@ const { sendAlertSMS } = require('../lib/twilio');
 
 const SEVERITY_RANK = { high: 3, medium: 2, low: 1 };
 
+function cleanEmailBody(text) {
+  return text
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&[a-z]+;/gi, ' ')
+    .replace(/https?:\/\/\S+/g, '')
+    .replace(/(?:unsubscribe|manage (?:your )?(?:preferences|subscriptions|email)|view (?:in|this) (?:browser|email)|privacy policy|terms of (?:service|use)|if you (?:no longer|don.t want)|you.?re receiving this)[^\n]*/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 400);
+}
+
 function trimEmail(email) {
   const addrMatch = (email.from || '').match(/<([^>]+)>/);
   const from = addrMatch ? addrMatch[1] : (email.from || '');
+  const body = email.body ? cleanEmailBody(email.body) : null;
   return {
     id: email.id,
     subject: email.subject,
@@ -19,7 +31,7 @@ function trimEmail(email) {
     snippet: (email.snippet || '').slice(0, 150),
     unread: (email.labels || []).includes('UNREAD'),
     important: (email.labels || []).includes('IMPORTANT'),
-    ...(email.body ? { body: email.body.slice(0, 500) } : {}),
+    ...(body ? { body } : {}),
   };
 }
 
@@ -121,6 +133,33 @@ async function runAnalysisForHousehold(householdId) {
     ]);
 
     console.log(`[analyze] Data fetched — eventsA:${eventsA.length} emailsA:${emailsA.length} eventsB:${eventsB.length} emailsB:${emailsB.length}`);
+
+    // Skip the Claude call if nothing has changed since the last run
+    const dataHash = crypto.createHash('md5')
+      .update([
+        ...emailsA.map((e) => e.id),
+        ...emailsB.map((e) => e.id),
+        ...eventsA.map((e) => e.id),
+        ...eventsB.map((e) => e.id),
+      ].sort().join('|'))
+      .digest('hex');
+
+    const { data: lastCompletedRun } = await supabase
+      .from('analysis_runs')
+      .select('data_hash')
+      .eq('household_id', householdId)
+      .eq('status', 'completed')
+      .order('completed_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (lastCompletedRun?.data_hash && lastCompletedRun.data_hash === dataHash) {
+      await supabase.from('analysis_runs')
+        .update({ status: 'skipped', completed_at: new Date().toISOString() })
+        .eq('id', run.id);
+      console.log(`[analyze] Household ${householdId}: data unchanged, skipping Claude call`);
+      return run.id;
+    }
 
     await Promise.all([
       intA && supabase.from('integrations').update({ last_synced_at: new Date().toISOString() }).eq('id', intA.id),
@@ -518,6 +557,7 @@ async function runAnalysisForHousehold(householdId) {
         completed_at: now,
         alerts_created: created,
         alerts_resolved: resolvedCount + autoResolved,
+        data_hash: dataHash,
       })
       .eq('id', run.id);
 
