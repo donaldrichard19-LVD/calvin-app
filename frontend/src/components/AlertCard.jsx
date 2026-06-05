@@ -178,21 +178,19 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
               Suggested Next Step
             </span>
           </div>
-          <p className={`text-[13px] leading-relaxed ${alert.source_data?.calvin_can_act ? 'mb-3' : 'mb-0'}`} style={{ color: '#4F46E5' }}>
+          <p className="text-[13px] leading-relaxed mb-3" style={{ color: '#4F46E5' }}>
             {alert.action_hint}
           </p>
-          {alert.source_data?.calvin_can_act && (
-            <button
-              onClick={handleTackle}
-              disabled={tackling}
-              className="text-[12px] font-semibold rounded-full px-4 py-1.5 transition-colors disabled:opacity-60"
-              style={{ color: '#fff', background: '#3730A3', border: 'none' }}
-              onMouseEnter={e => { if (!tackling) e.currentTarget.style.background = '#312E81'; }}
-              onMouseLeave={e => { if (!tackling) e.currentTarget.style.background = '#3730A3'; }}
-            >
-              {tackling ? 'Working…' : 'Take this action'}
-            </button>
-          )}
+          <button
+            onClick={handleTackle}
+            disabled={tackling}
+            className="text-[12px] font-semibold rounded-full px-4 py-1.5 transition-colors disabled:opacity-60"
+            style={{ color: '#fff', background: '#3730A3', border: 'none' }}
+            onMouseEnter={e => { if (!tackling) e.currentTarget.style.background = '#312E81'; }}
+            onMouseLeave={e => { if (!tackling) e.currentTarget.style.background = '#3730A3'; }}
+          >
+            {tackling ? 'Working…' : 'Take this action'}
+          </button>
         </div>
       )}
 

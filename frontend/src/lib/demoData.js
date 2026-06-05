@@ -291,21 +291,31 @@ export function getDemoResponse(path, options = {}) {
   if (path === '/api/chat' && method === 'POST') {
     const body = options.body ? JSON.parse(options.body) : {};
     const alert = demoAlerts.find((a) => a.id === body.alertId);
-    if (alert?.source_data?.action_type === 'email_reply') {
+    const actionType = alert?.source_data?.action_type;
+    const hint = (alert?.action_hint || '').toLowerCase();
+    const isEmail = actionType === 'email_reply' || hint.includes('reply') || hint.includes('email');
+    const isCalendar = actionType === 'calendar_event' || hint.includes('calendar') || hint.includes('schedule') || hint.includes('add') || hint.includes('block');
+    if (isEmail) {
       return new Promise((res) => setTimeout(() => res({
-        content: 'I\'ve drafted a reply to Coach Rivera confirming Emma\'s attendance. Review it below before sending.',
+        content: 'I\'ve drafted a reply for you. Review it below before sending.',
         eventCreated: null,
         draftCreated: {
-          to: alert.source_data.email_reply_to || 'coach.rivera@soccerleague.org',
-          subject: 'Re: Saturday Tournament RSVP — Emma Chen',
-          body: `Hi Coach Rivera,\n\nJust wanted to confirm that Emma will be at the Saturday tournament at Riverside Park. She\'s excited!\n\nWe\'ll plan to arrive by 7:45am. Please let us know if there\'s anything we need to bring.\n\nThanks,\nAlex Chen`,
+          to: alert?.source_data?.email_reply_to || 'contact@example.com',
+          subject: 'Re: ' + (alert?.title || 'Follow-up'),
+          body: `Hi,\n\nJust following up on the above — happy to confirm and let us know if you need anything else.\n\nThanks,\nAlex`,
         },
       }), 800));
     }
-    // Default: calendar event creation
+    if (isCalendar) {
+      return new Promise((res) => setTimeout(() => res({
+        content: 'Done! I\'ve added the event to your calendar.',
+        eventCreated: { title: alert?.title || 'Calendar event', start: dt(2, 9, 0), end: dt(2, 10, 0) },
+        draftCreated: null,
+      }), 800));
+    }
     return new Promise((res) => setTimeout(() => res({
-      content: 'Done! I\'ve added a childcare block to your calendar for Friday 12:30–4:00pm.',
-      eventCreated: { title: 'Childcare block — Emma & Liam pickups', start: dt(4, 12, 30), end: dt(4, 16, 0) },
+      content: 'Here\'s what I\'d suggest: ' + (alert?.action_hint || 'take the next step listed above.'),
+      eventCreated: null,
       draftCreated: null,
     }), 800));
   }
