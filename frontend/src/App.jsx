@@ -95,6 +95,18 @@ function LandingPage() {
           </div>
         )}
 
+        {!isDemo && (
+          <a
+            href="https://calvin-demo.vercel.app"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 w-full rounded-xl py-2.5 mb-4 text-[13px] font-semibold transition-opacity hover:opacity-80"
+            style={{ background: '#FFF0ED', color: '#E8352A', border: '1.5px solid #FFCFC9' }}
+          >
+            <span>✨</span> Try the demo
+          </a>
+        )}
+
         {mode === 'signin' ? (
           <SignIn
             routing="hash"
