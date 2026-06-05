@@ -110,6 +110,34 @@ const DEMO_ALERTS_BASE = [
     updated_at: hoursAgo(10),
   },
   {
+    id: 'alert-7',
+    severity: 'medium',
+    type: 'coverage_gap',
+    title: 'No childcare block added for Jordan\'s Friday offsite',
+    summary:
+      'Jordan has a full-day offsite on Friday (8am–6pm). There\'s no childcare block on either calendar for Emma\'s school pickup at 3:30pm or Liam\'s preschool pickup at 12:30pm. Both need to be covered.',
+    action_hint: 'Add a childcare block to the calendar for Friday 12:30–4:00pm.',
+    relevant_to: ['partnerA', 'partnerB'],
+    status: 'open',
+    source_data: { dates: [dt(4, 12, 30)], calvin_can_act: true, action_type: 'calendar_event' },
+    created_at: hoursAgo(0.5),
+    updated_at: hoursAgo(0.5),
+  },
+  {
+    id: 'alert-8',
+    severity: 'medium',
+    type: 'dropped_commitment',
+    title: 'Emma\'s soccer coach waiting on RSVP for Saturday tournament',
+    summary:
+      'Coach Rivera sent an email 2 days ago asking families to confirm whether Emma will attend the Saturday tournament at Riverside Park (8am–2pm). No reply has been sent. The deadline to confirm is tomorrow.',
+    action_hint: 'Reply to Coach Rivera\'s email to confirm Emma\'s attendance at the Saturday tournament.',
+    relevant_to: ['partnerA'],
+    status: 'open',
+    source_data: { email_ids: ['msg-coach-rsvp'], calvin_can_act: true, action_type: 'email_reply', email_reply_to: 'coach.rivera@soccerleague.org' },
+    created_at: hoursAgo(2.5),
+    updated_at: hoursAgo(2.5),
+  },
+  {
     id: 'alert-6',
     severity: 'low',
     type: 'asymmetric_context',
@@ -257,6 +285,34 @@ export function getDemoResponse(path, options = {}) {
       a.id === resolveMatch[1] ? { ...a, status: 'resolved' } : a
     );
     return Promise.resolve({});
+  }
+
+  // Take Action — chat tool use
+  if (path === '/api/chat' && method === 'POST') {
+    const body = options.body ? JSON.parse(options.body) : {};
+    const alert = demoAlerts.find((a) => a.id === body.alertId);
+    if (alert?.source_data?.action_type === 'email_reply') {
+      return new Promise((res) => setTimeout(() => res({
+        content: 'I\'ve drafted a reply to Coach Rivera confirming Emma\'s attendance. Review it below before sending.',
+        eventCreated: null,
+        draftCreated: {
+          to: alert.source_data.email_reply_to || 'coach.rivera@soccerleague.org',
+          subject: 'Re: Saturday Tournament RSVP — Emma Chen',
+          body: `Hi Coach Rivera,\n\nJust wanted to confirm that Emma will be at the Saturday tournament at Riverside Park. She\'s excited!\n\nWe\'ll plan to arrive by 7:45am. Please let us know if there\'s anything we need to bring.\n\nThanks,\nAlex Chen`,
+        },
+      }), 800));
+    }
+    // Default: calendar event creation
+    return new Promise((res) => setTimeout(() => res({
+      content: 'Done! I\'ve added a childcare block to your calendar for Friday 12:30–4:00pm.',
+      eventCreated: { title: 'Childcare block — Emma & Liam pickups', start: dt(4, 12, 30), end: dt(4, 16, 0) },
+      draftCreated: null,
+    }), 800));
+  }
+
+  // Email send — no-op in demo
+  if (path === '/api/email/send' && method === 'POST') {
+    return new Promise((res) => setTimeout(() => res({ success: true, messageId: 'demo-msg-1' }), 600));
   }
 
   // Sync trigger — no-op in demo
