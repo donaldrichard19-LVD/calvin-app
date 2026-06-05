@@ -301,49 +301,65 @@ export function getDemoResponse(path, options = {}) {
     return Promise.resolve({});
   }
 
-  // Take Action — chat tool use
+  // Chat — Take Action and inline follow-up
   if (path === '/api/chat' && method === 'POST') {
     const body = options.body ? JSON.parse(options.body) : {};
     const alert = demoAlerts.find((a) => a.id === body.alertId);
+    const messages = body.messages || [];
+    const lastMsg = (messages[messages.length - 1]?.content || '').toLowerCase();
     const actionType = alert?.source_data?.action_type;
     const hint = (alert?.action_hint || '').toLowerCase();
-    const isEmail = actionType === 'email_reply' || hint.includes('reply') || hint.includes('email');
-    const isCalendar = actionType === 'calendar_event' || hint.includes('calendar') || hint.includes('schedule') || hint.includes('add') || hint.includes('block');
-    const isReminder = actionType === 'reminder' || hint.includes('monitor') || hint.includes('follow up') || hint.includes('check in') || hint.includes('watch for') || hint.includes('keep an eye');
-    if (isEmail) {
-      return new Promise((res) => setTimeout(() => res({
-        content: 'I\'ve drafted a reply for you. Review it below before sending.',
-        eventCreated: null,
-        draftCreated: {
-          to: alert?.source_data?.email_reply_to || 'contact@example.com',
-          subject: 'Re: ' + (alert?.title || 'Follow-up'),
-          body: `Hi,\n\nJust following up on the above — happy to confirm and let us know if you need anything else.\n\nThanks,\nAlex`,
-        },
-        reminderScheduled: false,
-      }), 800));
+
+    // "Take this action" — first message matches the action hint
+    const isTakeAction = messages.length === 1 && messages[0]?.content === alert?.action_hint;
+    if (isTakeAction) {
+      const isEmail = actionType === 'email_reply' || hint.includes('reply') || hint.includes('email');
+      const isCalendar = actionType === 'calendar_event' || hint.includes('calendar') || hint.includes('schedule') || hint.includes('add') || hint.includes('block');
+      const isReminder = actionType === 'reminder' || hint.includes('monitor') || hint.includes('follow up') || hint.includes('check in') || hint.includes('watch for') || hint.includes('keep an eye');
+      if (isEmail) {
+        return new Promise((res) => setTimeout(() => res({
+          content: 'I\'ve drafted a reply for you. Review it below before sending.',
+          eventCreated: null,
+          draftCreated: {
+            to: alert?.source_data?.email_reply_to || 'contact@example.com',
+            subject: 'Re: ' + (alert?.title || 'Follow-up'),
+            body: `Hi,\n\nJust following up on the above — happy to confirm and let us know if you need anything else.\n\nThanks,\nAlex`,
+          },
+          reminderScheduled: false,
+        }), 800));
+      }
+      if (isCalendar) {
+        return new Promise((res) => setTimeout(() => res({
+          content: 'Done! I\'ve added the event to your calendar.',
+          eventCreated: { title: alert?.title || 'Calendar event', start: dt(2, 9, 0), end: dt(2, 10, 0) },
+          draftCreated: null,
+          reminderScheduled: false,
+        }), 800));
+      }
+      if (isReminder) {
+        return new Promise((res) => setTimeout(() => res({
+          content: 'Reminder set. I\'ll resurface this in 3 days so you don\'t lose track of it.',
+          eventCreated: null,
+          draftCreated: null,
+          reminderScheduled: true,
+        }), 800));
+      }
     }
-    if (isCalendar) {
-      return new Promise((res) => setTimeout(() => res({
-        content: 'Done! I\'ve added the event to your calendar.',
-        eventCreated: { title: alert?.title || 'Calendar event', start: dt(2, 9, 0), end: dt(2, 10, 0) },
-        draftCreated: null,
-        reminderScheduled: false,
-      }), 800));
-    }
-    if (isReminder) {
-      return new Promise((res) => setTimeout(() => res({
-        content: 'Reminder set. I\'ll resurface this in 3 days so you don\'t lose track of it.',
-        eventCreated: null,
-        draftCreated: null,
-        reminderScheduled: true,
-      }), 800));
-    }
+
+    // Inline chat follow-up — simulate a contextual response
+    const chatReplies = [
+      `Good question. For "${alert?.title}", the key thing to watch is whether both partners are aligned on timing. I'd suggest confirming by end of day.`,
+      `Based on what I can see, the most important next step is: ${alert?.action_hint || 'review the situation and coordinate with your partner'}.`,
+      `This is a medium-priority item. If it's not resolved by tomorrow, it could escalate — I'd handle it today if possible.`,
+      `You're right to flag this. The main risk is the timing overlap — I'd suggest one of you takes ownership and loops in the other.`,
+    ];
+    const reply = chatReplies[Math.floor(Math.random() * chatReplies.length)];
     return new Promise((res) => setTimeout(() => res({
-      content: 'Here\'s what I\'d suggest: ' + (alert?.action_hint || 'take the next step listed above.'),
+      content: reply,
       eventCreated: null,
       draftCreated: null,
       reminderScheduled: false,
-    }), 800));
+    }), 900));
   }
 
   // Email send — no-op in demo

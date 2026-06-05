@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 const TYPE_META = {
   schedule_conflict:    { icon: '⚡', label: 'Conflict' },
@@ -38,7 +38,6 @@ function parseSummaryLines(summary) {
   if (!summary) return [];
   const byNewline = summary.split('\n').map(s => s.trim()).filter(Boolean);
   if (byNewline.length > 1) return byNewline;
-  // Fall back to splitting on '. ' for sentence-style summaries
   const bySentence = summary.split(/\.\s+/).map(s => s.trim()).filter(Boolean);
   if (bySentence.length > 1) return bySentence.map(s => s.endsWith('.') ? s : s + '.');
   return [summary];
@@ -50,6 +49,17 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
   const [fadingOut, setFadingOut] = useState(false);
   const [acting, setActing] = useState(false);
   const [tackling, setTackling] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatSending, setChatSending] = useState(false);
+  const chatEndRef = useRef(null);
+
+  useEffect(() => {
+    if (chatOpen && chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatMessages, chatOpen]);
 
   const meta = TYPE_META[alert.type] || { icon: '•', label: alert.type };
   const isAutoCancelled = alert.type === 'event_auto_cancelled';
@@ -96,6 +106,25 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
       await onTackle(alert);
     } finally {
       setTackling(false);
+    }
+  }
+
+  async function handleSendChat() {
+    if (!chatInput.trim() || chatSending) return;
+    const userMsg = { role: 'user', content: chatInput.trim() };
+    const newMessages = [...chatMessages, userMsg];
+    setChatMessages(newMessages);
+    setChatInput('');
+    setChatSending(true);
+    try {
+      const data = await onChat(alert, newMessages);
+      if (data?.content) {
+        setChatMessages(prev => [...prev, { role: 'assistant', content: data.content }]);
+      }
+    } catch {
+      setChatMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, something went wrong. Please try again.' }]);
+    } finally {
+      setChatSending(false);
     }
   }
 
@@ -150,7 +179,8 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
       {hasMore && (
         <button
           onClick={() => setExpanded(!expanded)}
-          className="text-[12px] text-blurple hover:underline mb-4"
+          className="text-[12px] hover:underline mb-4"
+          style={{ color: '#5865F2' }}
         >
           {expanded ? 'Show less' : 'Show more'}
         </button>
@@ -235,15 +265,25 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
             </>
           ) : (
             <>
+              {/* Chat toggle */}
               <button
-                onClick={() => onChat(alert)}
-                className="w-8 h-8 flex items-center justify-center rounded-full text-blurple hover:bg-blurpleLight transition-colors"
+                onClick={() => setChatOpen(o => !o)}
+                className="w-8 h-8 flex items-center justify-center rounded-full transition-colors"
+                style={chatOpen ? { background: '#5865F2' } : {}}
                 title="Ask follow-up"
               >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke={chatOpen ? '#fff' : '#5865F2'}
+                  strokeWidth={2}
+                >
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
               </button>
+
+              {/* Resolve */}
               <button
                 onClick={handleResolve}
                 disabled={resolving}
@@ -254,6 +294,8 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
               </button>
+
+              {/* Dismiss */}
               <button
                 onClick={() => onDismiss(alert.id)}
                 className="w-8 h-8 flex items-center justify-center rounded-full text-light hover:text-mid hover:bg-gray-100 transition-colors"
@@ -275,6 +317,74 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
               isA={r === 'partnerA'}
             />
           ))}
+        </div>
+      </div>
+
+      {/* Inline expandable chat */}
+      <div
+        style={{
+          maxHeight: chatOpen ? '400px' : '0',
+          overflow: 'hidden',
+          transition: 'max-height 0.3s ease-in-out',
+        }}
+      >
+        <div className="pt-4 mt-2 border-t border-black/5">
+          {/* Message history */}
+          <div className="space-y-2 mb-3 max-h-48 overflow-y-auto pr-1">
+            {chatMessages.length === 0 && (
+              <p className="text-[12px] text-center py-2" style={{ color: '#B0B0B0' }}>
+                Ask Calvin anything about this alert
+              </p>
+            )}
+            {chatMessages.map((msg, i) => (
+              <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div
+                  className="text-[12px] leading-relaxed rounded-2xl px-3 py-2 max-w-[82%]"
+                  style={{
+                    background: msg.role === 'user' ? '#5865F2' : '#F0EDE8',
+                    color: msg.role === 'user' ? '#fff' : '#333',
+                  }}
+                >
+                  {msg.content}
+                </div>
+              </div>
+            ))}
+            {chatSending && (
+              <div className="flex justify-start">
+                <div
+                  className="text-[12px] rounded-2xl px-3 py-2"
+                  style={{ background: '#F0EDE8', color: '#B0B0B0' }}
+                >
+                  Thinking…
+                </div>
+              </div>
+            )}
+            <div ref={chatEndRef} />
+          </div>
+
+          {/* Input row */}
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={chatInput}
+              onChange={e => setChatInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendChat(); } }}
+              placeholder="Ask a follow-up…"
+              disabled={chatSending}
+              className="flex-1 text-[12px] rounded-full px-4 py-2 outline-none"
+              style={{ background: '#F5EFE8', border: '1.5px solid #E8DDD4', color: '#333' }}
+            />
+            <button
+              onClick={handleSendChat}
+              disabled={chatSending || !chatInput.trim()}
+              className="w-8 h-8 flex items-center justify-center rounded-full transition-opacity disabled:opacity-40"
+              style={{ background: '#5865F2', flexShrink: 0 }}
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="#fff" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -6,7 +6,6 @@ import TimelineView from '../components/TimelineView';
 import InsightsView from '../components/InsightsView';
 import SettingsView, { getInAppAlertsEnabled } from '../components/SettingsView';
 import BottomNav from '../components/BottomNav';
-import ChatDrawer from '../components/ChatDrawer';
 import EmailDraftModal from '../components/EmailDraftModal';
 import SplashScreen from '../components/SplashScreen';
 import SMSNotification from '../components/SMSNotification';
@@ -32,7 +31,6 @@ export default function Dashboard() {
   const [calendarData, setCalendarData]   = useState({ eventsA: [], eventsB: [] });
   const [calendarSyncError, setCalendarSyncError] = useState(null);
   const [loading, setLoading]             = useState(true);
-  const [chatAlert, setChatAlert]       = useState(null);
   const [emailDraft, setEmailDraft]     = useState(null);
   const [splashDone, setSplashDone]     = useState(
     () => sessionStorage.getItem(SPLASH_KEY) === '1'
@@ -193,6 +191,13 @@ export default function Dashboard() {
     }));
   }
 
+  async function handleChat(alert, messages) {
+    return await apiFetch('/api/chat', {
+      method: 'POST',
+      body: JSON.stringify({ alertId: alert.id, messages }),
+    });
+  }
+
   async function handleTackle(alert) {
     const data = await apiFetch('/api/chat', {
       method: 'POST',
@@ -286,7 +291,7 @@ export default function Dashboard() {
     onDismiss:      handleDismiss,
     onSnooze:       handleSnooze,
     onResolve:      handleResolve,
-    onChat:         setChatAlert,
+    onChat:         handleChat,
     onTackle:       handleTackle,
     onUndo:         handleUndo,
     onCancelEvent:  handleCancelEvent,
@@ -356,10 +361,6 @@ export default function Dashboard() {
         partner={partnerAData}
         onChangeEmoji={handleChangeEmoji}
       />
-
-      {chatAlert && (
-        <ChatDrawer alert={chatAlert} onClose={() => setChatAlert(null)} />
-      )}
 
       {emailDraft && (
         <EmailDraftModal
