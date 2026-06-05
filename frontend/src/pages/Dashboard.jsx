@@ -184,6 +184,15 @@ export default function Dashboard() {
     await fetchAll();
   }
 
+  function resolveAndRemoveAlert(alertId) {
+    apiFetch(`/api/briefing/${alertId}/resolve`, { method: 'PATCH' }).catch(() => {});
+    setBriefing((prev) => ({
+      ...prev,
+      alerts: prev.alerts.filter((a) => a.id !== alertId),
+      meta: { ...prev.meta, total: Math.max(0, (prev.meta.total || 1) - 1) },
+    }));
+  }
+
   async function handleTackle(alert) {
     const data = await apiFetch('/api/chat', {
       method: 'POST',
@@ -193,10 +202,12 @@ export default function Dashboard() {
       }),
     });
     if (data.eventCreated) {
+      resolveAndRemoveAlert(alert.id);
       showToast(`Added to your calendar: ${data.eventCreated.title || 'Event created'} ✓`);
     } else if (data.draftCreated) {
-      setEmailDraft(data.draftCreated);
+      setEmailDraft({ ...data.draftCreated, alertId: alert.id });
     } else {
+      resolveAndRemoveAlert(alert.id);
       showToast('Done! Calvin took care of it ✓');
     }
   }
@@ -351,7 +362,12 @@ export default function Dashboard() {
         <EmailDraftModal
           draft={emailDraft}
           onClose={() => setEmailDraft(null)}
-          onSent={(msg) => { setEmailDraft(null); showToast(msg); }}
+          onSent={(msg) => {
+            const alertId = emailDraft.alertId;
+            setEmailDraft(null);
+            showToast(msg);
+            if (alertId) resolveAndRemoveAlert(alertId);
+          }}
         />
       )}
 
