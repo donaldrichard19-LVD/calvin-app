@@ -7,6 +7,7 @@ import InsightsView from '../components/InsightsView';
 import SettingsView, { getInAppAlertsEnabled } from '../components/SettingsView';
 import BottomNav from '../components/BottomNav';
 import ChatDrawer from '../components/ChatDrawer';
+import EmailDraftModal from '../components/EmailDraftModal';
 import SplashScreen from '../components/SplashScreen';
 import SMSNotification from '../components/SMSNotification';
 import InviteModal from '../components/InviteModal';
@@ -32,6 +33,7 @@ export default function Dashboard() {
   const [calendarSyncError, setCalendarSyncError] = useState(null);
   const [loading, setLoading]             = useState(true);
   const [chatAlert, setChatAlert]       = useState(null);
+  const [emailDraft, setEmailDraft]     = useState(null);
   const [splashDone, setSplashDone]     = useState(
     () => sessionStorage.getItem(SPLASH_KEY) === '1'
   );
@@ -190,10 +192,13 @@ export default function Dashboard() {
         messages: [{ role: 'user', content: alert.action_hint }],
       }),
     });
-    const msg = data.eventCreated
-      ? `Added to your calendar: ${data.eventCreated.summary || 'Event created'} ✓`
-      : 'Done! Calvin took care of it ✓';
-    showToast(msg);
+    if (data.eventCreated) {
+      showToast(`Added to your calendar: ${data.eventCreated.title || 'Event created'} ✓`);
+    } else if (data.draftCreated) {
+      setEmailDraft(data.draftCreated);
+    } else {
+      showToast('Done! Calvin took care of it ✓');
+    }
   }
 
   async function handleSync() {
@@ -340,6 +345,14 @@ export default function Dashboard() {
 
       {chatAlert && (
         <ChatDrawer alert={chatAlert} onClose={() => setChatAlert(null)} />
+      )}
+
+      {emailDraft && (
+        <EmailDraftModal
+          draft={emailDraft}
+          onClose={() => setEmailDraft(null)}
+          onSent={(msg) => { setEmailDraft(null); showToast(msg); }}
+        />
       )}
 
       {alertVisible && alertNotif && (

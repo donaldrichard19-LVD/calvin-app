@@ -43,6 +43,19 @@ const TOOLS = [
       required: ['title', 'start', 'end'],
     },
   },
+  {
+    name: 'draft_email_reply',
+    description: 'Compose a draft email reply for the user to review before sending. Use when the user asks to reply to or send an email. Do NOT send it — the user will confirm first.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        to:      { type: 'string', description: 'Recipient email address' },
+        subject: { type: 'string', description: 'Email subject, e.g. "Re: School pickup Wednesday"' },
+        body:    { type: 'string', description: 'Email body text — plain prose, professional and concise' },
+      },
+      required: ['to', 'subject', 'body'],
+    },
+  },
 ];
 
 router.post('/', requireAuth, chatLimiter, async (req, res) => {
@@ -59,7 +72,7 @@ router.post('/', requireAuth, chatLimiter, async (req, res) => {
       .single();
 
     const [alertResult, householdResult] = await Promise.all([
-      supabase.from('alerts').select('title, summary, action_hint').eq('id', alertId).eq('household_id', partner?.household_id).single(),
+      supabase.from('alerts').select('title, summary, action_hint, source_data').eq('id', alertId).eq('household_id', partner?.household_id).single(),
       supabase.from('households').select('context').eq('id', partner?.household_id).single(),
     ]);
 
@@ -69,21 +82,23 @@ router.post('/', requireAuth, chatLimiter, async (req, res) => {
     const now = new Date().toLocaleString('en-US', { timeZone: 'America/New_York', dateStyle: 'full', timeStyle: 'short' });
     const householdContext = formatHouseholdContext(householdResult.data?.context);
 
+    const emailReplyTo = alert.source_data?.email_reply_to || null;
     const systemPrompt = `You are a practical family assistant. The user is asking a follow-up about this alert:
 
 Title: ${alert.title}
 Summary: ${alert.summary}
 Suggested action: ${alert.action_hint}
-
+${emailReplyTo ? `Reply-to email address: ${emailReplyTo}\n` : ''}
 Current date/time: ${now} (America/New_York)
 ${householdContext ? `\nHousehold context:\n${householdContext}\n` : ''}
-Be concise and direct. Use the household context to personalise responses — reference people, pets, and preferences by name where relevant. If the user asks to create, schedule, or add a calendar event, use the create_calendar_event tool. Infer reasonable defaults (1 hour duration if not specified). Do not repeat the alert back to the user.`;
+Be concise and direct. Use the household context to personalise responses — reference people, pets, and preferences by name where relevant. If the user asks to create, schedule, or add a calendar event, use the create_calendar_event tool. If the user asks to draft or send an email reply, use the draft_email_reply tool — compose a clear, professional reply based on the alert context and the reply-to address above. Do not repeat the alert back to the user.`;
 
     const validMessages = messages
       .filter((m) => m.role && m.content)
       .map((m) => ({ role: m.role, content: String(m.content) }));
 
     let createdEvent = null;
+    let createdDraft = null;
 
     // First Claude call
     let response = await client.messages.create({
@@ -129,6 +144,9 @@ Be concise and direct. Use the household context to personalise responses — re
               : err.message,
           };
         }
+      } else if (toolUseBlock?.name === 'draft_email_reply') {
+        createdDraft = toolUseBlock.input;
+        toolResult = { success: true, message: 'Draft composed. The user will review and confirm before sending.' };
       } else {
         toolResult = { error: 'Unknown tool' };
       }
@@ -163,7 +181,7 @@ Be concise and direct. Use the household context to personalise responses — re
       }).then(({ error }) => { if (error) console.error('[chat] log error:', error.message); });
     }
 
-    res.json({ content: textBlock?.text || '', eventCreated: createdEvent || null });
+    res.json({ content: textBlock?.text || '', eventCreated: createdEvent || null, draftCreated: createdDraft || null });
   } catch (err) {
     console.error('[chat] error:', err.message, err.status ?? '');
     res.status(500).json({ error: err.message });

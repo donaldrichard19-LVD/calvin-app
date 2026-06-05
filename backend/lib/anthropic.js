@@ -130,12 +130,14 @@ Each new alert object must have these exact fields:
   "summary": "2-3 sentences explaining the issue clearly to both adults",
   "action_hint": "one specific suggested next step",
   "relevant_to": ["partnerA"] | ["partnerB"] | ["partnerA", "partnerB"],
-  "source_data": { "event_ids": [], "email_ids": [], "dates": [], "calvin_can_act": true | false },
+  "source_data": { "event_ids": [], "email_ids": [], "dates": [], "calvin_can_act": true | false, "action_type": "calendar_event" | "email_reply" | null, "email_reply_to": "sender@example.com or null" },
   "expires_at": "ISO date string or null",
   "fingerprint": "short stable unique string for this specific issue, e.g. conflict-2026-05-20-soccer-dentist"
 }
 
 "calvin_can_act" in source_data: set to true ONLY if the action_hint describes something Calvin can directly execute — creating a calendar event or drafting/sending an email reply. Set to false for everything else (e.g. reminders to call someone, pick something up, pay a bill, check a website, or any action the user must take themselves).
+"action_type" in source_data: when calvin_can_act is true, set to "calendar_event" if the action is creating a calendar event, or "email_reply" if the action is drafting/sending an email reply. Set to null when calvin_can_act is false.
+"email_reply_to" in source_data: when action_type is "email_reply", set to the email address Calvin should send the reply to (extracted from the relevant email's From header). Set to null otherwise.
 
 Severity: high = needs action today/tomorrow or causes immediate conflict. medium = needs action this week. low = worth knowing, no deadline.`;
 

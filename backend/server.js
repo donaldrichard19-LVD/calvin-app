@@ -39,6 +39,7 @@ app.use('/api/integrations', require('./routes/integrations'));
 app.use('/api/google', require('./routes/google'));
 app.use('/api/briefing', require('./routes/briefing'));
 app.use('/api/chat', require('./routes/chat'));
+app.use('/api/email', require('./routes/email'));
 app.use('/api/sms', require('./routes/sms'));
 app.use('/api/calendar', require('./routes/calendar'));
 app.use('/api/mcp', require('./routes/mcp'));

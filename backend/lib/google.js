@@ -14,6 +14,7 @@ function createOAuth2Client() {
 const SCOPES = [
   'https://www.googleapis.com/auth/calendar',
   'https://www.googleapis.com/auth/gmail.readonly',
+  'https://www.googleapis.com/auth/gmail.send',
   'https://www.googleapis.com/auth/userinfo.email',
 ];
 
@@ -268,4 +269,30 @@ async function restoreCalendarEvent(integration, eventId) {
   });
 }
 
-module.exports = { getAuthUrl, getTokensFromCode, refreshIfNeeded, getCalendarEvents, createCalendarEvent, deleteCalendarEvent, cancelCalendarEvent, restoreCalendarEvent, getRecentEmails };
+async function sendEmail(integration, { to, subject, body }) {
+  const accessToken = await refreshIfNeeded(integration);
+  const oauth2Client = createOAuth2Client();
+  oauth2Client.setCredentials({ access_token: accessToken });
+
+  const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+
+  const raw = [
+    `To: ${to}`,
+    `Subject: ${subject}`,
+    'Content-Type: text/plain; charset=utf-8',
+    'MIME-Version: 1.0',
+    '',
+    body,
+  ].join('\r\n');
+
+  const encodedMessage = Buffer.from(raw).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+  const res = await gmail.users.messages.send({
+    userId: 'me',
+    requestBody: { raw: encodedMessage },
+  });
+
+  return { id: res.data.id, threadId: res.data.threadId };
+}
+
+module.exports = { getAuthUrl, getTokensFromCode, refreshIfNeeded, getCalendarEvents, createCalendarEvent, deleteCalendarEvent, cancelCalendarEvent, restoreCalendarEvent, getRecentEmails, sendEmail };
