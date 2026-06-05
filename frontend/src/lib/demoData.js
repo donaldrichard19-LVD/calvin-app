@@ -138,6 +138,20 @@ const DEMO_ALERTS_BASE = [
     updated_at: hoursAgo(2.5),
   },
   {
+    id: 'alert-9',
+    severity: 'medium',
+    type: 'invisible_dependency',
+    title: 'Liam\'s preschool flagged a nut exposure today — monitor for symptoms',
+    summary:
+      'Liam\'s preschool sent an alert this afternoon about a possible nut product brought in by another child. Liam has a nut allergy. The teacher monitored him during the afternoon and he appears fine, but the pediatrician recommends watching for delayed reactions over the next 72 hours. Jordan may not have seen the school email yet.',
+    action_hint: 'Monitor Liam for allergy symptoms over the next 3 days and follow up with Dr. Patel if anything develops.',
+    relevant_to: ['partnerA', 'partnerB'],
+    status: 'open',
+    source_data: { action_type: 'reminder' },
+    created_at: hoursAgo(0.3),
+    updated_at: hoursAgo(0.3),
+  },
+  {
     id: 'alert-6',
     severity: 'low',
     type: 'asymmetric_context',
@@ -295,6 +309,7 @@ export function getDemoResponse(path, options = {}) {
     const hint = (alert?.action_hint || '').toLowerCase();
     const isEmail = actionType === 'email_reply' || hint.includes('reply') || hint.includes('email');
     const isCalendar = actionType === 'calendar_event' || hint.includes('calendar') || hint.includes('schedule') || hint.includes('add') || hint.includes('block');
+    const isReminder = actionType === 'reminder' || hint.includes('monitor') || hint.includes('follow up') || hint.includes('check in') || hint.includes('watch for') || hint.includes('keep an eye');
     if (isEmail) {
       return new Promise((res) => setTimeout(() => res({
         content: 'I\'ve drafted a reply for you. Review it below before sending.',
@@ -304,6 +319,7 @@ export function getDemoResponse(path, options = {}) {
           subject: 'Re: ' + (alert?.title || 'Follow-up'),
           body: `Hi,\n\nJust following up on the above — happy to confirm and let us know if you need anything else.\n\nThanks,\nAlex`,
         },
+        reminderScheduled: false,
       }), 800));
     }
     if (isCalendar) {
@@ -311,12 +327,22 @@ export function getDemoResponse(path, options = {}) {
         content: 'Done! I\'ve added the event to your calendar.',
         eventCreated: { title: alert?.title || 'Calendar event', start: dt(2, 9, 0), end: dt(2, 10, 0) },
         draftCreated: null,
+        reminderScheduled: false,
+      }), 800));
+    }
+    if (isReminder) {
+      return new Promise((res) => setTimeout(() => res({
+        content: 'Reminder set. I\'ll resurface this in 3 days so you don\'t lose track of it.',
+        eventCreated: null,
+        draftCreated: null,
+        reminderScheduled: true,
       }), 800));
     }
     return new Promise((res) => setTimeout(() => res({
       content: 'Here\'s what I\'d suggest: ' + (alert?.action_hint || 'take the next step listed above.'),
       eventCreated: null,
       draftCreated: null,
+      reminderScheduled: false,
     }), 800));
   }
 
