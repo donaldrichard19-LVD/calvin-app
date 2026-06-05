@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 
 const TYPE_META = {
-  schedule_conflict:    { icon: '🗓️', label: 'Schedule Conflict' },
+  schedule_conflict:    { icon: '⚡', label: 'Conflict' },
   coverage_gap:         { icon: '🕳️', label: 'Coverage Gap' },
-  dropped_commitment:   { icon: '📧', label: 'Upcoming Commitment' },
-  invisible_dependency: { icon: '🔗', label: 'Invisible Dependency' },
-  expiring_item:        { icon: '⏰', label: 'Expiring Soon' },
-  asymmetric_context:   { icon: '📨', label: 'Heads Up' },
-  event_auto_cancelled: { icon: '✅', label: 'Auto-Cancelled' },
-  event_cancel_confirm: { icon: '🗑️', label: 'Cancel Event?' },
+  dropped_commitment:   { icon: '📋', label: 'Action Needed' },
+  invisible_dependency: { icon: '🔗', label: 'Dependency' },
+  expiring_item:        { icon: '⏰', label: 'Deadline' },
+  asymmetric_context:   { icon: '💡', label: 'Heads Up' },
+  event_auto_cancelled: { icon: '✅', label: 'Auto-Resolved' },
+  event_cancel_confirm: { icon: '🗑️', label: 'Confirm Cancel' },
   reminder:             { icon: '🔔', label: 'Reminder' },
 };
 

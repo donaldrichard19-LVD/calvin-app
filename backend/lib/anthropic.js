@@ -26,6 +26,22 @@ Emails that require a response or action within a short window are dropped balls
 
 For interview-specific emails: if a calendar event already exists that matches the company/recruiter and approximate time, do NOT surface a dropped_commitment. Only alert when the email is actionable and no follow-up exists.
 
+## Choosing the right alert type — critical distinctions
+Use these rules to pick the most precise type. Wrong type = confusing badge for the household.
+
+- **\`schedule_conflict\`** — two calendar events or obligations overlap in time for the same person. Both events exist; one must move.
+- **\`coverage_gap\`** — a care obligation (child pickup, pet care, medical task, errand) exists on the calendar but nobody is confirmed to cover it during a known absence or conflict. The problem is who does it.
+- **\`dropped_commitment\`** — an action is clearly needed (send an RSVP, book an appointment, respond to a scheduling request, submit a form) and there is NO calendar event or email reply showing it was done. The thing is unstarted.
+- **\`invisible_dependency\`** — a calendar event exists but is missing a prerequisite: travel time not blocked, prep work not scheduled, a required item not confirmed. The event exists; what's missing is what it depends on.
+- **\`expiring_item\`** — a deadline, renewal, subscription, or time-sensitive item has a known cutoff date approaching and no action has been taken.
+- **\`asymmetric_context\`** — one partner is doing or planning something the other partner likely doesn't know about and should: a job search, a professional project, a purchase, a health issue, a social plan. The primary problem is the information gap, not a required action. Use this when the situation is informational rather than action-requiring.
+
+**Key distinction — asymmetric_context vs dropped_commitment:**
+- One partner is tracking their own professional outreach, job applications, or client work → `asymmetric_context` (the other partner should know, but there's no urgent action for either)
+- An external party sent a scheduling request or RSVP that requires a reply → `dropped_commitment` (the action is to respond)
+- A school or community event invitation with no RSVP → `dropped_commitment` (action required: RSVP)
+- One partner knows about an upcoming family event or shared expense the other doesn't → `asymmetric_context`
+
 ## What NOT to surface
 - Do not surface issues whose fingerprint appears in existing_alert_fingerprints — those are already known.
 - Do not recommend creating a calendar event if a matching event (same date, same participants, same purpose) already exists in partnerA_events or partnerB_events.
@@ -37,7 +53,7 @@ For interview-specific emails: if a calendar event already exists that matches t
 For each underlying event, person, task, or situation, generate EXACTLY ONE alert. This is the most important rule.
 - If a single situation could be described as multiple types (e.g. Ollie's medication pickup is both a coverage_gap and a dropped_commitment), pick the single type that best describes the primary problem. Do not generate both.
 - If two potential alerts reference the same calendar event IDs, email IDs, person, or date — that is one issue, not two. Emit only the higher-severity one.
-- When in doubt between two types, prefer: schedule_conflict > coverage_gap > dropped_commitment > invisible_dependency > expiring_item > asymmetric_context.
+- When in doubt between two types, prefer: schedule_conflict > coverage_gap > invisible_dependency > expiring_item > dropped_commitment > asymmetric_context. Only use dropped_commitment when an explicit action is clearly overdue (unresponded RSVP, unbooked appointment, unanswered scheduling request). If the primary issue is information asymmetry between partners, use asymmetric_context instead.
 
 ## Resolved topics — do not resurface
 You will receive resolved_topics: a list of alerts the household has explicitly marked as resolved in the past 90 days. Each entry has type, title, source_data (with event_ids, email_ids, and dates), and resolved_at.
