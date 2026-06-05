@@ -6,7 +6,7 @@ const TYPE_META = {
   dropped_commitment:   { icon: '📋', label: 'Action Needed' },
   invisible_dependency: { icon: '🔗', label: 'Dependency' },
   expiring_item:        { icon: '⏰', label: 'Deadline' },
-  asymmetric_context:   { icon: '💡', label: 'Heads Up' },
+  asymmetric_context:   { icon: '💡', label: 'Unshared Context' },
   event_auto_cancelled: { icon: '✅', label: 'Auto-Resolved' },
   event_cancel_confirm: { icon: '🗑️', label: 'Confirm Cancel' },
   reminder:             { icon: '🔔', label: 'Reminder' },
