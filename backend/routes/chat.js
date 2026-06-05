@@ -56,6 +56,18 @@ const TOOLS = [
       required: ['to', 'subject', 'body'],
     },
   },
+  {
+    name: 'schedule_reminder',
+    description: 'Schedule a reminder alert to resurface this issue in 3 days. Use when the suggested action is to follow up, check in, monitor, or be reminded about something — and creating a calendar event or sending an email reply is not the right action.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'Short reminder title, e.g. "Follow up: Emma school pickup coverage"' },
+        body:  { type: 'string', description: 'Brief reminder message describing what to check or action to take in 3 days' },
+      },
+      required: ['title', 'body'],
+    },
+  },
 ];
 
 router.post('/', requireAuth, chatLimiter, async (req, res) => {
@@ -91,7 +103,7 @@ Suggested action: ${alert.action_hint}
 ${emailReplyTo ? `Reply-to email address: ${emailReplyTo}\n` : ''}
 Current date/time: ${now} (America/New_York)
 ${householdContext ? `\nHousehold context:\n${householdContext}\n` : ''}
-Be concise and direct. Use the household context to personalise responses — reference people, pets, and preferences by name where relevant. If the user asks to create, schedule, or add a calendar event, use the create_calendar_event tool. If the user asks to draft or send an email reply, use the draft_email_reply tool — compose a clear, professional reply based on the alert context and the reply-to address above. Do not repeat the alert back to the user.`;
+Be concise and direct. Use the household context to personalise responses — reference people, pets, and preferences by name where relevant. If the user asks to create, schedule, or add a calendar event, use the create_calendar_event tool. If the user asks to draft or send an email reply, use the draft_email_reply tool — compose a clear, professional reply based on the alert context and the reply-to address above. If the suggested action is to follow up, check in, monitor, or be reminded about an issue or event — and it does not involve creating a calendar event or sending an email — use the schedule_reminder tool to set a reminder for 3 days from now. Do not repeat the alert back to the user.`;
 
     const validMessages = messages
       .filter((m) => m.role && m.content)
@@ -99,6 +111,7 @@ Be concise and direct. Use the household context to personalise responses — re
 
     let createdEvent = null;
     let createdDraft = null;
+    let reminderScheduled = false;
 
     // First Claude call
     let response = await client.messages.create({
@@ -147,6 +160,26 @@ Be concise and direct. Use the household context to personalise responses — re
       } else if (toolUseBlock?.name === 'draft_email_reply') {
         createdDraft = toolUseBlock.input;
         toolResult = { success: true, message: 'Draft composed. The user will review and confirm before sending.' };
+      } else if (toolUseBlock?.name === 'schedule_reminder') {
+        try {
+          const remindAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+          const { error: insertError } = await supabase.from('alerts').insert({
+            household_id: partner.household_id,
+            type:         'reminder',
+            severity:     'medium',
+            title:        toolUseBlock.input.title,
+            body:         toolUseBlock.input.body,
+            summary:      toolUseBlock.input.body,
+            status:       'active',
+            snoozed_until: remindAt,
+            source:       'reminder',
+          });
+          if (insertError) throw insertError;
+          reminderScheduled = true;
+          toolResult = { success: true, message: `Reminder scheduled for ${remindAt}` };
+        } catch (err) {
+          toolResult = { error: err.message };
+        }
       } else {
         toolResult = { error: 'Unknown tool' };
       }
@@ -181,7 +214,7 @@ Be concise and direct. Use the household context to personalise responses — re
       }).then(({ error }) => { if (error) console.error('[chat] log error:', error.message); });
     }
 
-    res.json({ content: textBlock?.text || '', eventCreated: createdEvent || null, draftCreated: createdDraft || null });
+    res.json({ content: textBlock?.text || '', eventCreated: createdEvent || null, draftCreated: createdDraft || null, reminderScheduled });
   } catch (err) {
     console.error('[chat] error:', err.message, err.status ?? '');
     res.status(500).json({ error: err.message });

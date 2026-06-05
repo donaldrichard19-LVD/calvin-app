@@ -206,6 +206,9 @@ export default function Dashboard() {
       showToast(`Added to your calendar: ${data.eventCreated.title || 'Event created'} ✓`);
     } else if (data.draftCreated) {
       setEmailDraft({ ...data.draftCreated, alertId: alert.id });
+    } else if (data.reminderScheduled) {
+      resolveAndRemoveAlert(alert.id);
+      showToast('Reminder set — Calvin will resurface this in 3 days ✓');
     } else {
       resolveAndRemoveAlert(alert.id);
       showToast('Done! Calvin took care of it ✓');

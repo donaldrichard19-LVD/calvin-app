@@ -9,6 +9,7 @@ const TYPE_META = {
   asymmetric_context:   { icon: '📨', label: 'Heads Up' },
   event_auto_cancelled: { icon: '✅', label: 'Auto-Cancelled' },
   event_cancel_confirm: { icon: '🗑️', label: 'Cancel Event?' },
+  reminder:             { icon: '🔔', label: 'Reminder' },
 };
 
 function timeAgo(dateStr) {
