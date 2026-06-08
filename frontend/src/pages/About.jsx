@@ -22,7 +22,7 @@ export default function About() {
       delay: 'animation-delay-[300ms]',
       color: 'from-green/10 to-transparent border-green/30',
       label: 'Self-resolving',
-      body: 'When you create an event, complete a pickup, or tick off a task, Calvin detects it and clears the alert automatically. No manual cleanup needed.',
+      body: "When Calvin spots a confirmation email — a pickup, a delivery — it cancels the calendar event for you and clears the alert. Changed your mind? Undo it with one tap.",
     },
     {
       emoji: '🤝',
@@ -31,6 +31,14 @@ export default function About() {
       color: 'from-coral/10 to-transparent border-coral/30',
       label: 'Both partners, one picture',
       body: "Calvin flags when one partner knows something the other doesn't — medication schedules, vet visits, school pickups — so nothing falls through the cracks.",
+    },
+    {
+      emoji: '💬',
+      floatClass: '',
+      delay: 'animation-delay-[500ms]',
+      color: 'from-blurple/10 to-transparent border-blurple/30',
+      label: 'Just ask',
+      body: "Tell Calvin to schedule something, draft a reply, or remind you about it later — right from the chat. It handles the busywork so you don't have to switch apps.",
     },
   ];
 
@@ -196,10 +204,10 @@ export default function About() {
           <div className="absolute left-[22px] top-3 bottom-3 w-px bg-blurple/20" />
 
           {[
-            { emoji: '🔗', step: 'Connect', desc: 'Link your Google Calendar and Gmail. Takes 60 seconds.' },
-            { emoji: '🧠', step: 'Analyse', desc: "Calvin scans both partners' data every 90 minutes, looking for conflicts, gaps, and signals." },
-            { emoji: '📋', step: 'Surface', desc: 'Actionable alerts appear in your shared briefing — only the things that matter.' },
-            { emoji: '✅', step: 'Resolve', desc: 'Act on an alert or just do the thing — Calvin detects it and clears the card automatically.' },
+            { emoji: '🔗', step: 'Connect', desc: 'Link your Google Calendar and Gmail, then invite your partner — Calvin needs both sides of the household to do its job.' },
+            { emoji: '🧠', step: 'Analyse', desc: "Calvin scans both partners' data throughout the day, looking for conflicts, gaps, and signals." },
+            { emoji: '📋', step: 'Surface', desc: 'Actionable alerts appear in your shared briefing — as a card, a text, or an email digest, however you want them.' },
+            { emoji: '✅', step: 'Resolve', desc: 'Act on an alert, ask Calvin to handle it, or just do the thing yourself — either way, the card clears automatically.' },
           ].map((s, i) => (
             <div
               key={s.step}
