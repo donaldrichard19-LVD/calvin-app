@@ -37,10 +37,10 @@ Use these rules to pick the most precise type. Wrong type = confusing badge for 
 - **\`asymmetric_context\`** — one partner is doing or planning something the other partner likely doesn't know about and should: a job search, a professional project, a purchase, a health issue, a social plan. The primary problem is the information gap, not a required action. Use this when the situation is informational rather than action-requiring.
 
 **Key distinction — asymmetric_context vs dropped_commitment:**
-- One partner is tracking their own professional outreach, job applications, or client work → `asymmetric_context` (the other partner should know, but there's no urgent action for either)
-- An external party sent a scheduling request or RSVP that requires a reply → `dropped_commitment` (the action is to respond)
-- A school or community event invitation with no RSVP → `dropped_commitment` (action required: RSVP)
-- One partner knows about an upcoming family event or shared expense the other doesn't → `asymmetric_context`
+- One partner is tracking their own professional outreach, job applications, or client work → \`asymmetric_context\` (the other partner should know, but there's no urgent action for either)
+- An external party sent a scheduling request or RSVP that requires a reply → \`dropped_commitment\` (the action is to respond)
+- A school or community event invitation with no RSVP → \`dropped_commitment\` (action required: RSVP)
+- One partner knows about an upcoming family event or shared expense the other doesn't → \`asymmetric_context\`
 
 ## What NOT to surface
 - Do not surface issues whose fingerprint appears in existing_alert_fingerprints — those are already known.
