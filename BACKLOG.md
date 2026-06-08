@@ -98,3 +98,20 @@ Surface the onboarding funnel chart in the Insights tab.
 
 - Query `funnel_events` table grouped by event name
 - Show step-by-step drop-off (started → info → household → google → completed)
+
+---
+
+## Cross-account dedup for multi-account Gmail integration
+The "Gmail Multi-Account Integration" feature lets each partner connect up to 3 Google accounts (email + calendar). Cross-account duplicate detection was explicitly deferred — this entry tracks that follow-up work.
+
+**Known limitation introduced by multi-account support:**
+- If a partner connects multiple Google accounts that both contain the same calendar event (e.g. a shared/duplicated invite, or the same event added to two calendars) or the same email (e.g. forwarded copies, shared inboxes), `analyze.js` will currently see them as distinct items — duplicate alerts or redundant analysis are possible.
+- Per-account disconnect is also out of scope for now — `DELETE /api/integrations/:provider` disconnects ALL of a partner's accounts for that provider at once (see comment in `routes/integrations.js`).
+
+**Scope for follow-up:**
+- **Duplicate calendar event detection**: compare events across a partner's active integrations by title/start/end time/attendees; collapse matches into a single representation before sending to Claude (or flag them so Claude doesn't double-count).
+- **Canonical "owning" integration**: when a duplicate is detected, decide which integration is authoritative for auto-cancel actions — ties directly into the `integration_id` tagging added to `delete_events`/`confirm_events` in this pass (see `jobs/analyze.js` `resolveIntegration`). Likely heuristic: prefer the integration where the event has attendees/is the organizer, or the most-recently-synced account.
+- **Duplicate email detection** (stretch): similar matching for emails that appear in multiple connected inboxes (forwarded copies, shared distribution lists) so Claude doesn't generate redundant `dropped_commitment`/`expiring_item` alerts from the same underlying message.
+- **Per-account disconnect**: add `DELETE /api/integrations/google/:integrationId` (or similar) so a user can remove a single connected account without losing the others; update `SettingsView.jsx` rows to support this.
+
+**Notes:** Keep the existing single-issue-per-event guardrails in mind — duplicate detection should reduce noise, not introduce new alert types. Build this once real multi-account usage data shows the problem actually occurs in practice.

@@ -138,6 +138,12 @@ export default function Onboarding() {
   const [error, setError]             = useState('');
   const [myIntegration, setMyIntegration] = useState(null);
   const [isConnecting, setIsConnecting]   = useState(false);
+  const [googleAccountCount, setGoogleAccountCount] = useState(0);
+  const [showSecondAccountPrompt, setShowSecondAccountPrompt] = useState(false);
+  const [isConnectingSecond, setIsConnectingSecond] = useState(false);
+
+  const SECOND_ACCOUNT_PROMPT_KEY = 'calvin_second_account_prompt_shown';
+  const MAX_GOOGLE_ACCOUNTS = 3;
 
   const connectError = new URLSearchParams(window.location.search).get('error');
 
@@ -171,10 +177,15 @@ export default function Onboarding() {
     async function poll() {
       try {
         const data = await apiFetch('/api/integrations/household');
-        const me = (data || []).find((i) => i.is_active && i.provider === 'google');
+        const activeGoogleAccounts = (data || []).filter((i) => i.is_active && i.provider === 'google');
+        setGoogleAccountCount(activeGoogleAccounts.length);
+        const me = activeGoogleAccounts[0];
         if (me) {
           setMyIntegration((prev) => {
-            if (!prev) trackEvent('google_connected');
+            if (!prev) {
+              trackEvent('google_connected');
+              maybeShowSecondAccountPrompt(activeGoogleAccounts.length);
+            }
             return me;
           });
         }
@@ -265,6 +276,36 @@ export default function Onboarding() {
     } catch (err) {
       setError(err.message);
       setIsConnecting(false);
+    }
+  }
+
+  // Shows the "Add another Gmail account" prompt exactly once, the first time
+  // myIntegration transitions from null → set. Persists a session flag
+  // immediately so it never reappears (re-renders, dismissal, or proceeding
+  // all suppress it permanently for this session).
+  function maybeShowSecondAccountPrompt(activeCount) {
+    if (sessionStorage.getItem(SECOND_ACCOUNT_PROMPT_KEY)) return;
+    if (activeCount >= MAX_GOOGLE_ACCOUNTS) return;
+    sessionStorage.setItem(SECOND_ACCOUNT_PROMPT_KEY, 'true');
+    setShowSecondAccountPrompt(true);
+    trackEvent('second_account_prompt_shown');
+  }
+
+  function dismissSecondAccountPrompt() {
+    setShowSecondAccountPrompt(false);
+    trackEvent('second_account_prompt_dismissed');
+  }
+
+  async function handleConnectSecondAccount() {
+    setIsConnectingSecond(true);
+    setError('');
+    trackEvent('second_account_connect_clicked');
+    try {
+      const { url } = await apiFetch('/api/google/connect?mode=add');
+      window.location.href = url;
+    } catch (err) {
+      setError(err.message);
+      setIsConnectingSecond(false);
     }
   }
 
@@ -502,6 +543,30 @@ export default function Onboarding() {
               <div className="space-y-3">
                 <ConnectedRow icon="📅" label="Google Calendar" sublabel={`Connected as ${myIntegration.account_email}`} />
                 <ConnectedRow icon="📧" label="Gmail" sublabel="Scanning for commitments and deadlines" />
+              </div>
+            )}
+
+            {myIntegration && showSecondAccountPrompt && googleAccountCount < MAX_GOOGLE_ACCOUNTS && (
+              <div className="step-enter bg-blurpleLight border border-blurple/20 rounded-xl px-4 py-3 space-y-2">
+                <div className="text-[13px] font-semibold text-dark">Add another Gmail account?</div>
+                <p className="text-[12px] text-mid leading-relaxed">
+                  If you use more than one Google account for work or family, Calvin can watch those calendars and inboxes too.
+                </p>
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    onClick={handleConnectSecondAccount}
+                    disabled={isConnectingSecond}
+                    className="btn-primary text-[12px] py-2 px-3 disabled:opacity-60"
+                  >
+                    {isConnectingSecond ? 'Redirecting…' : 'Add another Gmail account'}
+                  </button>
+                  <button
+                    onClick={dismissSecondAccountPrompt}
+                    className="text-[12px] font-semibold text-mid hover:text-dark transition-colors px-2 py-2"
+                  >
+                    Maybe later
+                  </button>
+                </div>
               </div>
             )}
 

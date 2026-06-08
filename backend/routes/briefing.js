@@ -157,17 +157,46 @@ router.post('/:alertId/cancel-event', requireAuth, async (req, res) => {
 
     if (!alert) return res.status(404).json({ error: 'Confirmation alert not found' });
 
-    const { event_id, partner, partner_id } = alert.source_data || {};
+    const { event_id, partner, partner_id, integration_id, account_email } = alert.source_data || {};
     if (!event_id || !partner_id) return res.status(400).json({ error: 'Alert is missing event metadata' });
 
-    const { data: integration } = await supabase
-      .from('integrations')
-      .select('*')
-      .eq('partner_id', partner_id)
-      .eq('provider', 'google')
-      .eq('is_active', true)
-      .not('access_token', 'is', null)
-      .maybeSingle();
+    // A partner may have multiple connected Google accounts now — resolve the
+    // exact account this event came from when we have that info (tagged at
+    // alert-creation time in jobs/analyze.js), falling back to "first active
+    // account for this partner" for older alerts created before this field existed.
+    let integration = null;
+    if (integration_id) {
+      ({ data: integration } = await supabase
+        .from('integrations')
+        .select('*')
+        .eq('id', integration_id)
+        .eq('is_active', true)
+        .not('access_token', 'is', null)
+        .maybeSingle());
+    }
+    if (!integration && account_email) {
+      ({ data: integration } = await supabase
+        .from('integrations')
+        .select('*')
+        .eq('partner_id', partner_id)
+        .eq('provider', 'google')
+        .eq('account_email', account_email)
+        .eq('is_active', true)
+        .not('access_token', 'is', null)
+        .maybeSingle());
+    }
+    if (!integration) {
+      const { data: candidates } = await supabase
+        .from('integrations')
+        .select('*')
+        .eq('partner_id', partner_id)
+        .eq('provider', 'google')
+        .eq('is_active', true)
+        .not('access_token', 'is', null)
+        .order('connected_at', { ascending: true })
+        .limit(1);
+      integration = candidates?.[0] || null;
+    }
 
     if (!integration) return res.status(400).json({ error: 'Google Calendar not connected for this partner' });
 
@@ -202,6 +231,10 @@ router.post('/:alertId/cancel-event', requireAuth, async (req, res) => {
           partner,
           trigger_email_subject: alert.source_data?.trigger_email_subject || null,
           action_id: action?.id || null,
+          // Carry the resolved account forward so Undo (calendar.js /restore)
+          // targets the same Google account this event was cancelled on.
+          integration_id: integration.id,
+          account_email: integration.account_email,
         },
         relevant_to: [partner],
         status: 'active',

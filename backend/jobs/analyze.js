@@ -33,6 +33,11 @@ function trimCalendarEvent(event) {
     ...(event.attendees?.length ? { attendees: event.attendees } : {}),
     ...(event.description ? { description: event.description.slice(0, 200) } : {}),
     isAllDay: event.isAllDay,
+    // Tag the event with its source integration so Claude can echo it back in
+    // delete_events / confirm_events — lets us resolve the correct account's
+    // API client when a partner has multiple connected Gmail accounts.
+    ...(event._integration_id ? { integration_id: event._integration_id } : {}),
+    ...(event._account_email ? { account_email: event._account_email } : {}),
   };
 }
 
@@ -87,16 +92,18 @@ async function runAnalysisForHousehold(householdId) {
       .not('access_token', 'is', null);
 
     const [partnerA, partnerB] = partners;
-    const getIntegration = (partnerId) =>
-      integrations?.find((i) => i.partner_id === partnerId) || null;
+    // A partner may now have MULTIPLE active Google integrations (up to 3).
+    // Collect all of them per partner rather than assuming exactly one.
+    const getIntegrations = (partnerId) =>
+      (integrations || []).filter((i) => i.partner_id === partnerId);
 
-    let intA = getIntegration(partnerA?.id);
-    let intB = partnerB ? getIntegration(partnerB.id) : null;
+    let integrationsA = getIntegrations(partnerA?.id);
+    let integrationsB = partnerB ? getIntegrations(partnerB.id) : [];
 
     // Fallback: integrations created before household_id was backfilled may be missing it
     const missingIds = [
-      !intA && partnerA?.id,
-      !intB && partnerB?.id,
+      integrationsA.length === 0 && partnerA?.id,
+      integrationsB.length === 0 && partnerB?.id,
     ].filter(Boolean);
     if (missingIds.length) {
       const { data: fallbacks } = await supabase
@@ -107,25 +114,72 @@ async function runAnalysisForHousehold(householdId) {
         .not('access_token', 'is', null);
       for (const fb of fallbacks || []) {
         await supabase.from('integrations').update({ household_id: householdId }).eq('id', fb.id);
-        if (!intA && fb.partner_id === partnerA?.id) intA = fb;
-        if (!intB && partnerB && fb.partner_id === partnerB.id) intB = fb;
+        if (fb.partner_id === partnerA?.id) integrationsA.push(fb);
+        if (partnerB && fb.partner_id === partnerB.id) integrationsB.push(fb);
       }
       if (fallbacks?.length) console.log(`[analyze] Backfilled household_id for ${fallbacks.length} integration(s)`);
     }
 
-    const [eventsA, emailsA, eventsB, emailsB] = await Promise.all([
-      intA ? getCalendarEvents(intA).catch((err) => { console.error('[analyze] eventsA failed:', err.message); return []; }) : Promise.resolve([]),
-      intA ? getRecentEmails(intA).catch((err) => { console.error('[analyze] emailsA failed:', err.message); return []; })  : Promise.resolve([]),
-      intB ? getCalendarEvents(intB).catch((err) => { console.error('[analyze] eventsB failed:', err.message); return []; }) : Promise.resolve([]),
-      intB ? getRecentEmails(intB).catch((err) => { console.error('[analyze] emailsB failed:', err.message); return []; })  : Promise.resolve([]),
+    // Keep `intA`/`intB` as the "primary" integration for each partner —
+    // used for backwards-compatible bits (e.g. context.partnerA.email fallback,
+    // and as the default account-resolution target). Account resolution for
+    // auto-cancel now happens per-event via integration_id (see deleteEvents loop).
+    const intA = integrationsA[0] || null;
+    const intB = integrationsB[0] || null;
+
+    // Fetch calendar events + emails from EVERY active integration per partner,
+    // in parallel, with per-integration error isolation so one expired/invalid
+    // token doesn't block the partner's other accounts or the overall run.
+    async function fetchAllForPartner(integrationsList, label) {
+      const results = await Promise.all(
+        integrationsList.map(async (intg) => {
+          const [events, emails] = await Promise.all([
+            getCalendarEvents(intg).catch((err) => {
+              console.error(`[analyze] events${label} failed for ${intg.account_email}:`, err.message);
+              return [];
+            }),
+            getRecentEmails(intg).catch((err) => {
+              console.error(`[analyze] emails${label} failed for ${intg.account_email}:`, err.message);
+              return [];
+            }),
+          ]);
+          return { integration: intg, events, emails };
+        })
+      );
+      return {
+        events: results.flatMap((r) => r.events.map((e) => ({ ...e, _integration_id: r.integration.id, _account_email: r.integration.account_email }))),
+        emails: results.flatMap((r) => r.emails),
+        synced: results.map((r) => r.integration),
+      };
+    }
+
+    const [forA, forB] = await Promise.all([
+      fetchAllForPartner(integrationsA, 'A'),
+      fetchAllForPartner(integrationsB, 'B'),
     ]);
 
-    console.log(`[analyze] Data fetched — eventsA:${eventsA.length} emailsA:${emailsA.length} eventsB:${eventsB.length} emailsB:${emailsB.length}`);
+    const eventsA = forA.events, emailsA = forA.emails;
+    const eventsB = forB.events, emailsB = forB.emails;
 
-    await Promise.all([
-      intA && supabase.from('integrations').update({ last_synced_at: new Date().toISOString() }).eq('id', intA.id),
-      intB && supabase.from('integrations').update({ last_synced_at: new Date().toISOString() }).eq('id', intB.id),
-    ].filter(Boolean));
+    console.log(`[analyze] Data fetched — eventsA:${eventsA.length} (${integrationsA.length} acct) emailsA:${emailsA.length} eventsB:${eventsB.length} (${integrationsB.length} acct) emailsB:${emailsB.length}`);
+
+    // Update last_synced_at for every successfully-synced active integration,
+    // not just the first one per partner.
+    const syncedAt = new Date().toISOString();
+    await Promise.all(
+      [...forA.synced, ...forB.synced].map((intg) =>
+        supabase.from('integrations').update({ last_synced_at: syncedAt }).eq('id', intg.id)
+      )
+    );
+
+    // Lookup map for resolving an event back to its source integration
+    // (used by the auto-cancel loop below).
+    const integrationsById = new Map(
+      [...integrationsA, ...integrationsB].map((i) => [i.id, i])
+    );
+    const integrationsByEmail = new Map(
+      [...integrationsA, ...integrationsB].map((i) => [i.account_email, i])
+    );
 
     const thirtyDaysAgo  = new Date(Date.now() -  30 * 86400000).toISOString();
     const ninetyDaysAgo  = new Date(Date.now() -  90 * 86400000).toISOString();
@@ -211,8 +265,11 @@ async function runAnalysisForHousehold(householdId) {
 
     const context = {
       household: { id: householdId, name: householdResult.data?.name },
-      partnerA: { id: partnerA?.id, display_name: partnerA?.display_name, email: intA?.account_email },
-      partnerB: partnerB ? { id: partnerB.id, display_name: partnerB.display_name, email: intB?.account_email } : null,
+      // Each partner may have multiple connected Gmail accounts now — pass the
+      // full list of emails. (Cross-account duplicate event/email dedup is
+      // explicitly out of scope for this pass — see BACKLOG.md.)
+      partnerA: { id: partnerA?.id, display_name: partnerA?.display_name, emails: integrationsA.map((i) => i.account_email) },
+      partnerB: partnerB ? { id: partnerB.id, display_name: partnerB.display_name, emails: integrationsB.map((i) => i.account_email) } : null,
       partnerA_events: eventsA.map(trimCalendarEvent),
       partnerB_events: eventsB.map(trimCalendarEvent),
       partnerA_emails: emailsA.map(trimEmail),
@@ -393,8 +450,22 @@ async function runAnalysisForHousehold(householdId) {
     );
     const processedEventIds = new Set(); // tracks event_ids handled this run
 
+    // Resolve which Google account's API client to use for a given delete/confirm
+    // entry. Claude echoes back integration_id/account_email (tagged onto each
+    // event in trimCalendarEvent); fall back to the partner's primary/first
+    // active integration for backwards compatibility if those are absent.
+    function resolveIntegration(ev) {
+      if (ev.integration_id && integrationsById.has(ev.integration_id)) {
+        return integrationsById.get(ev.integration_id);
+      }
+      if (ev.account_email && integrationsByEmail.has(ev.account_email)) {
+        return integrationsByEmail.get(ev.account_email);
+      }
+      return ev.partner === 'partnerB' ? intB : intA;
+    }
+
     for (const ev of deleteEvents) {
-      const integration = ev.partner === 'partnerB' ? intB : intA;
+      const integration = resolveIntegration(ev);
       const partnerRecord = ev.partner === 'partnerB' ? partnerB : partnerA;
       if (!integration || !partnerRecord) continue;
 
@@ -437,6 +508,11 @@ async function runAnalysisForHousehold(householdId) {
               partner: ev.partner,
               trigger_email_subject: ev.email_subject || null,
               action_id: action?.id || null,
+              // Carry the resolved account forward so Undo (calendar.js
+              // /restore) can target the exact same Google account even when
+              // a partner has multiple connected Gmail accounts.
+              integration_id: integration.id,
+              account_email: integration.account_email,
             },
             relevant_to: [ev.partner],
             status: 'active',
@@ -467,6 +543,7 @@ async function runAnalysisForHousehold(householdId) {
       if (existingFingerprints.includes(confirmFingerprint)) continue;
 
       const confirmPartnerRecord = ev.partner === 'partnerB' ? partnerB : partnerA;
+      const confirmIntegration = resolveIntegration(ev);
 
       try {
         const { data: confirmAlert } = await supabase
@@ -484,6 +561,11 @@ async function runAnalysisForHousehold(householdId) {
               partner_id: confirmPartnerRecord?.id || null,
               trigger_email_subject: ev.email_subject || null,
               trigger_reason: ev.reason || null,
+              // Carry the resolved account so the "Cancel it" confirmation
+              // route (briefing.js /cancel-event) targets the right Google
+              // account when a partner has multiple connected accounts.
+              integration_id: confirmIntegration?.id || null,
+              account_email: confirmIntegration?.account_email || null,
             },
             relevant_to: [ev.partner],
             status: 'active',

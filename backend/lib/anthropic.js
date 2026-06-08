@@ -125,17 +125,17 @@ Respond ONLY with a valid JSON object. No preamble, no markdown, no explanation 
 {
   "resolve": ["uuid-of-alert-1", "uuid-of-alert-2"],
   "delete_events": [
-    { "event_id": "google-event-id", "event_title": "Target Run", "partner": "partnerA", "reason": "Order pickup confirmed by email", "email_subject": "You picked up your Target order" }
+    { "event_id": "google-event-id", "event_title": "Target Run", "partner": "partnerA", "integration_id": "uuid-of-source-integration", "account_email": "alex@gmail.com", "reason": "Order pickup confirmed by email", "email_subject": "You picked up your Target order" }
   ],
   "confirm_events": [
-    { "event_id": "google-event-id", "event_title": "Target Run", "partner": "partnerA", "reason": "Pickup-ready email received — may already be done", "email_subject": "Your Target order is ready for pickup" }
+    { "event_id": "google-event-id", "event_title": "Target Run", "partner": "partnerA", "integration_id": "uuid-of-source-integration", "account_email": "alex@gmail.com", "reason": "Pickup-ready email received — may already be done", "email_subject": "Your Target order is ready for pickup" }
   ],
   "alerts": []
 }
 
 "resolve" is an array of alert IDs from existing_active_alerts[].id whose recommended actions are now completed.
-"delete_events" is an array of calendar events Calvin will auto-cancel because email confirms the activity is complete. Each entry must include event_id, event_title, partner (partnerA or partnerB), reason, and email_subject.
-"confirm_events" is an array of calendar events where Calvin is uncertain — it will surface an alert asking the household to confirm before cancelling. Same fields as delete_events.
+"delete_events" is an array of calendar events Calvin will auto-cancel because email confirms the activity is complete. Each entry must include event_id, event_title, partner (partnerA or partnerB), reason, and email_subject — AND must also echo back the integration_id and account_email fields attached to that event in partnerA_events/partnerB_events (a partner may have multiple connected Gmail/Calendar accounts; these fields tell Calvin exactly which account's calendar to modify). If an event has no integration_id/account_email, omit those fields.
+"confirm_events" is an array of calendar events where Calvin is uncertain — it will surface an alert asking the household to confirm before cancelling. Same fields as delete_events, including integration_id/account_email.
 "alerts" is an array of new alert objects to create.
 
 Each new alert object must have these exact fields:

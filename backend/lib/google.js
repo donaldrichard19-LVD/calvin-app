@@ -18,11 +18,14 @@ const SCOPES = [
   'https://www.googleapis.com/auth/userinfo.email',
 ];
 
-function getAuthUrl(partnerId) {
+function getAuthUrl(partnerId, { selectAccount = false } = {}) {
   const oauth2Client = createOAuth2Client();
   return oauth2Client.generateAuthUrl({
     access_type: 'offline',
-    prompt: 'consent',
+    // When adding an additional account, prompt the user to pick which Google
+    // account to use (in addition to re-confirming consent) so they aren't
+    // silently re-authed into the account they already connected.
+    prompt: selectAccount ? 'select_account consent' : 'consent',
     scope: SCOPES,
     state: partnerId,
   });

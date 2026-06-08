@@ -86,6 +86,11 @@ router.delete('/:provider', requireAuth, async (req, res) => {
     const partner = await getPartner(req.auth.userId);
     if (!partner) return res.status(404).json({ error: 'Partner not found' });
 
+    // NOTE: this disconnects ALL accounts for this provider (e.g. every Google
+    // account this partner has connected), not a single account. Per-account
+    // disconnect (e.g. DELETE /:provider/:integrationId) is a tracked follow-up
+    // — see BACKLOG.md "Multi-account Gmail" entry. Leaving this behavior as-is
+    // for now since it matches existing single-account assumptions elsewhere.
     const { error } = await supabase
       .from('integrations')
       .update({ is_active: false, access_token: null, refresh_token: null })

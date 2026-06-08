@@ -157,17 +157,40 @@ export default function SettingsView({ householdInfo, integrations, partnerEmoji
   const otherPartner = householdInfo?.other_partner;
   const inviteCode   = householdInfo?.household?.invite_code;
 
-  const myIntegration = integrations?.find(
+  const MAX_GOOGLE_ACCOUNTS = 3;
+
+  // A partner can now have multiple active Google accounts (up to the cap) —
+  // collect ALL of them rather than a single match so each can be rendered
+  // as its own row.
+  const myIntegrations = (integrations || []).filter(
     (i) => i.partner_id === partner?.id && i.provider === 'google' && i.is_active
   );
-  const partnerIntegration = otherPartner
-    ? integrations?.find((i) => i.partner_id === otherPartner.id && i.provider === 'google' && i.is_active)
-    : null;
+  const partnerIntegrations = otherPartner
+    ? (integrations || []).filter((i) => i.partner_id === otherPartner.id && i.provider === 'google' && i.is_active)
+    : [];
+
+  // Kept for the few places that only care about "is this person connected at all".
+  const myIntegration = myIntegrations[0] || null;
+  const partnerIntegration = partnerIntegrations[0] || null;
+
+  const myGoogleCount = myIntegrations.length;
+  const atGoogleCap = myGoogleCount >= MAX_GOOGLE_ACCOUNTS;
 
   async function handleReconnect() {
     setConnecting(true);
     try {
       const { url } = await apiFetch('/api/google/connect');
+      window.location.href = url;
+    } catch {
+      setConnecting(false);
+    }
+  }
+
+  async function handleAddAnotherGoogleAccount() {
+    if (atGoogleCap) return;
+    setConnecting(true);
+    try {
+      const { url } = await apiFetch('/api/google/connect?mode=add');
       window.location.href = url;
     } catch {
       setConnecting(false);
@@ -258,21 +281,41 @@ export default function SettingsView({ householdInfo, integrations, partnerEmoji
       </Section>
 
       <Section title="Google Calendar & Gmail">
-        {myIntegration ? (
+        {myIntegrations.length > 0 ? (
           <>
-            <Row
-              label="Connected"
-              value={`${myIntegration.account_email} · synced ${timeSince(myIntegration.last_synced_at)}`}
-              action={
+            {myIntegrations.map((intg) => (
+              <Row
+                key={intg.id}
+                label="Connected"
+                value={`${intg.account_email} · synced ${timeSince(intg.last_synced_at)}`}
+                action={
+                  <button
+                    onClick={handleReconnect}
+                    disabled={connecting}
+                    className="text-[12px] font-semibold text-blurple hover:opacity-75 disabled:opacity-50"
+                  >
+                    {connecting ? 'Redirecting…' : 'Reconnect'}
+                  </button>
+                }
+              />
+            ))}
+
+            <div className="px-4 py-3 space-y-2">
+              {atGoogleCap ? (
+                <p className="text-[12px] text-light">
+                  You've reached the maximum of 3 connected accounts.
+                </p>
+              ) : (
                 <button
-                  onClick={handleReconnect}
+                  onClick={handleAddAnotherGoogleAccount}
                   disabled={connecting}
-                  className="text-[12px] font-semibold text-blurple hover:opacity-75 disabled:opacity-50"
+                  className="text-[13px] font-semibold text-blurple hover:opacity-75 disabled:opacity-50"
                 >
-                  {connecting ? 'Redirecting…' : 'Reconnect'}
+                  {connecting ? 'Redirecting…' : `+ Add another Gmail account (${myGoogleCount}/${MAX_GOOGLE_ACCOUNTS})`}
                 </button>
-              }
-            />
+              )}
+            </div>
+
             <div className="px-4 py-3">
               <button
                 onClick={handleDisconnectGoogle}
