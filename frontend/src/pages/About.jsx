@@ -69,11 +69,11 @@ export default function About() {
 
         {/* Center nav pill */}
         <div className="hidden sm:flex items-center gap-0.5 bg-blurple/5 border border-blurple/12 rounded-full px-1.5 py-1">
-          <a href="#how-it-works" className="px-4 py-1.5 text-[13px] text-blurple/65 hover:text-blurple hover:bg-blurple/8 transition-colors rounded-full">
-            How it works
-          </a>
           <a href="#features" className="px-4 py-1.5 text-[13px] text-blurple/65 hover:text-blurple hover:bg-blurple/8 transition-colors rounded-full">
             Features
+          </a>
+          <a href="#how-it-works" className="px-4 py-1.5 text-[13px] text-blurple/65 hover:text-blurple hover:bg-blurple/8 transition-colors rounded-full">
+            How it works
           </a>
           <a href="#pricing" className="px-4 py-1.5 text-[13px] text-blurple/65 hover:text-blurple hover:bg-blurple/8 transition-colors rounded-full">
             Pricing
