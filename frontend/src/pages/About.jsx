@@ -260,41 +260,11 @@ export default function About() {
         </div>
       </section>
 
-      {/* ── How it works ── */}
-      <section id="how-it-works" className="px-6 pb-24 max-w-2xl mx-auto">
-        <h2 className="text-center text-2xl sm:text-3xl font-bold text-blurple mb-12">
-          How it works
-        </h2>
-        <div className="relative">
-          <div className="absolute left-[22px] top-3 bottom-3 w-px bg-blurple/20" />
-          {[
-            { emoji: '🔗', step: 'Connect', desc: 'Link your Google Calendar and Gmail, then invite your partner — Calvin needs both sides of the household to do its job.' },
-            { emoji: '🧠', step: 'Analyse', desc: "Calvin scans both partners' data throughout the day, looking for conflicts, gaps, and signals." },
-            { emoji: '📋', step: 'Surface', desc: 'Actionable alerts appear in your shared briefing — as a card, a text, or an email digest, however you want them.' },
-            { emoji: '✅', step: 'Resolve', desc: 'Act on an alert, ask Calvin to handle it, or just do the thing yourself — either way, the card clears automatically.' },
-          ].map((s, i) => (
-            <div
-              key={s.step}
-              className="flex gap-5 mb-8 animate-fade-in-up"
-              style={{ animationDelay: `${0.1 + i * 0.1}s` }}
-            >
-              <div className="shrink-0 w-11 h-11 rounded-full bg-blurple/10 border border-blurple/20 flex items-center justify-center text-xl z-10">
-                {s.emoji}
-              </div>
-              <div className="pt-1">
-                <div className="text-[15px] font-bold text-blurple">{s.step}</div>
-                <div className="text-[14px] text-blurple/60 mt-0.5 leading-relaxed">{s.desc}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Features / Agent Actions ── */}
+      {/* ── Features / Calvin Actions ── */}
       <section id="features" className="px-6 pb-24">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-center text-2xl sm:text-3xl font-bold text-blurple mb-3">
-            Agent Actions
+            Calvin Actions
           </h2>
           <p className="text-center text-blurple/55 text-[15px] mb-12">
             Calvin doesn't just alert you — it can take action on your behalf.
@@ -327,10 +297,40 @@ export default function About() {
         </div>
       </section>
 
-      {/* ── What Calvin does ── */}
+      {/* ── How it works ── */}
+      <section id="how-it-works" className="px-6 pb-24 max-w-2xl mx-auto">
+        <h2 className="text-center text-2xl sm:text-3xl font-bold text-blurple mb-12">
+          How it works
+        </h2>
+        <div className="relative">
+          <div className="absolute left-[22px] top-3 bottom-3 w-px bg-blurple/20" />
+          {[
+            { emoji: '🔗', step: 'Connect', desc: 'Link your Google Calendar and Gmail, then invite your partner — Calvin needs both sides of the household to do its job.' },
+            { emoji: '🧠', step: 'Analyse', desc: "Calvin scans both partners' data throughout the day, looking for conflicts, gaps, and signals." },
+            { emoji: '📋', step: 'Surface', desc: 'Actionable alerts appear in your shared briefing — as a card, a text, or an email digest, however you want them.' },
+            { emoji: '✅', step: 'Resolve', desc: 'Act on an alert, ask Calvin to handle it, or just do the thing yourself — either way, the card clears automatically.' },
+          ].map((s, i) => (
+            <div
+              key={s.step}
+              className="flex gap-5 mb-8 animate-fade-in-up"
+              style={{ animationDelay: `${0.1 + i * 0.1}s` }}
+            >
+              <div className="shrink-0 w-11 h-11 rounded-full bg-blurple/10 border border-blurple/20 flex items-center justify-center text-xl z-10">
+                {s.emoji}
+              </div>
+              <div className="pt-1">
+                <div className="text-[15px] font-bold text-blurple">{s.step}</div>
+                <div className="text-[14px] text-blurple/60 mt-0.5 leading-relaxed">{s.desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Why Choose Calvin ── */}
       <section className="px-6 pb-24 max-w-2xl mx-auto">
         <h2 className="text-center text-2xl sm:text-3xl font-bold text-blurple mb-12 animate-fade-in-up">
-          What Calvin does
+          Why Choose Calvin
         </h2>
         <div className="space-y-5">
           {featureCards.map((p, i) => (
