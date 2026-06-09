@@ -20,12 +20,17 @@ function approveUrl(email, name) {
 }
 
 router.post('/', async (req, res) => {
-  const { email, name } = req.body;
+  const { email, name, plan } = req.body;
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return res.status(400).json({ error: 'Valid email required' });
   }
 
-  await supabase.from('signups').upsert({ email, name: name || null }, { onConflict: 'email', ignoreDuplicates: true });
+  await supabase.from('signups').upsert(
+    { email, name: name || null, plan: plan || null },
+    { onConflict: 'email', ignoreDuplicates: true }
+  );
+
+  const planLabel = plan ? plan.charAt(0).toUpperCase() + plan.slice(1) : '—';
 
   try {
     const resend = new Resend(process.env.RESEND_API_KEY);
@@ -37,6 +42,7 @@ router.post('/', async (req, res) => {
       html: `
         <p><strong>${name || 'Someone'}</strong> requested access to Calvin.</p>
         <p>Email: <strong>${email}</strong></p>
+        <p>Plan: <strong>${planLabel}</strong></p>
         <p>
           <strong>Step 1:</strong>
           <a href="https://console.cloud.google.com/apis/credentials/consent">Add to Google Cloud Console → Test Users</a>

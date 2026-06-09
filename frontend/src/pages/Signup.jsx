@@ -8,6 +8,8 @@ export default function Signup() {
   const [status, setStatus] = useState('idle'); // idle | loading | success | error
   const [errorMsg, setErrorMsg] = useState('');
 
+  const plan = new URLSearchParams(window.location.search).get('plan');
+
   async function handleSubmit(e) {
     e.preventDefault();
     setStatus('loading');
@@ -16,7 +18,7 @@ export default function Signup() {
       const res = await fetch(`${API_URL}/api/waitlist`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, name }),
+        body: JSON.stringify({ email, name, plan: plan || undefined }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Something went wrong');

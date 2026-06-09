@@ -378,7 +378,7 @@ export default function About() {
                 ))}
               </ul>
               <a
-                href="/signup"
+                href="/signup?plan=free"
                 className="block w-full text-center px-6 py-3 rounded-xl font-semibold text-[14px] border border-blurple/25 text-blurple hover:bg-blurple/8 transition-colors"
               >
                 Get started
@@ -412,7 +412,7 @@ export default function About() {
                 ))}
               </ul>
               <a
-                href="/signup"
+                href="/signup?plan=pro"
                 className="block w-full text-center px-6 py-3 rounded-xl font-semibold text-[14px] bg-white text-blurple hover:bg-white/92 transition-colors"
               >
                 Get started →
