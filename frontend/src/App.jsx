@@ -76,7 +76,7 @@ function LandingPage() {
           <div className="card p-4 mb-6 text-left space-y-2">
             <p className="text-[11px] font-bold uppercase tracking-wider text-light mb-3">Demo credentials</p>
             {[
-              { label: 'Email', value: 'demo@trycalvin.app', field: 'email' },
+              { label: 'Email', value: 'donald.richard19+7@gmail.com', field: 'email' },
               { label: 'Password', value: 'calvindemoapp', field: 'password' },
             ].map(({ label, value, field }) => (
               <div key={field} className="flex items-center justify-between gap-3">
