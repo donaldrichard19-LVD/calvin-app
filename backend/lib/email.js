@@ -51,61 +51,58 @@ function buildWeekBuckets(eventsA, eventsB, partnerA, partnerB) {
   return Object.values(buckets).sort((a, b) => a.date - b.date);
 }
 
-function buildHtml({ type, dateStr, alerts, partnerA, partnerB, weekBuckets }) {
-  const severityColor = { high: '#ef4444', medium: '#f59e0b', low: '#22c55e' };
-  const severityBg    = { high: '#fef2f2', medium: '#fffbeb', low: '#f0fdf4' };
-  const severityLabel = { high: 'High', medium: 'Medium', low: 'Low' };
-
-  const high = alerts.filter((a) => a.severity === 'high').length;
-  const med  = alerts.filter((a) => a.severity === 'medium').length;
+function buildHtml({ type, dateStr, alerts, autoResolvedAlerts, partnerName, weekBuckets }) {
+  const firstName = partnerName ? partnerName.split(' ')[0] : 'there';
+  const highCount = alerts.filter((a) => a.severity === 'high').length;
   const totalEvents = weekBuckets.reduce((s, b) => s + b.events.length, 0);
 
   const previewText = alerts.length
-    ? `${alerts.length} alert${alerts.length !== 1 ? 's' : ''}${high ? ` · ${high} high priority` : ''} · ${totalEvents} event${totalEvents !== 1 ? 's' : ''} this week`
-    : `All clear · ${totalEvents} event${totalEvents !== 1 ? 's' : ''} this week`;
+    ? `${highCount ? `${highCount} high priority · ` : ''}${alerts.length} alert${alerts.length !== 1 ? 's' : ''} need your attention today`
+    : `You're all clear today`;
 
-  // Summary stat pills
-  const statPill = (val, label, color) =>
-    `<td style="padding:0 8px;text-align:center">
-       <div style="font-size:22px;font-weight:700;color:${color}">${val}</div>
-       <div style="font-size:11px;color:#94a3b8;margin-top:1px;white-space:nowrap">${label}</div>
-     </td>`;
+  const TYPE_STYLE = {
+    schedule_conflict:    { emoji: '⚡', label: 'CONFLICT',        labelColor: '#dc2626', bg: '#fee2e2', border: '#fecaca' },
+    coverage_gap:         { emoji: '⚠️', label: 'COVERAGE GAP',   labelColor: '#ea580c', bg: '#fff7ed', border: '#fed7aa' },
+    dropped_commitment:   { emoji: '📋', label: 'ACTION NEEDED',  labelColor: '#b45309', bg: '#fffbeb', border: '#fde68a' },
+    invisible_dependency: { emoji: '🔗', label: 'DEPENDENCY',     labelColor: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
+    expiring_item:        { emoji: '⏰', label: 'DEADLINE',       labelColor: '#ea580c', bg: '#fff7ed', border: '#fed7aa' },
+    asymmetric_context:   { emoji: '💡', label: 'HEADS UP',       labelColor: '#7c3aed', bg: '#f5f3ff', border: '#ddd6fe' },
+    event_auto_cancelled: { emoji: '✅', label: 'AUTO-RESOLVED',  labelColor: '#16a34a', bg: '#ffffff', border: '#e5e7eb' },
+    event_cancel_confirm: { emoji: '❓', label: 'CONFIRM CANCEL', labelColor: '#64748b', bg: '#ffffff', border: '#e5e7eb' },
+  };
 
-  const summaryBar = `
-    <table style="width:100%;border-collapse:collapse;margin:0 0 24px">
-      <tr>
-        ${statPill(alerts.length, 'Active alerts', alerts.length ? '#1e293b' : '#22c55e')}
-        <td style="width:1px;background:#f1f5f9"></td>
-        ${statPill(high, 'High priority', high ? '#ef4444' : '#94a3b8')}
-        <td style="width:1px;background:#f1f5f9"></td>
-        ${statPill(med, 'Medium', med ? '#f59e0b' : '#94a3b8')}
-        <td style="width:1px;background:#f1f5f9"></td>
-        ${statPill(totalEvents, 'Events this week', '#3b82f6')}
-      </tr>
-    </table>`;
+  const renderCard = (a) => {
+    const style = a.status === 'auto_resolved'
+      ? { emoji: '✅', label: 'AUTO-RESOLVED', labelColor: '#16a34a', bg: '#ffffff', border: '#e5e7eb' }
+      : (TYPE_STYLE[a.type] || { emoji: '•', label: (a.type || 'ALERT').replace(/_/g, ' ').toUpperCase(), labelColor: '#64748b', bg: '#ffffff', border: '#e5e7eb' });
+    const text = a.body || a.title;
+    return `
+      <div style="background:${style.bg};border:1.5px solid ${style.border};border-radius:12px;padding:14px 16px;margin-bottom:12px">
+        <div style="font-size:11px;font-weight:700;color:${style.labelColor};letter-spacing:.8px;margin-bottom:8px">${style.emoji} ${style.label}</div>
+        <div style="font-size:14px;color:#1e293b;line-height:1.5">${text}</div>
+      </div>`;
+  };
 
-  // Alert cards
-  const alertCards = alerts.length === 0
-    ? `<div style="text-align:center;padding:20px 0 28px">
+  const orderedAlerts = [
+    ...alerts.filter((a) => a.severity === 'high'),
+    ...alerts.filter((a) => a.severity !== 'high'),
+    ...(autoResolvedAlerts || []),
+  ];
+
+  const alertSection = orderedAlerts.length === 0
+    ? `<div style="text-align:center;padding:32px 0 28px">
          <div style="font-size:36px">✅</div>
          <div style="font-size:16px;font-weight:600;color:#1e293b;margin-top:10px">You're all clear!</div>
-         <div style="font-size:14px;color:#64748b;margin-top:4px">No active alerts for your household.</div>
+         <div style="font-size:14px;color:#94a3b8;margin-top:4px">No active alerts for your household.</div>
        </div>`
-    : `<div style="margin-bottom:24px">
-         <div style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">Alerts</div>
-         ${alerts.slice(0, 8).map((a) => `
-           <div style="border-left:3px solid ${severityColor[a.severity]};background:${severityBg[a.severity]};border-radius:0 8px 8px 0;padding:10px 14px;margin-bottom:8px">
-             <div style="font-size:10px;font-weight:700;color:${severityColor[a.severity]};letter-spacing:.6px;margin-bottom:4px">${severityLabel[a.severity].toUpperCase()}</div>
-             <div style="font-size:14px;font-weight:600;color:#1e293b;line-height:1.4">${a.title}</div>
-             ${a.body ? `<div style="margin-top:4px;font-size:13px;color:#475569;line-height:1.4">${a.body}</div>` : ''}
-           </div>`).join('')}
-         ${alerts.length > 8 ? `<div style="font-size:13px;color:#94a3b8;margin-top:4px;padding-left:2px">+${alerts.length - 8} more — open Calvin to see all</div>` : ''}
+    : `<div style="margin-bottom:8px">
+         ${orderedAlerts.slice(0, 8).map(renderCard).join('')}
+         ${orderedAlerts.length > 8 ? `<div style="font-size:13px;color:#94a3b8;margin-top:4px">+${orderedAlerts.length - 8} more — open Calvin to see all</div>` : ''}
        </div>`;
 
-  // Week calendar
   const calendarSection = weekBuckets.length === 0 ? '' : `
     <div style="border-top:1px solid #f1f5f9;padding-top:20px;margin-bottom:8px">
-      <div style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.6px;margin-bottom:14px">This Week</div>
+      <div style="font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.6px;margin-bottom:14px">This Week</div>
       ${weekBuckets.map((bucket) => `
         <div style="margin-bottom:14px">
           <div style="font-size:12px;font-weight:700;color:#3b82f6;margin-bottom:6px">${fmtDayLabel(bucket.date)}</div>
@@ -118,7 +115,6 @@ function buildHtml({ type, dateStr, alerts, partnerA, partnerB, weekBuckets }) {
         </div>`).join('')}
     </div>`;
 
-  // CTA button
   const ctaButton = `
     <div style="text-align:center;margin:24px 0 8px">
       <a href="${APP_URL}" style="display:inline-block;background:#0f172a;color:#fff;text-decoration:none;font-size:14px;font-weight:600;padding:12px 28px;border-radius:8px;letter-spacing:-.1px">
@@ -135,18 +131,13 @@ function buildHtml({ type, dateStr, alerts, partnerA, partnerB, weekBuckets }) {
 </head>
 <body style="margin:0;padding:0;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
   <div style="display:none;max-height:0;overflow:hidden;color:#f1f5f9">${previewText}&nbsp;‌&nbsp;‌&nbsp;‌&nbsp;‌&nbsp;‌&nbsp;‌&nbsp;‌&nbsp;‌&nbsp;‌&nbsp;‌</div>
-  <div style="max-width:580px;margin:32px auto 48px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08)">
-
-    <!-- Header -->
-    <div style="background:#0f172a;padding:28px 32px 24px">
-      <div style="font-size:22px;font-weight:800;color:#fff;letter-spacing:-.5px">Calvin</div>
-      <div style="font-size:13px;color:#64748b;margin-top:3px">${type === 'weekly' ? 'Weekly Digest' : 'Daily Briefing'} &nbsp;·&nbsp; ${dateStr}</div>
-    </div>
+  <div style="max-width:540px;margin:32px auto 48px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08)">
 
     <!-- Body -->
-    <div style="padding:28px 32px 8px">
-      ${summaryBar}
-      ${alertCards}
+    <div style="padding:32px 32px 8px">
+      <div style="font-size:22px;font-weight:700;color:#3730a3;margin-bottom:6px">Good morning, ${firstName} 👋</div>
+      <div style="font-size:14px;color:#94a3b8;margin-bottom:24px">Here's what needs your attention today.</div>
+      ${alertSection}
       ${calendarSection}
       ${ctaButton}
     </div>
@@ -167,9 +158,11 @@ async function sendDigestEmail(householdId, type = 'daily') {
   const resend = getClient();
   const now = new Date();
   const SEVERITY_ORDER = { high: 0, medium: 1, low: 2 };
+  const since24h = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
 
-  const [{ data: alerts }, { data: partners }, { data: integrations }] = await Promise.all([
+  const [{ data: alerts }, { data: autoResolved }, { data: partners }, { data: integrations }] = await Promise.all([
     supabase.from('alerts').select('*').eq('household_id', householdId).eq('status', 'active').order('created_at', { ascending: false }),
+    supabase.from('alerts').select('*').eq('household_id', householdId).eq('status', 'auto_resolved').gte('updated_at', since24h).order('updated_at', { ascending: false }),
     supabase.from('partners').select('id, display_name').eq('household_id', householdId),
     supabase.from('integrations').select('*').eq('household_id', householdId).eq('provider', 'google').eq('is_active', true).not('access_token', 'is', null),
   ]);
@@ -178,6 +171,7 @@ async function sendDigestEmail(householdId, type = 'daily') {
 
   const partnerA = partners?.[0]?.display_name || 'Partner 1';
   const partnerB = partners?.[1]?.display_name || 'Partner 2';
+  const partnerName = partnerA;
 
   const [evA, evB] = await Promise.all([
     integrations?.[0] ? getCalendarEvents(integrations[0]).catch(() => []) : Promise.resolve([]),
@@ -190,7 +184,7 @@ async function sendDigestEmail(householdId, type = 'daily') {
 
   const weekBuckets = buildWeekBuckets(evA, evB, partnerA, partnerB);
 
-  const html = buildHtml({ type, dateStr, alerts: sortedAlerts, partnerA, partnerB, weekBuckets });
+  const html = buildHtml({ type, dateStr, alerts: sortedAlerts, autoResolvedAlerts: autoResolved || [], partnerName, weekBuckets });
 
   const toAddresses = (integrations || [])
     .filter((i) => i.account_email)
@@ -199,10 +193,11 @@ async function sendDigestEmail(householdId, type = 'daily') {
 
   if (!toAddresses.length) throw new Error('No connected email addresses found for this household');
 
-  const fromAddress = process.env.RESEND_FROM_EMAIL || 'Calvin <onboarding@resend.dev>';
+  const fromAddress = process.env.RESEND_FROM_EMAIL || 'Calvin <briefing@calvinai.co>';
+  const dayOfWeek = now.toLocaleDateString('en-US', { weekday: 'long' });
   const subject = type === 'weekly'
-    ? `Calvin Weekly Digest — ${now.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}`
-    : `Calvin Daily Briefing — ${now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}`;
+    ? `Your weekly family briefing – ${now.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}`
+    : `Your 7:30 AM family briefing – ${dayOfWeek}`;
 
   const { data, error } = await resend.emails.send({ from: fromAddress, to: toAddresses, subject, html });
   if (error) throw new Error(error.message);
