@@ -1,5 +1,27 @@
 # Calvin — Backlog
 
+## Plaid-powered bill payment
+Pay bills detected by Calvin directly from the app via ACH bank transfer.
+
+**Prerequisites:** Plaid account with `PLAID_CLIENT_ID`, `PLAID_SECRET`, and `PLAID_ENV` set on Render.
+
+**Scope:**
+
+- **Supabase**: new `plaid_integrations` table — `partner_id`, `item_id`, `encrypted_access_token`, `account_last4`, `account_name`, `institution_name`, `is_active`; new `payments` table — `partner_id`, `alert_id`, `amount_cents`, `biller_name`, `plaid_transfer_id`, `status` (pending/succeeded/failed), `metadata`, `created_at`
+- **Backend**: `POST /api/plaid/link-token` (create Plaid Link token), `POST /api/plaid/exchange` (exchange public token → store encrypted access token), `POST /api/plaid/pay` (initiate ACH transfer via Plaid Transfer API), `DELETE /api/plaid/integration` (disconnect), `GET /api/plaid/payments` (history), `POST /api/plaid/webhook` (handle settlement events from Plaid, validate signature)
+- **Claude prompt**: populate `payment: { amount_cents, biller_name, confidence: "high"|"low" }` on `expiring_item` / `dropped_commitment` alerts when a specific dollar amount and biller are extractable. Recurring bills and amounts over $500 → `confidence: "low"`.
+- **AlertCard.jsx**: "Pay $X.XX" button always shown on `confidence: "high"` alerts. If Plaid connected → opens confirmation modal. If not connected → routes to Settings, auto-launches Plaid Link, then auto-returns to the originating alert and opens the confirmation modal once connected.
+- **Confirmation modal**: shows biller, amount, bank last 4, institution. Single confirm tap initiates payment. Disabled if amount exceeds $500 cap.
+- **SettingsView**: "Connected Bank" section — connect/disconnect; "Payment History" section — last 50 payments with status.
+- **Safety guardrails** (all server-side): $500 hard cap, `confidence: "high"` required, alert ownership check, 409 on duplicate payment for same alert, auth required on all routes.
+- **Alert auto-resolution**: alert resolves to `resolved` on successful transfer initiation; re-opens if Plaid webhook reports failure.
+
+**Effort:** 4–5 days
+
+**Notes:** Use Plaid Sandbox for development — test credentials simulate bank connections and transfers instantly. Request Plaid Production access before shipping to real users (review typically takes 1–2 weeks).
+
+---
+
 ## SMS version of Calvin (two-way text interface)
 Let partners interact with Calvin entirely over SMS — receive alerts as texts and reply to act on them or ask questions, no app required.
 

@@ -31,7 +31,7 @@ function trimCalendarEvent(event) {
     end: event.end,
     ...(event.location ? { location: event.location } : {}),
     ...(event.attendees?.length ? { attendees: event.attendees } : {}),
-    ...(event.description ? { description: event.description.slice(0, 200) } : {}),
+    ...(event.description ? { description: event.description.slice(0, 500) } : {}),
     isAllDay: event.isAllDay,
     // Tag the event with its source integration so Claude can echo it back in
     // delete_events / confirm_events — lets us resolve the correct account's
