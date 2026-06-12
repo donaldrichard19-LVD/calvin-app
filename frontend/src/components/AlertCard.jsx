@@ -233,32 +233,32 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
                 onClick={e => e.stopPropagation()}
                 className="flex items-center gap-3 w-full rounded-lg p-3 transition-colors cursor-pointer min-h-[44px]"
                 style={{
-                  border: isVideoLink ? '1px solid rgba(147, 197, 253, 0.6)' : '1px solid rgba(165, 180, 252, 0.6)',
-                  background: 'rgba(255,255,255,0.1)',
+                  background: '#6366F1',
                   textDecoration: 'none',
+                  border: 'none',
                 }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.2)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#4F46E5'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = '#6366F1'; }}
               >
                 {isVideoLink
-                  ? <Video size={16} style={{ color: isVideoLink ? '#1D4ED8' : '#4338CA', flexShrink: 0 }} />
-                  : <Link size={16} style={{ color: '#4338CA', flexShrink: 0 }} />
+                  ? <Video size={16} style={{ color: '#fff', flexShrink: 0 }} />
+                  : <Link size={16} style={{ color: '#fff', flexShrink: 0 }} />
                 }
                 <div className="flex flex-col flex-1 min-w-0">
-                  <span className="text-[12px] font-semibold truncate" style={{ color: isVideoLink ? '#1E3A8A' : '#3730A3' }}>
+                  <span className="text-[12px] font-semibold truncate" style={{ color: '#fff' }}>
                     {primaryLink.label}
                   </span>
                   {primaryLink.source && (
-                    <span className="flex items-center gap-1 text-[11px] truncate" style={{ color: '#6B7280' }}>
+                    <span className="flex items-center gap-1 text-[11px] truncate" style={{ color: 'rgba(255,255,255,0.75)' }}>
                       {isCalendarSource
-                        ? <Calendar size={12} style={{ flexShrink: 0 }} />
-                        : <Mail size={12} style={{ flexShrink: 0 }} />
+                        ? <Calendar size={12} style={{ flexShrink: 0, color: 'rgba(255,255,255,0.75)' }} />
+                        : <Mail size={12} style={{ flexShrink: 0, color: 'rgba(255,255,255,0.75)' }} />
                       }
                       {isCalendarSource ? primaryLink.source : `From ${primaryLink.source}`}
                     </span>
                   )}
                 </div>
-                <ArrowUpRight size={16} style={{ color: isVideoLink ? '#1D4ED8' : '#4338CA', flexShrink: 0 }} />
+                <ArrowUpRight size={16} style={{ color: '#fff', flexShrink: 0 }} />
               </a>
             ) : (
               <button
