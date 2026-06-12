@@ -103,6 +103,8 @@ async function getCalendarEvents(integration, daysAhead = 14) {
     attendees: (e.attendees || []).map((a) => a.email),
     description: e.description || null,
     isAllDay: !!e.start?.date,
+    hangoutLink: e.hangoutLink || null,
+    organizer: e.organizer?.email || null,
   }));
 }
 

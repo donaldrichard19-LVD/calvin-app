@@ -114,9 +114,9 @@ Matching rules (apply to both arrays):
 - Scan BOTH the email body/snippet/subject AND the calendar event description and location field for URLs.
 - Extract at most ONE link per alert — the single most actionable URL for the recommended action.
 - Priority order: scheduling/booking links (Calendly, Greenhouse, cal.com, YouCanBook.me, "pick a time") > form/document links (DocuSign, HelloSign, Google Forms) > bill pay / order links > video call links (Zoom, Google Meet, Teams, Webex) > any other URL directly tied to the action_hint.
-- **For any alert whose source_data references a calendar event**: always scan that event's description and location fields for a video call URL (Zoom, Google Meet, Teams, Webex). If one is present, include it in \`links\` — these join links are directly useful to both partners regardless of alert type.
+- **For any alert whose source_data references a calendar event**: always check that event's \`hangoutLink\`, \`location\`, and \`description\` fields for a video call URL (Zoom, Google Meet, Teams, Webex). \`hangoutLink\` is the most reliable — if it is present and non-null, always use it. Include the join link in \`links\` — both partners benefit from quick access regardless of alert type.
 - For email-sourced links: set \`source\` to the raw sender email address from the From header and \`source_type\` to \`"email"\`.
-- For calendar-sourced links (URL found in event description or location): set \`source\` to the event organizer's email address and \`source_type\` to \`"calendar"\`.
+- For calendar-sourced links (URL from \`hangoutLink\`, location, or description): set \`source\` to the event's \`organizer\` email and \`source_type\` to \`"calendar"\`.
 - The \`label\` field: short imperative phrase describing what clicking the link does, max 60 chars (e.g. "Join Zoom call", "Join Google Meet", "Open Greenhouse scheduling link").
 - Skip: tracking pixels, unsubscribe links, email footer links, social media profile links, and any URL not directly relevant to the alert's action_hint.
 - If no actionable URL is found in either email or calendar data, emit \`"links": []\`.
