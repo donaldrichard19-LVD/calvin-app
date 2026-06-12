@@ -19,7 +19,7 @@ function trimEmail(email) {
     snippet: (email.snippet || '').slice(0, 150),
     unread: (email.labels || []).includes('UNREAD'),
     important: (email.labels || []).includes('IMPORTANT'),
-    ...(email.body ? { body: email.body.slice(0, 500) } : {}),
+    ...(email.body ? { body: email.body.slice(0, 800) } : {}),
   };
 }
 
@@ -350,7 +350,7 @@ async function runAnalysisForHousehold(householdId) {
       if (fpMatch) {
         await upgradeAlertSeverityIfNeeded(fpMatch, alert.severity);
         await refreshStaleTitle(fpMatch, alert);
-        if (alert.links?.length > 0) {
+        if (Array.isArray(alert.links)) {
           await supabase.from('alerts').update({ links: alert.links, updated_at: new Date().toISOString() }).eq('id', fpMatch.id);
         }
         console.log(`[analyze] Skipping duplicate fingerprint: ${fp}`);

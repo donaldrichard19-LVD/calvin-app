@@ -111,15 +111,14 @@ Matching rules (apply to both arrays):
 - If in doubt, omit it entirely — do not guess.
 
 ## Actionable links
-- Scan the email body, snippet, subject, and calendar event description/location for URLs.
+- Scan BOTH the email body/snippet/subject AND the calendar event description and location field for URLs.
 - Extract at most ONE link per alert — the single most actionable URL for the recommended action.
-- Priority order: scheduling/booking links (Calendly, Greenhouse, cal.com, YouCanBook.me, "pick a time") > video call links (Google Meet — meet.google.com, Zoom, Teams, Webex) > form/document links (DocuSign, HelloSign, Google Forms) > bill pay / order links > any other URL directly tied to the action_hint.
-- The \`source\` field: for email-sourced links, use the raw sender email address from the email's From header (e.g. \`"logan.boyko@cresta.ai"\`), NOT a display name. For calendar-sourced links, use the event title.
-- The \`source_type\` field: use \`"email"\` for links extracted from emails, \`"calendar"\` for links extracted from calendar event description or location.
-- The \`label\` field: short imperative phrase describing what clicking the link does, max 60 chars (e.g. "Join Google Meet call", "Join Zoom call", "Open Greenhouse scheduling link", "Pay water bill").
+- Priority order: scheduling/booking links (Calendly, Greenhouse, cal.com, YouCanBook.me, "pick a time") > form/document links (DocuSign, HelloSign, Google Forms) > bill pay / order links > video call links (Zoom, Google Meet, Teams, Webex) > any other URL directly tied to the action_hint.
+- For email-sourced links: set \`source\` to the raw sender email address from the From header (e.g. \`"lauren.trim@oscar.com"\`) and \`source_type\` to \`"email"\`.
+- For calendar-sourced links (Zoom/Meet/Teams URL found in event description or location): set \`source\` to the event organizer's email address and \`source_type\` to \`"calendar"\`.
+- The \`label\` field: short imperative phrase describing what clicking the link does, max 60 chars (e.g. "Open Greenhouse scheduling link", "Join Zoom call", "Pay water bill").
 - Skip: tracking pixels, unsubscribe links, email footer links, social media profile links, and any URL not directly relevant to the alert's action_hint.
-- If no actionable URL is found, emit \`"links": []\`.
-- For calendar-only alerts (no email source), emit \`"links": []\` — EXCEPT when the calendar event's description or location contains a Google Meet (meet.google.com), Zoom, Teams, or Webex join link; in that case extract it with \`source_type: "calendar"\` and \`source\` set to the event title.
+- If no actionable URL is found in either email or calendar data, emit \`"links": []\`.
 
 ## Financial alerts — always include specific dollar amounts
 When an alert involves a bill, invoice, payment due, subscription charge, or any monetary transaction, you MUST extract and include the specific dollar amount in both the title and summary. Examples:
@@ -160,7 +159,7 @@ Each new alert object must have these exact fields:
   "source_data": { "event_ids": [], "email_ids": [], "dates": [], "calvin_can_act": true | false, "action_type": "calendar_event" | "email_reply" | null, "email_reply_to": "sender@example.com or null" },
   "expires_at": "ISO date string or null",
   "fingerprint": "short stable unique string for this specific issue, e.g. conflict-2026-05-20-soccer-dentist",
-  "links": [{ "url": "full URL string", "label": "max 60 chars imperative description e.g. 'Join Google Meet call'", "source": "sender email address (for email links) or event title (for calendar links)", "source_type": "email" | "calendar" }]
+  "links": [{ "url": "full URL string", "label": "max 60 chars imperative description e.g. 'Join Zoom call' or 'Open Greenhouse scheduling link'", "source": "email address of sender (email links) or event organizer (calendar links)", "source_type": "email" | "calendar" }]
 }
 
 "calvin_can_act" in source_data: set to true ONLY if the action_hint describes something Calvin can directly execute — creating a calendar event or drafting/sending an email reply. Set to false for everything else (e.g. reminders to call someone, pick something up, pay a bill, check a website, or any action the user must take themselves).
@@ -174,7 +173,7 @@ async function analyzeHousehold(householdContext) {
 
   const message = await client.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 1500,
+    max_tokens: 2500,
     system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
     messages: [{ role: 'user', content: userMessage }],
   });
