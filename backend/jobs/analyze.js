@@ -436,6 +436,33 @@ async function runAnalysisForHousehold(householdId) {
       }
     }
 
+    // Back-fill links for active calendar-event alerts that still have empty links.
+    // Claude won't re-generate these (fingerprint suppression), so we resolve the
+    // hangoutLink / description URL directly from the fetched event data.
+    const eventDataMap = new Map([...eventsA, ...eventsB].map((e) => [e.id, e]));
+    const { data: linklessAlerts } = await supabase
+      .from('alerts')
+      .select('id, source_data, links')
+      .eq('household_id', householdId)
+      .in('status', ['active', 'snoozed']);
+    for (const a of (linklessAlerts || [])) {
+      if (a.links?.length > 0) continue;
+      const eventId = a.source_data?.event_ids?.[0];
+      if (!eventId) continue;
+      const ev = eventDataMap.get(eventId);
+      if (!ev) continue;
+      const url = ev.hangoutLink ||
+        (ev.description || '').match(/https?:\/\/[^\s<"]+zoom[^\s<"]+|https?:\/\/meet\.google\.com\/[^\s<"]+/)?.[0] ||
+        null;
+      if (!url) continue;
+      const label = url.includes('zoom') ? 'Join Zoom call' : 'Join Google Meet';
+      await supabase.from('alerts').update({
+        links: [{ url, label, source: ev.organizer || '', source_type: 'calendar' }],
+        updated_at: new Date().toISOString(),
+      }).eq('id', a.id);
+      console.log(`[analyze] Back-filled calendar link for alert ${a.id}`);
+    }
+
     const now = new Date().toISOString();
 
     // Auto-resolve alerts whose recommended actions are now completed
