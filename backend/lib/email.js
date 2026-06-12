@@ -1,4 +1,6 @@
 'use strict';
+const fs = require('fs');
+const path = require('path');
 const { Resend } = require('resend');
 const { supabase } = require('./supabase');
 const { getCalendarEvents } = require('./google');
@@ -320,4 +322,23 @@ async function sendWelcomeEmail({ email, firstName }) {
   return { id: data?.id };
 }
 
-module.exports = { sendDigestEmail, sendWelcomeEmail };
+async function sendFeatureUpdateEmail({ email, firstName }) {
+  if (!email) throw new Error('email is required');
+  const resend = getClient();
+  const templatePath = path.join(__dirname, '../emails/feature-update-june-2026.html');
+  let html = fs.readFileSync(templatePath, 'utf8');
+  if (firstName) {
+    html = html.replace('Calvin just got a lot more capable.', `${firstName}, Calvin just got a lot more capable.`);
+  }
+  const fromAddress = process.env.RESEND_FROM_EMAIL || 'Calvin <hello@calvinai.co>';
+  const { data, error } = await resend.emails.send({
+    from: fromAddress,
+    to: email,
+    subject: "What's new in Calvin — June 2026",
+    html,
+  });
+  if (error) throw new Error(error.message);
+  return { id: data?.id };
+}
+
+module.exports = { sendDigestEmail, sendWelcomeEmail, sendFeatureUpdateEmail };

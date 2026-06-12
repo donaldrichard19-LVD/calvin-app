@@ -67,6 +67,49 @@ app.post('/api/analyze/trigger', requireAuth, async (req, res) => {
   }
 });
 
+// Admin: blast feature-update email to all active users
+// Protected by WAITLIST_SECRET token (same pattern as waitlist approval)
+app.post('/api/admin/send-feature-update', async (req, res) => {
+  const { token } = req.body;
+  const secret = process.env.WAITLIST_SECRET || process.env.ENCRYPTION_KEY;
+  const expected = require('crypto').createHmac('sha256', secret).update('feature-update-june-2026').digest('hex');
+  if (!token || token !== expected) return res.status(403).json({ error: 'Forbidden' });
+
+  const { sendFeatureUpdateEmail } = require('./lib/email');
+  const { data: integrations } = await supabase
+    .from('integrations')
+    .select('account_email, partner_id')
+    .eq('provider', 'google')
+    .eq('is_active', true)
+    .not('account_email', 'is', null);
+
+  if (!integrations?.length) return res.json({ sent: 0 });
+
+  const seen = new Set();
+  let sent = 0;
+  const errors = [];
+
+  for (const intg of integrations) {
+    if (seen.has(intg.account_email)) continue;
+    seen.add(intg.account_email);
+    try {
+      const { data: partner } = await supabase
+        .from('partners')
+        .select('display_name')
+        .eq('id', intg.partner_id)
+        .single();
+      const firstName = partner?.display_name?.split(' ')[0] || null;
+      await sendFeatureUpdateEmail({ email: intg.account_email, firstName });
+      sent++;
+    } catch (err) {
+      errors.push({ email: intg.account_email, error: err.message });
+    }
+  }
+
+  console.log(`[feature-update] Sent to ${sent} addresses. Errors: ${errors.length}`);
+  res.json({ sent, errors });
+});
+
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
