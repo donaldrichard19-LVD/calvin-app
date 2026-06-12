@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Link, Mail, ArrowUpRight } from 'lucide-react';
 
 const TYPE_META = {
   schedule_conflict:    { icon: '⚡', label: 'Conflict' },
@@ -187,43 +188,78 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
       )}
 
       {/* Suggested Next Step box */}
-      {alert.action_hint && (
-        <div
-          className="rounded-xl p-4 mt-4 mb-2"
-          style={{
-            background: 'linear-gradient(135deg, #EEF2FF 0%, #F5F3FF 100%)',
-            border: '1.5px solid #A5B4FC',
-          }}
-        >
-          <div className="flex items-center gap-2 mb-1">
-            <span
-              className="text-[11px] flex items-center justify-center w-5 h-5 rounded-full shrink-0"
-              style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6)' }}
-            >
-              ✨
-            </span>
-            <span
-              className="text-[10px] font-bold uppercase tracking-wider"
-              style={{ color: '#4338CA' }}
-            >
-              Suggested Next Step
-            </span>
-          </div>
-          <p className="text-[13px] leading-relaxed mb-3" style={{ color: '#4F46E5' }}>
-            {alert.action_hint}
-          </p>
-          <button
-            onClick={handleTackle}
-            disabled={tackling}
-            className="text-[12px] font-semibold rounded-full px-4 py-1.5 transition-colors disabled:opacity-60"
-            style={{ color: '#fff', background: '#3730A3', border: 'none' }}
-            onMouseEnter={e => { if (!tackling) e.currentTarget.style.background = '#312E81'; }}
-            onMouseLeave={e => { if (!tackling) e.currentTarget.style.background = '#3730A3'; }}
+      {alert.action_hint && (() => {
+        const primaryLink = (() => {
+          const l = alert.links?.[0];
+          if (!l?.url || !l.url.trim()) return null;
+          try { new URL(l.url); return l; } catch { return null; }
+        })();
+
+        return (
+          <div
+            className="rounded-xl p-4 mt-4 mb-2"
+            style={{
+              background: 'linear-gradient(135deg, #EEF2FF 0%, #F5F3FF 100%)',
+              border: '1.5px solid #A5B4FC',
+            }}
           >
-            {tackling ? 'Working…' : 'Take this action'}
-          </button>
-        </div>
-      )}
+            <div className="flex items-center gap-2 mb-1">
+              <span
+                className="text-[11px] flex items-center justify-center w-5 h-5 rounded-full shrink-0"
+                style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6)' }}
+              >
+                ✨
+              </span>
+              <span
+                className="text-[10px] font-bold uppercase tracking-wider"
+                style={{ color: '#4338CA' }}
+              >
+                Suggested Next Step
+              </span>
+            </div>
+            <p className="text-[13px] leading-relaxed mb-3" style={{ color: '#4F46E5' }}>
+              {alert.action_hint}
+            </p>
+            {primaryLink ? (
+              <a
+                href={primaryLink.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={e => e.stopPropagation()}
+                className="flex items-center gap-3 w-full rounded-lg p-3 transition-colors cursor-pointer min-h-[44px]"
+                style={{ border: '1px solid rgba(165, 180, 252, 0.6)', background: 'rgba(255,255,255,0.1)', textDecoration: 'none' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.2)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+              >
+                <Link size={16} style={{ color: '#4338CA', flexShrink: 0 }} />
+                <div className="flex flex-col flex-1 min-w-0">
+                  <span className="text-[12px] font-semibold truncate" style={{ color: '#3730A3' }}>
+                    {primaryLink.label}
+                  </span>
+                  {primaryLink.source && (
+                    <span className="flex items-center gap-1 text-[11px] truncate" style={{ color: '#6B7280' }}>
+                      <Mail size={12} style={{ flexShrink: 0 }} />
+                      From {primaryLink.source}
+                    </span>
+                  )}
+                </div>
+                <ArrowUpRight size={16} style={{ color: '#4338CA', flexShrink: 0 }} />
+              </a>
+            ) : (
+              <button
+                onClick={handleTackle}
+                disabled={tackling}
+                className="text-[12px] font-semibold rounded-full px-4 py-1.5 transition-colors disabled:opacity-60"
+                style={{ color: '#fff', background: '#3730A3', border: 'none' }}
+                onMouseEnter={e => { if (!tackling) e.currentTarget.style.background = '#312E81'; }}
+                onMouseLeave={e => { if (!tackling) e.currentTarget.style.background = '#3730A3'; }}
+              >
+                {tackling ? 'Working…' : 'Take this action'}
+              </button>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Footer */}
       <div className="flex items-center justify-between pt-4 mt-2 border-t border-black/5">

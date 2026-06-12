@@ -350,6 +350,9 @@ async function runAnalysisForHousehold(householdId) {
       if (fpMatch) {
         await upgradeAlertSeverityIfNeeded(fpMatch, alert.severity);
         await refreshStaleTitle(fpMatch, alert);
+        if (alert.links?.length > 0) {
+          await supabase.from('alerts').update({ links: alert.links, updated_at: new Date().toISOString() }).eq('id', fpMatch.id);
+        }
         console.log(`[analyze] Skipping duplicate fingerprint: ${fp}`);
         continue;
       }
@@ -403,6 +406,7 @@ async function runAnalysisForHousehold(householdId) {
           relevant_to: alert.relevant_to || [],
           status: 'active',
           expires_at: alert.expires_at || null,
+          links: alert.links || [],
         })
         .select()
         .single();

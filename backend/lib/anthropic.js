@@ -110,6 +110,16 @@ Matching rules (apply to both arrays):
 - Never match an event on a partner's calendar that the other partner would need to confirm (flag it in confirm_events instead).
 - If in doubt, omit it entirely — do not guess.
 
+## Actionable links
+- Scan the email body, snippet, subject, and calendar event description/location for URLs.
+- Extract at most ONE link per alert — the single most actionable URL for the recommended action.
+- Priority order: scheduling/booking links (Calendly, Greenhouse, cal.com, YouCanBook.me, "pick a time") > form/document links (DocuSign, HelloSign, Google Forms) > bill pay / order links > video call links (Zoom, Google Meet, Teams, Webex) > any other URL directly tied to the action_hint.
+- The \`source\` field must be the raw sender email address from the email's From header (e.g. \`"logan.boyko@cresta.ai"\`), NOT a display name.
+- The \`label\` field: short imperative phrase describing what clicking the link does, max 60 chars (e.g. "Open Greenhouse scheduling link", "Join Zoom call", "Pay water bill").
+- Skip: tracking pixels, unsubscribe links, email footer links, social media profile links, and any URL not directly relevant to the alert's action_hint.
+- If no actionable URL is found, emit \`"links": []\`.
+- For calendar-only alerts (no email source), emit \`"links": []\`.
+
 ## Financial alerts — always include specific dollar amounts
 When an alert involves a bill, invoice, payment due, subscription charge, or any monetary transaction, you MUST extract and include the specific dollar amount in both the title and summary. Examples:
 - WRONG: "Water bill due soon" → RIGHT: "Water bill due: $87.50"
@@ -148,7 +158,8 @@ Each new alert object must have these exact fields:
   "relevant_to": ["partnerA"] | ["partnerB"] | ["partnerA", "partnerB"],
   "source_data": { "event_ids": [], "email_ids": [], "dates": [], "calvin_can_act": true | false, "action_type": "calendar_event" | "email_reply" | null, "email_reply_to": "sender@example.com or null" },
   "expires_at": "ISO date string or null",
-  "fingerprint": "short stable unique string for this specific issue, e.g. conflict-2026-05-20-soccer-dentist"
+  "fingerprint": "short stable unique string for this specific issue, e.g. conflict-2026-05-20-soccer-dentist",
+  "links": [{ "url": "full URL string", "label": "max 60 chars imperative description e.g. 'Open Greenhouse scheduling link'", "source": "sender email address string e.g. 'logan.boyko@cresta.ai'", "source_type": "email" }]
 }
 
 "calvin_can_act" in source_data: set to true ONLY if the action_hint describes something Calvin can directly execute — creating a calendar event or drafting/sending an email reply. Set to false for everything else (e.g. reminders to call someone, pick something up, pay a bill, check a website, or any action the user must take themselves).
