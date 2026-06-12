@@ -142,7 +142,7 @@ Each new alert object must have these exact fields:
 {
   "type": "schedule_conflict" | "coverage_gap" | "dropped_commitment" | "invisible_dependency" | "expiring_item" | "asymmetric_context",
   "severity": "high" | "medium" | "low",
-  "title": "max 80 chars, specific and concrete — name the actual event or email",
+  "title": "max 80 chars, specific and concrete — name the actual event or email. NEVER use relative time words (today, tonight, tomorrow, this week, soon, upcoming) — always use the actual date (e.g. 'Jun 15' or 'Monday Jun 16') so the title stays accurate when read days later",
   "summary": "2-3 sentences explaining the issue clearly to both adults",
   "action_hint": "one specific suggested next step",
   "relevant_to": ["partnerA"] | ["partnerB"] | ["partnerA", "partnerB"],

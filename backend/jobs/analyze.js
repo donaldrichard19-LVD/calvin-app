@@ -322,6 +322,8 @@ async function runAnalysisForHousehold(householdId) {
     const activeEventIds = new Set(activeEventIdToAlert.keys());
     const activeEmailIds = new Set(activeEmailIdToAlert.keys());
 
+    const STALE_TIME_WORDS = /\b(today|tonight|tomorrow|this week|this morning|this afternoon|this evening|right now|soon|upcoming)\b/i;
+
     async function upgradeAlertSeverityIfNeeded(existingAlert, newSeverity) {
       if ((SEVERITY_RANK[newSeverity] || 0) > (SEVERITY_RANK[existingAlert.severity] || 0)) {
         await supabase.from('alerts').update({ severity: newSeverity, updated_at: new Date().toISOString() }).eq('id', existingAlert.id);
@@ -330,13 +332,24 @@ async function runAnalysisForHousehold(householdId) {
       }
     }
 
+    async function refreshStaleTitle(existingAlert, newAlert) {
+      const existingHasStaleWords = STALE_TIME_WORDS.test(existingAlert.title || '');
+      const newIsClean = newAlert.title && !STALE_TIME_WORDS.test(newAlert.title);
+      if (existingHasStaleWords && newIsClean) {
+        await supabase.from('alerts').update({ title: newAlert.title, updated_at: new Date().toISOString() }).eq('id', existingAlert.id);
+        console.log(`[analyze] Refreshed stale title for alert ${existingAlert.id}: "${existingAlert.title}" → "${newAlert.title}"`);
+        existingAlert.title = newAlert.title;
+      }
+    }
+
     for (const alert of alerts) {
       const fp = computeFingerprint(alert);
 
-      // Fingerprint match — upgrade severity if needed, then skip insert
+      // Fingerprint match — upgrade severity and fix stale relative-time titles, then skip insert
       const fpMatch = activeFpToAlert.get(fp) || (alert.fingerprint ? activeFpToAlert.get(alert.fingerprint) : null);
       if (fpMatch) {
         await upgradeAlertSeverityIfNeeded(fpMatch, alert.severity);
+        await refreshStaleTitle(fpMatch, alert);
         console.log(`[analyze] Skipping duplicate fingerprint: ${fp}`);
         continue;
       }
@@ -358,6 +371,7 @@ async function runAnalysisForHousehold(householdId) {
         });
         if (fuzzyMatch) {
           await upgradeAlertSeverityIfNeeded(fuzzyMatch.alert, alert.severity);
+          await refreshStaleTitle(fuzzyMatch.alert, alert);
           console.log(`[analyze] Skipping — fuzzy title match with existing: "${alert.title}"`);
           continue;
         }
