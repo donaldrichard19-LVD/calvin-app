@@ -1,3 +1,5 @@
+import { ArrowUpRight, ExternalLink, Video, Mail } from 'lucide-react';
+
 export default function About() {
   const featureCards = [
     {
@@ -10,13 +12,19 @@ export default function About() {
       emoji: '🔔',
       color: 'from-amber/10 to-transparent border-amber/30',
       label: 'Actionable alerts, not noise',
-      body: 'Every alert is a specific, time-sensitive issue with one suggested next step. No general reminders — only things that will actually cause a problem if nobody acts.',
+      body: 'Every alert is a specific, time-sensitive issue with one suggested next step. No general reminders — only things that will actually cause a problem if nobody acts. Alerts age gracefully — titles always show the real date, never "tonight" or "tomorrow".',
     },
     {
       emoji: '🔄',
       color: 'from-green/10 to-transparent border-green/30',
       label: 'Self-resolving',
       body: "When Calvin spots a confirmation email — a pickup, a delivery — it cancels the calendar event for you and clears the alert. Changed your mind? Undo it with one tap.",
+    },
+    {
+      emoji: '🔗',
+      color: 'from-blue/10 to-transparent border-blue/30',
+      label: 'Important links, surfaced automatically',
+      body: "Scheduling an appointment? Calvin pulls the scheduling link from the provider's email and puts it one tap away. Got a Zoom or Google Meet invite? The join link appears directly on the alert. Bill due? The payment link surfaces right where you need it — no digging through your inbox required.",
     },
     {
       emoji: '🤝',
@@ -56,18 +64,43 @@ export default function About() {
     return { x: Math.round(r * Math.sin(rad)), y: Math.round(-r * Math.cos(rad)) };
   }
 
+  const linkScenarios = [
+    {
+      type: 'Dropped commitment',
+      title: 'Jun 18: Interview scheduling link expires soon — Logan Boyko (Cresta)',
+      hint: 'Schedule your interview slot before the Greenhouse link expires tomorrow.',
+      linkLabel: 'Open Greenhouse scheduling link',
+      source: 'logan.boyko@cresta.ai',
+      isVideo: false,
+    },
+    {
+      type: 'Upcoming appointment',
+      title: 'Jun 19: Liam telehealth visit — Dr. Patel at 10 am',
+      hint: 'Join the telehealth call directly — the link is from the calendar invite.',
+      linkLabel: 'Join Google Meet',
+      source: 'dr.patel@pediatrics.com',
+      isVideo: true,
+    },
+    {
+      type: 'Action needed',
+      title: 'Jun 21: Credit card bill due — $480 outstanding',
+      hint: 'Pay your Chase bill before the due date to avoid a late fee.',
+      linkLabel: 'Pay bill on Chase.com',
+      source: 'no-reply@chase.com',
+      isVideo: false,
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-white text-blurple overflow-x-hidden">
       <style>{orbitKeyframes}</style>
 
       {/* ── Navbar ── */}
       <nav className="fixed top-0 left-0 right-0 z-50 px-4 py-3 flex items-center justify-between bg-white/90 backdrop-blur-sm border-b border-blurple/8">
-        {/* Logo pill */}
         <a href="/about" className="bg-blurple text-white px-5 py-2 rounded-full font-bold text-[14px] tracking-tight hover:bg-blurpleHover transition-colors">
           Calvin
         </a>
 
-        {/* Center nav pill */}
         <div className="hidden sm:flex items-center gap-0.5 bg-blurple/5 border border-blurple/12 rounded-full px-1.5 py-1">
           <a href="#features" className="px-4 py-1.5 text-[13px] text-blurple/65 hover:text-blurple hover:bg-blurple/8 transition-colors rounded-full">
             Features
@@ -80,7 +113,6 @@ export default function About() {
           </a>
         </div>
 
-        {/* Auth controls */}
         <div className="flex items-center gap-2">
           <a href="/" className="px-4 py-2 text-[13px] font-medium text-blurple/70 hover:text-blurple transition-colors">
             Sign in
@@ -135,7 +167,6 @@ export default function About() {
               className="relative select-none"
               style={{ width: 260, height: 260 }}
             >
-              {/* Ring guides */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div style={{ width: 200, height: 200, borderRadius: '50%', border: '1px solid rgba(88,101,242,0.2)' }} />
               </div>
@@ -143,10 +174,8 @@ export default function About() {
                 <div style={{ width: 120, height: 120, borderRadius: '50%', border: '1px solid rgba(88,101,242,0.15)' }} />
               </div>
 
-              {/* Central bell */}
               <div className="absolute inset-0 flex items-center justify-center text-5xl z-10">🔔</div>
 
-              {/* Outer ring — clockwise */}
               <div className="absolute inset-0" style={{ animation: 'orbit-cw 24s linear infinite' }}>
                 {outerEmojis.map(({ emoji, angle }) => {
                   const { x, y } = orbitPos(angle, 100);
@@ -163,7 +192,6 @@ export default function About() {
                 })}
               </div>
 
-              {/* Inner ring — counter-clockwise */}
               <div className="absolute inset-0" style={{ animation: 'orbit-ccw 18s linear infinite' }}>
                 {innerEmojis.map(({ emoji, angle }) => {
                   const { x, y } = orbitPos(angle, 60);
@@ -183,7 +211,6 @@ export default function About() {
           </div>
         </div>
 
-        {/* Scroll hint */}
         <div className="text-center mt-4">
           <p className="text-blurple/35 text-[13px] animate-fade-in" style={{ animationDelay: '1s' }}>
             ↓ See how it works
@@ -239,13 +266,13 @@ export default function About() {
                 <div className="rounded-xl bg-red-50 border border-red-200 p-3">
                   <div className="text-[10px] font-semibold text-red-500 uppercase tracking-wider mb-1">🔴 High priority</div>
                   <div className="text-[12px] text-red-800 leading-relaxed">
-                    James has a dentist appt at 3 pm — but you're scheduled to pick up Lily at 3:15 pm. One of you needs to adjust.
+                    Jun 17: James has a dentist appt at 3 pm — but you're scheduled to pick up Lily at 3:15 pm. One of you needs to adjust.
                   </div>
                 </div>
                 <div className="rounded-xl bg-amber-50 border border-amber-200 p-3">
                   <div className="text-[10px] font-semibold text-amber-600 uppercase tracking-wider mb-1">🟡 Heads up</div>
                   <div className="text-[12px] text-amber-800 leading-relaxed">
-                    Soccer practice moved to 4 pm per last night's email. Calendar still shows 3 pm.
+                    Jun 17: Soccer practice moved to 4 pm per last night's email. Calendar still shows 3 pm.
                   </div>
                 </div>
                 <div className="rounded-xl bg-green-50 border border-green-200 p-3">
@@ -260,7 +287,7 @@ export default function About() {
         </div>
       </section>
 
-      {/* ── Features / Calvin Actions ── */}
+      {/* ── Calvin Actions ── */}
       <section id="features" className="px-6 pb-24">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-center text-2xl sm:text-3xl font-bold text-blurple mb-3">
@@ -269,7 +296,7 @@ export default function About() {
           <p className="text-center text-blurple/55 text-[15px] mb-12">
             Calvin doesn't just alert you — it can take action on your behalf.
           </p>
-          <div className="grid sm:grid-cols-3 gap-5">
+          <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-5">
             {[
               {
                 emoji: '📅',
@@ -286,6 +313,11 @@ export default function About() {
                 title: 'Recurring reminders',
                 desc: 'Set up repeating nudges for things like medication, bills, or weekly planning sessions.',
               },
+              {
+                emoji: '🔗',
+                title: 'Smart link surfacing',
+                desc: 'Calvin pulls scheduling links, payment URLs, and video call links from emails and calendar invites — one tap away inside the relevant alert.',
+              },
             ].map(({ emoji, title, desc }) => (
               <div key={title} className="rounded-2xl border border-blurple/15 bg-blurple/4 p-6 flex flex-col gap-3">
                 <div className="text-3xl">{emoji}</div>
@@ -294,6 +326,96 @@ export default function About() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ── Link Surfacing Showcase ── */}
+      <section className="px-6 pb-24">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl sm:text-3xl font-bold text-blurple mb-3">
+              Links you need, right where they matter
+            </h2>
+            <p className="text-blurple/55 text-[15px] max-w-xl mx-auto">
+              Calvin scans emails and calendar invites for actionable URLs — scheduling pages,
+              payment links, video calls — and surfaces them directly inside the relevant alert.
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-3 gap-5">
+            {linkScenarios.map(({ type, title, hint, linkLabel, source, isVideo }) => (
+              <div key={title} className="rounded-2xl border border-blurple/15 bg-white shadow-card p-5 flex flex-col gap-3">
+                {/* Alert context header */}
+                <div
+                  className="self-start text-[10px] font-semibold uppercase tracking-wider rounded-full px-2.5 py-1"
+                  style={{ color: '#E8352A', border: '1.5px solid #E8352A' }}
+                >
+                  {type}
+                </div>
+                <p className="text-[13px] font-bold text-blurple leading-snug">{title}</p>
+
+                {/* Suggested Next Step box */}
+                <div
+                  className="rounded-xl p-4"
+                  style={isVideo
+                    ? { background: 'linear-gradient(135deg, #EFF6FF 0%, #EDE9FE 100%)', border: '1.5px solid #93C5FD' }
+                    : { background: 'linear-gradient(135deg, #EEF2FF 0%, #F5F3FF 100%)', border: '1.5px solid #A5B4FC' }
+                  }
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <span
+                      className="text-[11px] flex items-center justify-center w-5 h-5 rounded-full shrink-0"
+                      style={{ background: isVideo
+                        ? 'linear-gradient(135deg, #3B82F6, #6366F1)'
+                        : 'linear-gradient(135deg, #6366F1, #8B5CF6)'
+                      }}
+                    >
+                      {isVideo ? '📹' : '✨'}
+                    </span>
+                    <span
+                      className="text-[10px] font-bold uppercase tracking-wider"
+                      style={{ color: isVideo ? '#1D4ED8' : '#4338CA' }}
+                    >
+                      Suggested Next Step
+                    </span>
+                  </div>
+                  <p
+                    className="text-[13px] leading-relaxed mb-3"
+                    style={{ color: isVideo ? '#1E40AF' : '#4F46E5' }}
+                  >
+                    {hint}
+                  </p>
+
+                  {/* Link button */}
+                  <div
+                    className="flex items-center gap-3 rounded-lg p-3 cursor-default"
+                    style={{ background: isVideo
+                      ? 'linear-gradient(135deg, #3B82F6, #6366F1)'
+                      : '#6366F1'
+                    }}
+                  >
+                    {isVideo
+                      ? <Video size={15} style={{ color: '#fff', flexShrink: 0 }} />
+                      : <ExternalLink size={15} style={{ color: '#fff', flexShrink: 0 }} />
+                    }
+                    <div className="flex flex-col flex-1 min-w-0">
+                      <span className="text-[12px] font-semibold text-white leading-tight">{linkLabel}</span>
+                      <span className="flex items-center gap-1 text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.72)' }}>
+                        <Mail size={10} style={{ flexShrink: 0 }} />
+                        {source}
+                      </span>
+                    </div>
+                    <ArrowUpRight size={15} style={{ color: '#fff', flexShrink: 0 }} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Fallback callout */}
+          <p className="text-center text-blurple/45 text-[13px] mt-6">
+            No link detected? A <span className="font-semibold text-blurple/60">"Take this action"</span> button appears as a fallback — the card is never left empty.
+          </p>
         </div>
       </section>
 
@@ -402,6 +524,7 @@ export default function About() {
                   'SMS + email digest',
                   'Agent actions (calendar, replies)',
                   'Auto-resolve from emails',
+                  'Smart link surfacing',
                   'Conversational chat (Ask Calvin)',
                   'Recurring reminders',
                 ].map(item => (
