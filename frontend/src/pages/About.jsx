@@ -287,48 +287,6 @@ export default function About() {
         </div>
       </section>
 
-      {/* ── Calvin Actions ── */}
-      <section id="features" className="px-6 pb-24">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-center text-2xl sm:text-3xl font-bold text-blurple mb-3">
-            Calvin Actions
-          </h2>
-          <p className="text-center text-blurple/55 text-[15px] mb-12">
-            Calvin doesn't just alert you — it can take action on your behalf.
-          </p>
-          <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-5">
-            {[
-              {
-                emoji: '📅',
-                title: 'Calendar management',
-                desc: 'Calvin can create, update, or cancel events based on what it finds in your emails and alerts.',
-              },
-              {
-                emoji: '✉️',
-                title: 'Automated email replies',
-                desc: 'Draft or send responses to common threads — pickups, appointments, school communications.',
-              },
-              {
-                emoji: '🔁',
-                title: 'Recurring reminders',
-                desc: 'Set up repeating nudges for things like medication, bills, or weekly planning sessions.',
-              },
-              {
-                emoji: '🔗',
-                title: 'Smart link surfacing',
-                desc: 'Calvin pulls scheduling links, payment URLs, and video call links from emails and calendar invites — one tap away inside the relevant alert.',
-              },
-            ].map(({ emoji, title, desc }) => (
-              <div key={title} className="rounded-2xl border border-blurple/15 bg-blurple/4 p-6 flex flex-col gap-3">
-                <div className="text-3xl">{emoji}</div>
-                <div className="text-[15px] font-bold text-blurple">{title}</div>
-                <div className="text-[13px] text-blurple/60 leading-relaxed">{desc}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ── Link Surfacing Showcase ── */}
       <section className="px-6 pb-24">
         <div className="max-w-4xl mx-auto">
@@ -412,10 +370,48 @@ export default function About() {
             ))}
           </div>
 
-          {/* Fallback callout */}
-          <p className="text-center text-blurple/45 text-[13px] mt-6">
-            No link detected? A <span className="font-semibold text-blurple/60">"Take this action"</span> button appears as a fallback — the card is never left empty.
+        </div>
+      </section>
+
+      {/* ── Calvin Actions ── */}
+      <section id="features" className="px-6 pb-24">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-center text-2xl sm:text-3xl font-bold text-blurple mb-3">
+            Calvin Actions
+          </h2>
+          <p className="text-center text-blurple/55 text-[15px] mb-12">
+            Calvin doesn't just alert you — it can take action on your behalf.
           </p>
+          <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-5">
+            {[
+              {
+                emoji: '📅',
+                title: 'Calendar management',
+                desc: 'Calvin can create, update, or cancel events based on what it finds in your emails and alerts.',
+              },
+              {
+                emoji: '✉️',
+                title: 'Automated email replies',
+                desc: 'Draft or send responses to common threads — pickups, appointments, school communications.',
+              },
+              {
+                emoji: '🔁',
+                title: 'Recurring reminders',
+                desc: 'Set up repeating nudges for things like medication, bills, or weekly planning sessions.',
+              },
+              {
+                emoji: '🔗',
+                title: 'Smart link surfacing',
+                desc: 'Calvin pulls scheduling links, payment URLs, and video call links from emails and calendar invites — one tap away inside the relevant alert.',
+              },
+            ].map(({ emoji, title, desc }) => (
+              <div key={title} className="rounded-2xl border border-blurple/15 bg-blurple/4 p-6 flex flex-col gap-3">
+                <div className="text-3xl">{emoji}</div>
+                <div className="text-[15px] font-bold text-blurple">{title}</div>
+                <div className="text-[13px] text-blurple/60 leading-relaxed">{desc}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -443,28 +439,6 @@ export default function About() {
               <div className="pt-1">
                 <div className="text-[15px] font-bold text-blurple">{s.step}</div>
                 <div className="text-[14px] text-blurple/60 mt-0.5 leading-relaxed">{s.desc}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Why Choose Calvin ── */}
-      <section className="px-6 pb-24 max-w-2xl mx-auto">
-        <h2 className="text-center text-2xl sm:text-3xl font-bold text-blurple mb-12 animate-fade-in-up">
-          Why Choose Calvin
-        </h2>
-        <div className="space-y-5">
-          {featureCards.map((p, i) => (
-            <div
-              key={p.label}
-              className={`animate-fade-in-up rounded-2xl border bg-gradient-to-br ${p.color} p-6 flex gap-5 items-start`}
-              style={{ animationDelay: `${0.1 + i * 0.12}s` }}
-            >
-              <span className="text-4xl shrink-0">{p.emoji}</span>
-              <div>
-                <div className="text-[16px] font-bold text-blurple mb-1">{p.label}</div>
-                <div className="text-[14px] text-blurple/70 leading-relaxed">{p.body}</div>
               </div>
             </div>
           ))}
