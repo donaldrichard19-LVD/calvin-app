@@ -66,11 +66,11 @@ export default function About() {
 
   const linkScenarios = [
     {
-      type: 'Dropped commitment',
-      title: 'Jun 18: Interview scheduling link expires soon — Logan Boyko (Cresta)',
-      hint: 'Schedule your interview slot before the Greenhouse link expires tomorrow.',
-      linkLabel: 'Open Greenhouse scheduling link',
-      source: 'logan.boyko@cresta.ai',
+      type: 'Home service',
+      title: 'Jun 18: AC repair booking — Cool Breeze HVAC arriving Thu 10–12 pm',
+      hint: 'Confirm your appointment window or reschedule via the booking link in the dispatch email.',
+      linkLabel: 'Manage booking on CoolBreeze',
+      source: 'dispatch@coolbreezeHVAC.com',
       isVideo: false,
     },
     {
