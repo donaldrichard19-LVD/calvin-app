@@ -2,12 +2,20 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link, Mail, ArrowUpRight, Video, Calendar } from 'lucide-react';
 
 const TYPE_META = {
-  schedule_conflict:    { icon: '⚡', label: 'Conflict' },
+  // Current badge types
+  heads_up:             { icon: '💡', label: 'Heads Up' },
+  action_needed:        { icon: '📋', label: 'Action Needed' },
+  deadline:             { icon: '⏰', label: 'Deadline' },
+  upcoming_commitment:  { icon: '📅', label: 'Upcoming Commitment' },
+  unshared_context:     { icon: '🔔', label: 'Unshared Context' },
   coverage_gap:         { icon: '🕳️', label: 'Coverage Gap' },
+  // Legacy types (existing alerts in DB)
+  schedule_conflict:    { icon: '⚡', label: 'Conflict' },
   dropped_commitment:   { icon: '📋', label: 'Action Needed' },
   invisible_dependency: { icon: '🔗', label: 'Dependency' },
   expiring_item:        { icon: '⏰', label: 'Deadline' },
   asymmetric_context:   { icon: '💡', label: 'Unshared Context' },
+  // System types
   event_auto_cancelled: { icon: '✅', label: 'Auto-Resolved' },
   event_cancel_confirm: { icon: '🗑️', label: 'Confirm Cancel' },
   reminder:             { icon: '🔔', label: 'Reminder' },
@@ -64,7 +72,8 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
 
   const meta = (() => {
     const base = TYPE_META[alert.type] || { icon: '•', label: alert.type };
-    if (alert.type === 'asymmetric_context' && !partnerB) {
+    // Legacy: asymmetric_context without a partner was shown as 'Heads Up'
+    if ((alert.type === 'asymmetric_context' || alert.type === 'unshared_context') && !partnerB) {
       return { ...base, label: 'Heads Up' };
     }
     return base;
