@@ -159,6 +159,11 @@ function isRecruiterEmail(subject, from, snippet) {
   return /interview|recruiter|recruiting|talent\s+acquisition|hiring manager|phone\s+screen|technical\s+screen|onsite|availability.*role|schedule.*call|please\s+pick|calendly|job\s+opportunity|open\s+position/.test(text);
 }
 
+function isWorkCommitmentEmail(subject, from, snippet) {
+  const text = `${subject} ${from} ${snippet}`.toLowerCase();
+  return /board\s+meeting|all.?hands|offsite|work\s+travel|on\s+the\s+agenda|comp\s+planning|staff\s+planning/.test(text);
+}
+
 function isFinancialEmail(subject, from, snippet) {
   const text = `${subject} ${from} ${snippet}`.toLowerCase();
   return /amount\s+due|payment\s+due|bill\s+(ready|available|is\s+due)|invoice|statement\s+ready|minimum\s+payment|autopay|auto-pay|balance\s+due|past\s+due|subscription\s+renewal|your\s+receipt|order\s+total|\$\d+|charged\s+to\s+your|payment\s+of|amount\s+charged/.test(text);
@@ -204,7 +209,7 @@ async function getRecentEmails(integration, maxResults = 50) {
         const subject = h('Subject');
         const from = h('From');
         const snippet = res.data.snippet || '';
-        return isRecruiterEmail(subject, from, snippet) || isFinancialEmail(subject, from, snippet);
+        return isRecruiterEmail(subject, from, snippet) || isFinancialEmail(subject, from, snippet) || isWorkCommitmentEmail(subject, from, snippet);
       })
       .map((res) => res.data.id)
   );

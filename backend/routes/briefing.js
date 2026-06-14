@@ -63,8 +63,14 @@ router.get('/', requireAuth, async (req, res) => {
     const fuzzyKeptWords = [];
     for (const a of exactDeduped) {
       const aWords = titleWordSet(a.title);
+      const aEventIds = new Set((a.source_data?.event_ids || []).filter(Boolean));
       const isDup = fuzzyKept.some((b, i) => {
         if (b.type !== a.type || aWords.size === 0 || fuzzyKeptWords[i].size === 0) return false;
+        // Different calendar events are never duplicates regardless of title similarity
+        const bEventIds = new Set((b.source_data?.event_ids || []).filter(Boolean));
+        if (aEventIds.size > 0 && bEventIds.size > 0) {
+          if (![...aEventIds].some((id) => bEventIds.has(id))) return false;
+        }
         const overlap = [...aWords].filter((w) => fuzzyKeptWords[i].has(w)).length;
         return overlap / Math.max(aWords.size, fuzzyKeptWords[i].size) >= 0.5;
       });
