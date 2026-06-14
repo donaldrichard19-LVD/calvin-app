@@ -373,7 +373,7 @@ async function runAnalysisForHousehold(householdId, { force = false } = {}) {
     // calendar fetch AND every associated date is in the past. Future-dated
     // alerts are kept active even if the event ID is temporarily missing
     // (reschedule, sync lag, or event on a different connected account).
-    const now = new Date();
+    const nowDate = new Date();
     const currentEventIdSet = new Set([...eventsA, ...eventsB].map((e) => e.id));
     const deterministicResolveIds = [];
     for (const alert of activeAlerts) {
@@ -383,7 +383,7 @@ async function runAnalysisForHousehold(householdId, { force = false } = {}) {
       if (!eventIds.every((id) => !currentEventIdSet.has(id))) continue;
       // Keep active if any referenced date is still in the future
       const dates = (alert.source_data?.dates || []).filter(Boolean);
-      if (dates.some((d) => new Date(d) >= now)) continue;
+      if (dates.some((d) => new Date(d) >= nowDate)) continue;
       deterministicResolveIds.push(alert.id);
     }
     if (deterministicResolveIds.length) {
