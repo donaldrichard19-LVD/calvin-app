@@ -373,7 +373,8 @@ async function runAnalysisForHousehold(householdId, { force = false } = {}) {
         source_data: a.source_data,
         status: a.status,
       })),
-      dismissal_patterns: dismissalPatterns,
+      // Force runs bypass dismissal suppression so a manual trigger always produces a fresh look
+      dismissal_patterns: force ? { by_type: {}, recent_titles: [] } : dismissalPatterns,
       resolved_topics: (resolvedResult.data || []).map((a) => ({
         type: a.type,
         title: a.title,
