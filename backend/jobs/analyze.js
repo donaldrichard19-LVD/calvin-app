@@ -227,9 +227,9 @@ async function runAnalysisForHousehold(householdId, { force = false } = {}) {
     const [fingerprintsResult, activeAlertsResult, householdResult, dismissedResult, resolvedResult] = await Promise.all([
       supabase.from('alert_fingerprints').select('fingerprint, alert_id').eq('household_id', householdId),
       supabase.from('alerts').select('id, type, title, summary, action_hint, source_data, status, created_at, severity, relevant_to').eq('household_id', householdId).in('status', ['active', 'snoozed']),
-      supabase.from('households').select('id, name, last_input_hash').eq('id', householdId).single(),
+      supabase.from('households').select('id, name, last_input_hash, last_analyzed_email_ids').eq('id', householdId).single(),
       supabase.from('alerts').select('type, title').eq('household_id', householdId).eq('status', 'dismissed').gte('updated_at', thirtyDaysAgo),
-      supabase.from('alerts').select('type, title, source_data, relevant_to, updated_at').eq('household_id', householdId).eq('status', 'resolved').gte('updated_at', ninetyDaysAgo).order('updated_at', { ascending: false }).limit(100),
+      supabase.from('alerts').select('type, title, source_data, relevant_to, updated_at').eq('household_id', householdId).eq('status', 'resolved').gte('updated_at', ninetyDaysAgo).order('updated_at', { ascending: false }).limit(20),
     ]);
 
     // Hash-based cache: skip Claude entirely when calendar+email data is unchanged
@@ -342,6 +342,45 @@ async function runAnalysisForHousehold(householdId, { force = false } = {}) {
       }
     }
 
+    // ── Email delta filter ──────────────────────────────────────────────────
+    // Only send new or alert-referenced emails to Claude. Read emails that
+    // were present in the last run and aren't tied to an active alert are
+    // omitted — Claude already decided they weren't worth alerting on.
+    const prevEmailIds = new Set(householdResult.data?.last_analyzed_email_ids || []);
+    const alertEmailIds = new Set(activeAlerts.flatMap((a) => a.source_data?.email_ids || []));
+
+    function shouldSendToClaude(email) {
+      if (!prevEmailIds.has(email.id)) return true;      // new since last run
+      if (alertEmailIds.has(email.id)) return true;      // needed for resolve-check
+      const labels = email.labels || [];
+      if (labels.includes('UNREAD') || labels.includes('IMPORTANT')) return true;
+      return false;
+    }
+
+    const claudeEmailsA = emailsA.filter(shouldSendToClaude);
+    const claudeEmailsB = emailsB.filter(shouldSendToClaude);
+    console.log(`[analyze] Email delta: ${claudeEmailsA.length}/${emailsA.length} A, ${claudeEmailsB.length}/${emailsB.length} B sent to Claude`);
+
+    // ── Deterministic auto-resolve ──────────────────────────────────────────
+    // Resolve alerts whose referenced calendar events have all left the fetch
+    // window (event passed, was cancelled, or was deleted) without asking Claude.
+    const currentEventIdSet = new Set([...eventsA, ...eventsB].map((e) => e.id));
+    const deterministicResolveIds = [];
+    for (const alert of activeAlerts) {
+      const eventIds = (alert.source_data?.event_ids || []).filter(Boolean);
+      if (
+        eventIds.length > 0 &&
+        eventIds.every((id) => !currentEventIdSet.has(id)) &&
+        !['event_auto_cancelled', 'event_cancel_confirm'].includes(alert.type)
+      ) {
+        deterministicResolveIds.push(alert.id);
+      }
+    }
+    if (deterministicResolveIds.length) {
+      console.log(`[analyze] Deterministic auto-resolve: ${deterministicResolveIds.length} alert(s) whose events left the calendar`);
+    }
+    const deterministicResolveSet = new Set(deterministicResolveIds);
+
     const dismissedAlerts = dismissedResult.data || [];
     const dismissalsByType = dismissedAlerts.reduce((acc, a) => {
       acc[a.type] = (acc[a.type] || 0) + 1;
@@ -361,10 +400,12 @@ async function runAnalysisForHousehold(householdId, { force = false } = {}) {
       partnerB: partnerB ? { id: partnerB.id, display_name: partnerB.display_name, emails: integrationsB.map((i) => i.account_email) } : null,
       partnerA_events: eventsA.map(trimCalendarEvent),
       partnerB_events: eventsB.map(trimCalendarEvent),
-      partnerA_emails: emailsA.map(trimEmail),
-      partnerB_emails: emailsB.map(trimEmail),
+      // Delta-filtered: only new emails + emails referenced by active alerts
+      partnerA_emails: claudeEmailsA.map(trimEmail),
+      partnerB_emails: claudeEmailsB.map(trimEmail),
       existing_alert_fingerprints: existingFingerprints,
-      existing_active_alerts: activeAlerts.map((a) => ({
+      // Exclude deterministically-resolved alerts so Claude doesn't waste tokens on them
+      existing_active_alerts: activeAlerts.filter((a) => !deterministicResolveSet.has(a.id)).map((a) => ({
         id: a.id,
         type: a.type,
         title: a.title,
@@ -387,9 +428,11 @@ async function runAnalysisForHousehold(householdId, { force = false } = {}) {
     };
 
     const contextBytes = Buffer.byteLength(JSON.stringify(context));
-    console.log(`[analyze] Existing fingerprints: ${existingFingerprints.length}, active alerts: ${activeAlerts.length}, context payload: ${(contextBytes / 1024).toFixed(1)}KB`);
-    const { alerts, resolveIds, deleteEvents, confirmEvents } = await analyzeHousehold(context);
-    console.log(`[analyze] Claude returned ${alerts.length} new alerts, ${resolveIds.length} to auto-resolve, ${deleteEvents.length} events to cancel, ${confirmEvents.length} to confirm`);
+    console.log(`[analyze] Fingerprints: ${existingFingerprints.length}, active alerts: ${activeAlerts.length - deterministicResolveIds.length} to Claude, context: ${(contextBytes / 1024).toFixed(1)}KB`);
+    const { alerts, resolveIds: claudeResolveIds, deleteEvents, confirmEvents } = await analyzeHousehold(context);
+    // Merge deterministic resolves with Claude's resolves, deduplicated
+    const resolveIds = [...new Set([...deterministicResolveIds, ...claudeResolveIds])];
+    console.log(`[analyze] Claude returned ${alerts.length} new alerts, ${claudeResolveIds.length} to auto-resolve (+${deterministicResolveIds.length} deterministic), ${deleteEvents.length} events to cancel, ${confirmEvents.length} to confirm`);
     if (alerts.length) console.log('[analyze] New:', alerts.map((a) => `${a.severity}:${a.fingerprint}`));
 
     let created = 0;
@@ -527,8 +570,14 @@ async function runAnalysisForHousehold(householdId, { force = false } = {}) {
     // Back-fill links for active calendar-event alerts that still have empty links.
     await backFillCalendarLinks(householdId, eventsA, eventsB);
 
-    // Persist the input hash so future runs can skip Claude when nothing changed.
-    await supabase.from('households').update({ last_input_hash: inputHash }).eq('id', householdId);
+    // Persist the input hash and the full set of seen email IDs.
+    // The email ID set powers the delta filter on the next run — only new
+    // emails (not in this set) get forwarded to Claude.
+    const allCurrentEmailIds = [...emailsA, ...emailsB].map((e) => e.id);
+    await supabase.from('households').update({
+      last_input_hash: inputHash,
+      last_analyzed_email_ids: allCurrentEmailIds,
+    }).eq('id', householdId);
 
     const now = new Date().toISOString();
 
