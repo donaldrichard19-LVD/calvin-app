@@ -62,7 +62,13 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
     }
   }, [chatMessages, chatOpen]);
 
-  const meta = TYPE_META[alert.type] || { icon: '•', label: alert.type };
+  const meta = (() => {
+    const base = TYPE_META[alert.type] || { icon: '•', label: alert.type };
+    if (alert.type === 'asymmetric_context' && !partnerB) {
+      return { ...base, label: 'Heads Up' };
+    }
+    return base;
+  })();
   const isAutoCancelled = alert.type === 'event_auto_cancelled';
   const isCancelConfirm = alert.type === 'event_cancel_confirm';
 

@@ -37,6 +37,21 @@ router.get('/', requireAuth, async (req, res) => {
       (a, b) => (severityOrder[a.severity] ?? 3) - (severityOrder[b.severity] ?? 3)
     );
 
+    // Dedup: per type+title cluster keep the highest-severity alert.
+    // Catches DB-level duplicates that survived the analysis run cleanup.
+    const clusterBest = new Map();
+    for (const a of sorted) {
+      const key = `${a.type}::${(a.title || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()}`;
+      const best = clusterBest.get(key);
+      if (!best || (severityOrder[a.severity] ?? 3) < (severityOrder[best.severity] ?? 3)) {
+        clusterBest.set(key, a);
+      }
+    }
+    const deduped = sorted.filter((a) => {
+      const key = `${a.type}::${(a.title || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()}`;
+      return clusterBest.get(key)?.id === a.id;
+    });
+
     const { data: lastRun } = await supabase
       .from('analysis_runs')
       .select('completed_at')
@@ -47,12 +62,12 @@ router.get('/', requireAuth, async (req, res) => {
       .single();
 
     res.json({
-      alerts: sorted,
+      alerts: deduped,
       meta: {
-        total: sorted.length,
-        high_count: sorted.filter((a) => a.severity === 'high').length,
-        medium_count: sorted.filter((a) => a.severity === 'medium').length,
-        low_count: sorted.filter((a) => a.severity === 'low').length,
+        total: deduped.length,
+        high_count: deduped.filter((a) => a.severity === 'high').length,
+        medium_count: deduped.filter((a) => a.severity === 'medium').length,
+        low_count: deduped.filter((a) => a.severity === 'low').length,
         last_analysis_at: lastRun?.completed_at || null,
       },
     });
