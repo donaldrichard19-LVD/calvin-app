@@ -267,6 +267,9 @@ async function runAnalysisForHousehold(householdId, { force = false } = {}) {
     }
     const activeTitleWordSets = activeAlerts.map((a) => ({ alert: a, words: titleWordSet(a.title) }));
 
+    // Track all IDs dismissed during cleanup so the fuzzy pass skips them
+    const cleanedUpIds = new Set();
+
     // Clean up any existing duplicate active alerts — keep highest severity per type+title cluster
     {
       const bestByCluster = new Map(); // clusterKey → alert with highest severity
@@ -286,6 +289,7 @@ async function runAnalysisForHousehold(householdId, { force = false } = {}) {
       if (dupIds.length) {
         await supabase.from('alerts').update({ status: 'dismissed', updated_at: new Date().toISOString() }).in('id', dupIds);
         console.log(`[analyze] Cleaned up ${dupIds.length} existing duplicate active alert(s)`);
+        dupIds.forEach((id) => cleanedUpIds.add(id));
       }
     }
 
@@ -307,6 +311,35 @@ async function runAnalysisForHousehold(householdId, { force = false } = {}) {
     if (staleIds.length) {
       await supabase.from('alerts').update({ status: 'dismissed', updated_at: new Date().toISOString() }).in('id', staleIds);
       console.log(`[analyze] Cleaned up ${staleIds.length} duplicate event_auto_cancelled alert(s)`);
+      staleIds.forEach((id) => cleanedUpIds.add(id));
+    }
+
+    // Fuzzy pairwise cleanup — catches near-duplicates with slightly different wording.
+    // Sort highest-severity first so the best alert wins each cluster.
+    {
+      const remaining = activeAlerts.filter((a) => !cleanedUpIds.has(a.id));
+      const kept = [];
+      const keptWords = [];
+      const fuzzyDupIds = [];
+      for (const a of [...remaining].sort((x, y) => (SEVERITY_RANK[y.severity] || 0) - (SEVERITY_RANK[x.severity] || 0))) {
+        const aWords = titleWordSet(a.title);
+        const isDup = kept.some((b, i) => {
+          if (b.type !== a.type || aWords.size === 0 || keptWords[i].size === 0) return false;
+          const overlap = [...aWords].filter((w) => keptWords[i].has(w)).length;
+          return overlap / Math.max(aWords.size, keptWords[i].size) >= 0.5;
+        });
+        if (isDup) {
+          fuzzyDupIds.push(a.id);
+        } else {
+          kept.push(a);
+          keptWords.push(aWords);
+        }
+      }
+      if (fuzzyDupIds.length) {
+        await supabase.from('alerts').update({ status: 'dismissed', updated_at: new Date().toISOString() }).in('id', fuzzyDupIds);
+        console.log(`[analyze] Cleaned up ${fuzzyDupIds.length} fuzzy-duplicate active alert(s)`);
+        fuzzyDupIds.forEach((id) => cleanedUpIds.add(id));
+      }
     }
 
     const dismissedAlerts = dismissedResult.data || [];
@@ -426,7 +459,7 @@ async function runAnalysisForHousehold(householdId, { force = false } = {}) {
         const fuzzyMatch = activeTitleWordSets.find(({ alert: a, words }) => {
           if (a.type !== alert.type || words.size === 0) return false;
           const overlap = [...newWords].filter((w) => words.has(w)).length;
-          return overlap / Math.max(newWords.size, words.size) >= 0.6;
+          return overlap / Math.max(newWords.size, words.size) >= 0.5;
         });
         if (fuzzyMatch) {
           await upgradeAlertSeverityIfNeeded(fuzzyMatch.alert, alert.severity);

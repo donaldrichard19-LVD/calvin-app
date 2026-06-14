@@ -37,8 +37,7 @@ router.get('/', requireAuth, async (req, res) => {
       (a, b) => (severityOrder[a.severity] ?? 3) - (severityOrder[b.severity] ?? 3)
     );
 
-    // Dedup: per type+title cluster keep the highest-severity alert.
-    // Catches DB-level duplicates that survived the analysis run cleanup.
+    // Dedup pass 1: per type+exact-title cluster keep the highest-severity alert.
     const clusterBest = new Map();
     for (const a of sorted) {
       const key = `${a.type}::${(a.title || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()}`;
@@ -47,10 +46,34 @@ router.get('/', requireAuth, async (req, res) => {
         clusterBest.set(key, a);
       }
     }
-    const deduped = sorted.filter((a) => {
+    const exactDeduped = sorted.filter((a) => {
       const key = `${a.type}::${(a.title || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()}`;
       return clusterBest.get(key)?.id === a.id;
     });
+
+    // Dedup pass 2: fuzzy word-set overlap within same alert type (catches near-identical titles).
+    // sorted is already highest-severity-first, so the first alert in each fuzzy cluster wins.
+    function titleWordSet(title) {
+      const STOP = new Set(['the', 'and', 'for', 'you', 'your', 'with', 'has', 'have', 'are', 'this', 'that', 'from', 'not']);
+      return new Set(
+        (title || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter((w) => w.length > 2 && !STOP.has(w))
+      );
+    }
+    const fuzzyKept = [];
+    const fuzzyKeptWords = [];
+    for (const a of exactDeduped) {
+      const aWords = titleWordSet(a.title);
+      const isDup = fuzzyKept.some((b, i) => {
+        if (b.type !== a.type || aWords.size === 0 || fuzzyKeptWords[i].size === 0) return false;
+        const overlap = [...aWords].filter((w) => fuzzyKeptWords[i].has(w)).length;
+        return overlap / Math.max(aWords.size, fuzzyKeptWords[i].size) >= 0.5;
+      });
+      if (!isDup) {
+        fuzzyKept.push(a);
+        fuzzyKeptWords.push(aWords);
+      }
+    }
+    const deduped = fuzzyKept;
 
     const { data: lastRun } = await supabase
       .from('analysis_runs')

@@ -44,6 +44,7 @@ Use these rules to pick the most precise type. Wrong type = confusing badge for 
 
 ## What NOT to surface
 - Do not surface issues whose fingerprint appears in existing_alert_fingerprints — those are already known.
+- Do not create a new alert for a situation already represented in existing_active_alerts. Cross-check by event ID, email ID, date, and title similarity — an alert that already exists for the same underlying issue is definitive even if you would phrase it differently or assign it a different fingerprint. When in doubt, leave it out.
 - Do not recommend creating a calendar event if a matching event (same date, same participants, same purpose) already exists in partnerA_events or partnerB_events.
 - Do not flag a conflict or gap that the current calendar data shows has already been resolved.
 - Do not surface routine care events more than 48 hours away unless there is a specific coordination problem (conflict, missing coverage, asymmetric awareness).
