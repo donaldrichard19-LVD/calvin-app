@@ -362,22 +362,25 @@ async function runAnalysisForHousehold(householdId, { force = false } = {}) {
     console.log(`[analyze] Email delta: ${claudeEmailsA.length}/${emailsA.length} A, ${claudeEmailsB.length}/${emailsB.length} B sent to Claude`);
 
     // ── Deterministic auto-resolve ──────────────────────────────────────────
-    // Resolve alerts whose referenced calendar events have all left the fetch
-    // window (event passed, was cancelled, or was deleted) without asking Claude.
+    // Resolve an alert only when its referenced event IDs have ALL left the
+    // calendar fetch AND every associated date is in the past. Future-dated
+    // alerts are kept active even if the event ID is temporarily missing
+    // (reschedule, sync lag, or event on a different connected account).
+    const now = new Date();
     const currentEventIdSet = new Set([...eventsA, ...eventsB].map((e) => e.id));
     const deterministicResolveIds = [];
     for (const alert of activeAlerts) {
+      if (['event_auto_cancelled', 'event_cancel_confirm'].includes(alert.type)) continue;
       const eventIds = (alert.source_data?.event_ids || []).filter(Boolean);
-      if (
-        eventIds.length > 0 &&
-        eventIds.every((id) => !currentEventIdSet.has(id)) &&
-        !['event_auto_cancelled', 'event_cancel_confirm'].includes(alert.type)
-      ) {
-        deterministicResolveIds.push(alert.id);
-      }
+      if (eventIds.length === 0) continue;
+      if (!eventIds.every((id) => !currentEventIdSet.has(id))) continue;
+      // Keep active if any referenced date is still in the future
+      const dates = (alert.source_data?.dates || []).filter(Boolean);
+      if (dates.some((d) => new Date(d) >= now)) continue;
+      deterministicResolveIds.push(alert.id);
     }
     if (deterministicResolveIds.length) {
-      console.log(`[analyze] Deterministic auto-resolve: ${deterministicResolveIds.length} alert(s) whose events left the calendar`);
+      console.log(`[analyze] Deterministic auto-resolve: ${deterministicResolveIds.length} alert(s) whose past events left the calendar`);
     }
     const deterministicResolveSet = new Set(deterministicResolveIds);
 
