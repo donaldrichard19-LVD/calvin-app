@@ -323,8 +323,15 @@ async function runAnalysisForHousehold(householdId, { force = false } = {}) {
       const fuzzyDupIds = [];
       for (const a of [...remaining].sort((x, y) => (SEVERITY_RANK[y.severity] || 0) - (SEVERITY_RANK[x.severity] || 0))) {
         const aWords = titleWordSet(a.title);
+        const aEventIds = new Set((a.source_data?.event_ids || []).filter(Boolean));
         const isDup = kept.some((b, i) => {
           if (b.type !== a.type || aWords.size === 0 || keptWords[i].size === 0) return false;
+          // If both alerts reference specific calendar events, only treat them as
+          // duplicates when they share at least one event ID — different events = different issues.
+          const bEventIds = new Set((b.source_data?.event_ids || []).filter(Boolean));
+          if (aEventIds.size > 0 && bEventIds.size > 0) {
+            if (![...aEventIds].some((id) => bEventIds.has(id))) return false;
+          }
           const overlap = [...aWords].filter((w) => keptWords[i].has(w)).length;
           return overlap / Math.max(aWords.size, keptWords[i].size) >= 0.5;
         });
