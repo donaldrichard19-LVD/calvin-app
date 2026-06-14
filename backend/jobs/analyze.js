@@ -373,9 +373,9 @@ async function runAnalysisForHousehold(householdId, { force = false } = {}) {
         source_data: a.source_data,
         status: a.status,
       })),
-      // Force runs bypass dismissal suppression so a manual trigger always produces a fresh look
+      // Force runs bypass dismissal/resolved suppression so a manual trigger always produces a fresh look
       dismissal_patterns: force ? { by_type: {}, recent_titles: [] } : dismissalPatterns,
-      resolved_topics: (resolvedResult.data || []).map((a) => ({
+      resolved_topics: force ? [] : (resolvedResult.data || []).map((a) => ({
         type: a.type,
         title: a.title,
         source_data: a.source_data || {},
