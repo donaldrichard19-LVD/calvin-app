@@ -43,6 +43,19 @@ function trimCalendarEvent(event) {
   };
 }
 
+// Hash of raw calendar+email data — used to skip the Claude call when nothing changed.
+function computeInputHash(eventsA, emailsA, eventsB, emailsB) {
+  const stableEvent = (e) => `${e.id}|${e.title}|${e.start}|${e.end}|${e.location || ''}|${e.hangoutLink || ''}`;
+  const stableEmail = (e) => `${e.id}|${e.subject}|${e.snippet || ''}`;
+  const parts = [
+    eventsA.map(stableEvent).sort().join(';;'),
+    emailsA.map(stableEmail).sort().join(';;'),
+    eventsB.map(stableEvent).sort().join(';;'),
+    emailsB.map(stableEmail).sort().join(';;'),
+  ];
+  return crypto.createHash('sha256').update(parts.join('\n')).digest('hex');
+}
+
 // Deterministic fingerprint so the same issue isn't re-created across runs
 // even when Claude phrases its fingerprint string differently.
 function computeFingerprint(alert) {
@@ -70,7 +83,33 @@ function computeFingerprint(alert) {
   return crypto.createHash('md5').update(parts.join('|')).digest('hex');
 }
 
-async function runAnalysisForHousehold(householdId) {
+async function backFillCalendarLinks(householdId, eventsA, eventsB) {
+  const eventDataMap = new Map([...eventsA, ...eventsB].map((e) => [e.id, e]));
+  const { data: linklessAlerts } = await supabase
+    .from('alerts')
+    .select('id, source_data, links')
+    .eq('household_id', householdId)
+    .in('status', ['active', 'snoozed']);
+  for (const a of (linklessAlerts || [])) {
+    if (a.links?.length > 0) continue;
+    const eventId = a.source_data?.event_ids?.[0];
+    if (!eventId) continue;
+    const ev = eventDataMap.get(eventId);
+    if (!ev) continue;
+    const url = ev.hangoutLink ||
+      (ev.description || '').match(/https?:\/\/[^\s<"]+zoom[^\s<"]+|https?:\/\/meet\.google\.com\/[^\s<"]+/)?.[0] ||
+      null;
+    if (!url) continue;
+    const label = url.includes('zoom') ? 'Join Zoom call' : 'Join Google Meet';
+    await supabase.from('alerts').update({
+      links: [{ url, label, source: ev.organizer || '', source_type: 'calendar' }],
+      updated_at: new Date().toISOString(),
+    }).eq('id', a.id);
+    console.log(`[analyze] Back-filled calendar link for alert ${a.id}`);
+  }
+}
+
+async function runAnalysisForHousehold(householdId, { force = false } = {}) {
   const { data: run, error: runErr } = await supabase
     .from('analysis_runs')
     .insert({ household_id: householdId, status: 'running' })
@@ -188,10 +227,25 @@ async function runAnalysisForHousehold(householdId) {
     const [fingerprintsResult, activeAlertsResult, householdResult, dismissedResult, resolvedResult] = await Promise.all([
       supabase.from('alert_fingerprints').select('fingerprint, alert_id').eq('household_id', householdId),
       supabase.from('alerts').select('id, type, title, summary, action_hint, source_data, status, created_at, severity, relevant_to').eq('household_id', householdId).in('status', ['active', 'snoozed']),
-      supabase.from('households').select('id, name').eq('id', householdId).single(),
+      supabase.from('households').select('id, name, last_input_hash').eq('id', householdId).single(),
       supabase.from('alerts').select('type, title').eq('household_id', householdId).eq('status', 'dismissed').gte('updated_at', thirtyDaysAgo),
       supabase.from('alerts').select('type, title, source_data, relevant_to, updated_at').eq('household_id', householdId).eq('status', 'resolved').gte('updated_at', ninetyDaysAgo).order('updated_at', { ascending: false }).limit(100),
     ]);
+
+    // Hash-based cache: skip Claude entirely when calendar+email data is unchanged
+    const inputHash = computeInputHash(eventsA, emailsA, eventsB, emailsB);
+    const storedHash = householdResult.data?.last_input_hash;
+    if (!force && storedHash && storedHash === inputHash) {
+      console.log(`[analyze] Household ${householdId}: input unchanged — skipping Claude`);
+      await backFillCalendarLinks(householdId, eventsA, eventsB);
+      await supabase.from('analysis_runs').update({
+        status: 'completed',
+        completed_at: new Date().toISOString(),
+        alerts_created: 0,
+        alerts_resolved: 0,
+      }).eq('id', run.id);
+      return run.id;
+    }
 
     const activeAlertIds = new Set((activeAlertsResult.data || []).map((a) => a.id));
     // Only treat a fingerprint as a blocker if its alert is still active/snoozed,
@@ -437,31 +491,10 @@ async function runAnalysisForHousehold(householdId) {
     }
 
     // Back-fill links for active calendar-event alerts that still have empty links.
-    // Claude won't re-generate these (fingerprint suppression), so we resolve the
-    // hangoutLink / description URL directly from the fetched event data.
-    const eventDataMap = new Map([...eventsA, ...eventsB].map((e) => [e.id, e]));
-    const { data: linklessAlerts } = await supabase
-      .from('alerts')
-      .select('id, source_data, links')
-      .eq('household_id', householdId)
-      .in('status', ['active', 'snoozed']);
-    for (const a of (linklessAlerts || [])) {
-      if (a.links?.length > 0) continue;
-      const eventId = a.source_data?.event_ids?.[0];
-      if (!eventId) continue;
-      const ev = eventDataMap.get(eventId);
-      if (!ev) continue;
-      const url = ev.hangoutLink ||
-        (ev.description || '').match(/https?:\/\/[^\s<"]+zoom[^\s<"]+|https?:\/\/meet\.google\.com\/[^\s<"]+/)?.[0] ||
-        null;
-      if (!url) continue;
-      const label = url.includes('zoom') ? 'Join Zoom call' : 'Join Google Meet';
-      await supabase.from('alerts').update({
-        links: [{ url, label, source: ev.organizer || '', source_type: 'calendar' }],
-        updated_at: new Date().toISOString(),
-      }).eq('id', a.id);
-      console.log(`[analyze] Back-filled calendar link for alert ${a.id}`);
-    }
+    await backFillCalendarLinks(householdId, eventsA, eventsB);
+
+    // Persist the input hash so future runs can skip Claude when nothing changed.
+    await supabase.from('households').update({ last_input_hash: inputHash }).eq('id', householdId);
 
     const now = new Date().toISOString();
 
