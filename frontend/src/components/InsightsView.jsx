@@ -1,23 +1,44 @@
 import React, { useEffect, useState } from 'react';
+import {
+  CalendarClock, ArrowLeftRight, CircleDashed, Hourglass,
+  Workflow, CircleAlert, CalendarX, Megaphone, CalendarDays,
+} from 'lucide-react';
 import { apiFetch } from '../lib/api';
 
-const TYPE_META = {
-  schedule_conflict:    { label: 'Schedule conflicts', icon: '🗓️' },
-  coverage_gap:         { label: 'Coverage gaps',      icon: '🕳️' },
-  dropped_commitment:   { label: 'Upcoming commitments',icon: '📧' },
-  invisible_dependency: { label: 'Hidden dependencies',icon: '🔗' },
-  expiring_item:        { label: 'Expiring items',     icon: '⏰' },
-  asymmetric_context:   { label: 'Asymmetric context', icon: '📨' },
+const CANONICAL = {
+  upcoming_commitments: { label: 'Upcoming commitments', Icon: CalendarClock },
+  asymmetric_context:   { label: 'Asymmetric context',   Icon: ArrowLeftRight },
+  coverage_gaps:        { label: 'Coverage gaps',         Icon: CircleDashed },
+  expiring_items:       { label: 'Expiring items',        Icon: Hourglass },
+  hidden_dependencies:  { label: 'Hidden dependencies',   Icon: Workflow },
+  action_needed:        { label: 'Action needed',         Icon: CircleAlert },
+  event_cancellations:  { label: 'Event cancellations',   Icon: CalendarX },
+  heads_up:             { label: 'Heads-up',              Icon: Megaphone },
+  schedule_conflicts:   { label: 'Schedule conflicts',    Icon: CalendarDays },
 };
 
-function StatCard({ label, value, sub, color = 'text-dark' }) {
-  return (
-    <div className="card p-4 flex flex-col gap-1">
-      <div className={`text-3xl font-bold ${color}`}>{value}</div>
-      <div className="text-[13px] font-semibold text-dark">{label}</div>
-      {sub && <div className="text-[11px] text-light">{sub}</div>}
-    </div>
-  );
+const SLUG_TO_CANONICAL = {
+  upcoming_commitment:  'upcoming_commitments',
+  dropped_commitment:   'upcoming_commitments',
+  unshared_context:     'asymmetric_context',
+  asymmetric_context:   'asymmetric_context',
+  coverage_gap:         'coverage_gaps',
+  expiring_item:        'expiring_items',
+  invisible_dependency: 'hidden_dependencies',
+  action_needed:        'action_needed',
+  event_cancel_confirm: 'event_cancellations',
+  event_auto_cancelled: 'event_cancellations',
+  heads_up:             'heads_up',
+  schedule_conflict:    'schedule_conflicts',
+};
+
+function mergeByType(byType = {}) {
+  const merged = {};
+  for (const [slug, count] of Object.entries(byType)) {
+    const key = SLUG_TO_CANONICAL[slug] ?? slug;
+    merged[key] = (merged[key] || 0) + count;
+  }
+  return merged;
 }
 
 function timeAgo(dateStr) {
@@ -48,23 +69,33 @@ export default function InsightsView() {
 
   if (!stats) return null;
 
-  const totalByType = Object.values(stats.by_type || {}).reduce((s, n) => s + n, 0);
-  const sortedTypes = Object.entries(stats.by_type || {})
-    .sort(([, a], [, b]) => b - a);
+  const merged = mergeByType(stats.by_type);
+  const total = stats.created_30d || Object.values(merged).reduce((s, n) => s + n, 0);
+  const sortedTypes = Object.entries(merged).sort(([, a], [, b]) => b - a);
+  const maxCount = sortedTypes[0]?.[1] ?? 1;
 
   return (
     <div className="max-w-2xl mx-auto px-4 pt-4 pb-6 space-y-6">
       <div>
         <h2 className="text-[16px] font-bold text-dark mb-3">Overview · last 30 days</h2>
-        <div className="grid grid-cols-3 gap-3">
-          <StatCard label="Active" value={stats.active} sub="open issues" color="text-red-500" />
-          <StatCard label="Resolved" value={stats.resolved_30d} sub="closed" color="text-green-600" />
-          <StatCard
-            label="Resolution"
-            value={`${stats.resolution_rate}%`}
-            sub={`of ${stats.created_30d} found`}
-            color={stats.resolution_rate >= 60 ? 'text-green-600' : 'text-amber-600'}
-          />
+        <div className="grid grid-cols-3 gap-4">
+          <div className="rounded-3xl bg-white ring-1 ring-border p-4 flex flex-col gap-1">
+            <div className="text-3xl font-bold text-red-500">{stats.active}</div>
+            <div className="text-[13px] font-semibold text-dark">Active</div>
+            <div className="text-[11px] text-light">open issues</div>
+          </div>
+          <div className="rounded-3xl bg-white ring-1 ring-border p-4 flex flex-col gap-1">
+            <div className="text-3xl font-bold text-dark">{stats.resolved_30d}</div>
+            <div className="text-[13px] font-semibold text-dark">Resolved</div>
+            <div className="text-[11px] text-light">closed</div>
+          </div>
+          <div className="rounded-3xl bg-white ring-1 ring-border p-4 flex flex-col gap-1">
+            <div className={`text-3xl font-bold ${stats.resolution_rate >= 60 ? 'text-green-600' : 'text-amber-600'}`}>
+              {stats.resolution_rate}%
+            </div>
+            <div className="text-[13px] font-semibold text-dark">Resolution</div>
+            <div className="text-[11px] text-light">of {total} found</div>
+          </div>
         </div>
       </div>
 
@@ -72,21 +103,23 @@ export default function InsightsView() {
         <div>
           <h2 className="text-[16px] font-bold text-dark mb-3">Common gap categories</h2>
           <div className="card p-4 space-y-3">
-            {sortedTypes.map(([type, count]) => {
-              const meta = TYPE_META[type] || { label: type, icon: '•' };
-              const pct = totalByType > 0 ? Math.round((count / totalByType) * 100) : 0;
+            {sortedTypes.map(([key, count]) => {
+              const meta = CANONICAL[key] || { label: key, Icon: CircleDashed };
+              const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+              const barWidth = maxCount > 0 ? Math.round((count / maxCount) * 100) : 0;
               return (
-                <div key={type}>
+                <div key={key}>
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[13px] font-medium text-dark">
-                      {meta.icon} {meta.label}
+                    <span className="flex items-center gap-2 text-[13px] font-medium text-dark">
+                      <meta.Icon size={16} className="text-light shrink-0" aria-hidden="true" />
+                      {meta.label}
                     </span>
-                    <span className="text-[12px] text-light">{count} ({pct}%)</span>
+                    <span className="text-[12px] text-light tabular-nums">{count} ({pct}%)</span>
                   </div>
                   <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-blurple rounded-full transition-all"
-                      style={{ width: `${pct}%` }}
+                      style={{ width: `${barWidth}%` }}
                     />
                   </div>
                 </div>
@@ -100,17 +133,21 @@ export default function InsightsView() {
         <div>
           <h2 className="text-[16px] font-bold text-dark mb-3">Recently resolved</h2>
           <div className="space-y-2">
-            {stats.recent_resolved.map((a) => (
-              <div key={a.id} className="card px-4 py-3 flex items-start gap-3">
-                <span className="text-green-500 text-lg shrink-0">✓</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-medium text-dark leading-snug truncate">{a.title}</p>
-                  <p className="text-[11px] text-light mt-0.5">
-                    {TYPE_META[a.type]?.label || a.type} · resolved {timeAgo(a.updated_at)}
-                  </p>
+            {stats.recent_resolved.map((a) => {
+              const canonicalKey = SLUG_TO_CANONICAL[a.type] ?? a.type;
+              const meta = CANONICAL[canonicalKey];
+              return (
+                <div key={a.id} className="card px-4 py-3 flex items-start gap-3">
+                  <span className="text-green-500 text-lg shrink-0">✓</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-medium text-dark leading-snug truncate">{a.title}</p>
+                    <p className="text-[11px] text-light mt-0.5">
+                      {meta?.label || canonicalKey} · resolved {timeAgo(a.updated_at)}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

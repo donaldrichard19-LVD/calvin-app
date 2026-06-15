@@ -35,7 +35,7 @@ export default function Dashboard() {
   const [splashDone, setSplashDone]     = useState(
     () => sessionStorage.getItem(SPLASH_KEY) === '1'
   );
-  const [view, setView] = useState('briefings');
+  const [view, setView] = useState('pulse');
   const [emojis, setEmojis] = useState({});
   const [spinning, setSpinning] = useState(false);
 
@@ -310,10 +310,10 @@ export default function Dashboard() {
   const firstName = partnerAData?.display_name?.split(' ')[0] || '';
 
   return (
-    <div className="min-h-screen bg-[#FAF8F5] flex flex-col md:pl-52">
+    <div className="min-h-screen bg-[#FAF8F5] flex flex-col md:pl-64">
       {/* ── Main content ── */}
       <div className="flex-1 overflow-y-auto pb-28 md:pb-0">
-        {view === 'briefings' && (
+        {view === 'pulse' && (
           <div className="max-w-2xl mx-auto p-4">
             {firstName && (
               <div className="mb-4 pt-2">
