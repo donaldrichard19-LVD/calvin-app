@@ -364,8 +364,9 @@ async function runAnalysisForHousehold(householdId, { force = false } = {}) {
       return false;
     }
 
-    const claudeEmailsA = emailsA.filter(shouldSendToClaude);
-    const claudeEmailsB = emailsB.filter(shouldSendToClaude);
+    // Force runs bypass the delta filter so manual triggers always see all emails
+    const claudeEmailsA = force ? emailsA : emailsA.filter(shouldSendToClaude);
+    const claudeEmailsB = force ? emailsB : emailsB.filter(shouldSendToClaude);
     console.log(`[analyze] Email delta: ${claudeEmailsA.length}/${emailsA.length} A, ${claudeEmailsB.length}/${emailsB.length} B sent to Claude`);
 
     // ── Deterministic auto-resolve ──────────────────────────────────────────
