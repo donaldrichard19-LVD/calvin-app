@@ -109,7 +109,7 @@ async function backFillCalendarLinks(householdId, eventsA, eventsB) {
   }
 }
 
-async function runAnalysisForHousehold(householdId, { force = false } = {}) {
+async function runAnalysisForHousehold(householdId) {
   const { data: run, error: runErr } = await supabase
     .from('analysis_runs')
     .insert({ household_id: householdId, status: 'running' })
@@ -235,7 +235,7 @@ async function runAnalysisForHousehold(householdId, { force = false } = {}) {
     // Hash-based cache: skip Claude entirely when calendar+email data is unchanged
     const inputHash = computeInputHash(eventsA, emailsA, eventsB, emailsB);
     const storedHash = householdResult.data?.last_input_hash;
-    if (!force && storedHash && storedHash === inputHash) {
+    if (storedHash && storedHash === inputHash) {
       console.log(`[analyze] Household ${householdId}: input unchanged — skipping Claude`);
       await backFillCalendarLinks(householdId, eventsA, eventsB);
       await supabase.from('analysis_runs').update({
@@ -364,9 +364,8 @@ async function runAnalysisForHousehold(householdId, { force = false } = {}) {
       return false;
     }
 
-    // Force runs bypass the delta filter so manual triggers always see all emails
-    const claudeEmailsA = force ? emailsA : emailsA.filter(shouldSendToClaude);
-    const claudeEmailsB = force ? emailsB : emailsB.filter(shouldSendToClaude);
+    const claudeEmailsA = emailsA.filter(shouldSendToClaude);
+    const claudeEmailsB = emailsB.filter(shouldSendToClaude);
     console.log(`[analyze] Email delta: ${claudeEmailsA.length}/${emailsA.length} A, ${claudeEmailsB.length}/${emailsB.length} B sent to Claude`);
 
     // ── Deterministic auto-resolve ──────────────────────────────────────────
@@ -425,9 +424,8 @@ async function runAnalysisForHousehold(householdId, { force = false } = {}) {
         source_data: a.source_data,
         status: a.status,
       })),
-      // Force runs bypass dismissal/resolved suppression so a manual trigger always produces a fresh look
-      dismissal_patterns: force ? { by_type: {}, recent_titles: [] } : dismissalPatterns,
-      resolved_topics: force ? [] : (resolvedResult.data || []).map((a) => ({
+      dismissal_patterns: dismissalPatterns,
+      resolved_topics: (resolvedResult.data || []).map((a) => ({
         type: a.type,
         title: a.title,
         source_data: a.source_data || {},

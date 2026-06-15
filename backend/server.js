@@ -58,7 +58,7 @@ app.post('/api/analyze/trigger', requireAuth, async (req, res) => {
       .eq('clerk_user_id', req.auth.userId)
       .single();
     if (!partner?.household_id) return res.status(400).json({ error: 'No household found' });
-    runAnalysisForHousehold(partner.household_id, { force: true })
+    runAnalysisForHousehold(partner.household_id)
       .then(() => console.log('[analyze] Manual trigger completed for', partner.household_id))
       .catch((err) => console.error('[analyze] Manual trigger failed:', err.message));
     res.json({ success: true, message: 'Analysis started' });
