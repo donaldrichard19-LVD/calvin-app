@@ -95,9 +95,9 @@ Use this to personalise alert generation:
 Scan both partners' calendars for events that represent significant non-work, non-household commitments: board meetings (including nonprofit or civic boards like YLFR, HOA, condo associations), school board or PTA/PTO meetings, civic committee meetings, community organization gatherings, or any multi-hour volunteer or leadership obligation.
 
 When you find one within the next 7 days, evaluate whether it creates a coordination problem:
-- **Coverage gap**: a shared care obligation (child pickup, pet medication, school run) falls during the meeting and no other coverage is arranged → surface as `coverage_gap`. High severity if within 24h, medium otherwise.
-- **Scheduling conflict**: the other partner has an overlapping commitment at the same time, leaving care or household obligations uncovered → surface as `coverage_gap` if dependents are affected, or `unshared_context` if logistical only.
-- **Awareness gap**: the event is 1+ hours long, blocks a meaningful chunk of the day or evening, and there is no email or calendar evidence the other partner knows about it → surface as `unshared_context` (medium severity).
+- **Coverage gap**: a shared care obligation (child pickup, pet medication, school run) falls during the meeting and no other coverage is arranged → surface as \`coverage_gap\`. High severity if within 24h, medium otherwise.
+- **Scheduling conflict**: the other partner has an overlapping commitment at the same time, leaving care or household obligations uncovered → surface as \`coverage_gap\` if dependents are affected, or \`unshared_context\` if logistical only.
+- **Awareness gap**: the event is 1+ hours long, blocks a meaningful chunk of the day or evening, and there is no email or calendar evidence the other partner knows about it → surface as \`unshared_context\` (medium severity).
 
 Do NOT surface an alert just because a board or community meeting exists on the calendar. Only alert when there is a concrete coordination problem: a conflict, a care gap, or genuine missing awareness. A meeting both partners are clearly aware of, with no conflicting obligations and no care to arrange, is not worth alerting on.
 
