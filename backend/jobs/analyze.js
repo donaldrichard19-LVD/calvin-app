@@ -439,8 +439,24 @@ async function runAnalysisForHousehold(householdId) {
     const contextBytes = Buffer.byteLength(JSON.stringify(context));
     console.log(`[analyze] Fingerprints: ${existingFingerprints.length}, active alerts: ${activeAlerts.length - deterministicResolveIds.length} to Claude, context: ${(contextBytes / 1024).toFixed(1)}KB`);
     const { alerts, resolveIds: claudeResolveIds, deleteEvents, confirmEvents } = await analyzeHousehold(context);
+    // Filter Claude's resolves: block resolving any alert whose source_data dates are
+    // all in the future — guards against Claude prematurely resolving upcoming_commitment
+    // alerts just because the event is already on the calendar.
+    const alertById = new Map(activeAlerts.map((a) => [a.id, a]));
+    const filteredClaudeResolveIds = claudeResolveIds.filter((id) => {
+      const alert = alertById.get(id);
+      if (!alert) return true; // unknown alert — let it through
+      const dates = (alert.source_data?.dates || []).filter(Boolean);
+      if (dates.length === 0) return true; // no date info — let Claude decide
+      const allFuture = dates.every((d) => new Date(d) >= nowDate);
+      if (allFuture) {
+        console.log(`[analyze] Blocked premature resolve of future-dated alert ${id}: "${alert.title}"`);
+        return false;
+      }
+      return true;
+    });
     // Merge deterministic resolves with Claude's resolves, deduplicated
-    const resolveIds = [...new Set([...deterministicResolveIds, ...claudeResolveIds])];
+    const resolveIds = [...new Set([...deterministicResolveIds, ...filteredClaudeResolveIds])];
     console.log(`[analyze] Claude returned ${alerts.length} new alerts, ${claudeResolveIds.length} to auto-resolve (+${deterministicResolveIds.length} deterministic), ${deleteEvents.length} events to cancel, ${confirmEvents.length} to confirm`);
     if (alerts.length) console.log('[analyze] New:', alerts.map((a) => `${a.severity}:${a.fingerprint}`));
 

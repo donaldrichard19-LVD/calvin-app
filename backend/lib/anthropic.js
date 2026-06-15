@@ -106,7 +106,7 @@ You will receive existing_active_alerts — alerts currently shown to the househ
 - "coverage_gap": a childcare arrangement is now confirmed, or both partners' overlapping commitments no longer conflict → resolve.
 - "action_needed": the required action has been completed (event booked, payment made, RSVP sent, appointment scheduled) → resolve.
 - "deadline": the action was completed before the cutoff, or the deadline passed without consequence → resolve.
-- "upcoming_commitment": the event was attended or cancelled → resolve.
+- "upcoming_commitment": the event date is in the past AND the event was attended or cancelled → resolve. Do NOT resolve an upcoming_commitment just because the event is already on both partners' calendars — that is not a reason to resolve. Only resolve after the event time has passed.
 - "unshared_context": both partners now have the context (a related calendar event or email reply exists) → resolve.
 - Any alert whose action_hint suggests creating a calendar event: a matching event now exists → resolve.
 - Any alert about a pending pickup, errand, grocery run, or order: if the emails contain a pickup confirmation, delivery confirmation, "order picked up", "thanks for shopping", "your visit", or any post-completion confirmation matching the same retailer/service → resolve immediately. Do not wait for the calendar event to disappear.
