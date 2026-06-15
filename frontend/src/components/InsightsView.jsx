@@ -7,7 +7,7 @@ import { apiFetch } from '../lib/api';
 
 const CANONICAL = {
   upcoming_commitments: { label: 'Upcoming commitments', Icon: CalendarClock },
-  asymmetric_context:   { label: 'Asymmetric context',   Icon: ArrowLeftRight },
+  unshared_context:     { label: 'Unshared context',     Icon: ArrowLeftRight },
   coverage_gaps:        { label: 'Coverage gaps',         Icon: CircleDashed },
   expiring_items:       { label: 'Expiring items',        Icon: Hourglass },
   hidden_dependencies:  { label: 'Hidden dependencies',   Icon: Workflow },
@@ -20,8 +20,8 @@ const CANONICAL = {
 const SLUG_TO_CANONICAL = {
   upcoming_commitment:  'upcoming_commitments',
   dropped_commitment:   'upcoming_commitments',
-  unshared_context:     'asymmetric_context',
-  asymmetric_context:   'asymmetric_context',
+  unshared_context:     'unshared_context',
+  asymmetric_context:   'unshared_context',
   coverage_gap:         'coverage_gaps',
   expiring_item:        'expiring_items',
   invisible_dependency: 'hidden_dependencies',

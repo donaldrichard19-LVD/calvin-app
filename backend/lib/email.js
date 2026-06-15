@@ -68,7 +68,8 @@ function buildHtml({ type, dateStr, alerts, autoResolvedAlerts, partnerName, wee
     dropped_commitment:   { emoji: '📋', label: 'ACTION NEEDED',  labelColor: '#b45309', bg: '#fffbeb', border: '#fde68a' },
     invisible_dependency: { emoji: '🔗', label: 'DEPENDENCY',     labelColor: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
     expiring_item:        { emoji: '⏰', label: 'DEADLINE',       labelColor: '#ea580c', bg: '#fff7ed', border: '#fed7aa' },
-    asymmetric_context:   { emoji: '💡', label: 'HEADS UP',       labelColor: '#7c3aed', bg: '#f5f3ff', border: '#ddd6fe' },
+    unshared_context:     { emoji: '🔔', label: 'UNSHARED CONTEXT', labelColor: '#7c3aed', bg: '#f5f3ff', border: '#ddd6fe' },
+    asymmetric_context:   { emoji: '🔔', label: 'UNSHARED CONTEXT', labelColor: '#7c3aed', bg: '#f5f3ff', border: '#ddd6fe' },
     event_auto_cancelled: { emoji: '✅', label: 'AUTO-RESOLVED',  labelColor: '#16a34a', bg: '#ffffff', border: '#e5e7eb' },
     event_cancel_confirm: { emoji: '❓', label: 'CONFIRM CANCEL', labelColor: '#64748b', bg: '#ffffff', border: '#e5e7eb' },
   };

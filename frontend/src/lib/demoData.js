@@ -158,7 +158,7 @@ const DEMO_ALERTS_BASE = [
   {
     id: 'alert-6',
     severity: 'low',
-    type: 'asymmetric_context',
+    type: 'unshared_context',
     title: 'Amazon Subscribe & Save order — $91 ships in 2 days, review before it locks',
     summary:
       'A recurring Amazon Subscribe & Save order for household supplies (diapers, paper towels, dish soap) is scheduled to process and ship in 48 hours. Jordan placed this order last month; Alex may not be aware. If quantities or items need adjusting, the window closes soon.',
@@ -282,7 +282,7 @@ const DEMO_STATS = {
     schedule_conflict:    4,
     dropped_commitment:   3,
     expiring_item:        3,
-    asymmetric_context:   2,
+    unshared_context:     2,
     invisible_dependency: 1,
     event_cancel_confirm: 1,
   },
