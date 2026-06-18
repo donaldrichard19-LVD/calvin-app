@@ -169,40 +169,6 @@ const DEMO_ALERTS_BASE = [
     created_at: hoursAgo(5),
     updated_at: hoursAgo(5),
   },
-  {
-    id: 'alert-10',
-    severity: 'medium',
-    type: 'event_cancel_confirm',
-    title: 'Grandma confirmed pickup — should Calvin cancel Alex\'s 3:30pm Wednesday block?',
-    summary:
-      'Alex emailed Grandma Pat yesterday to cover Emma\'s Wednesday 3:30pm school pickup while Alex has the team sync. Grandma replied this morning confirming she\'ll be there. Alex still has a "Kids pickup" block at 3:30pm Wednesday that may no longer be needed.',
-    action_hint: 'Cancel the duplicate pickup block or keep it as a backup.',
-    relevant_to: ['partnerA'],
-    status: 'open',
-    source_data: {
-      event_id: 'ea-9',
-      event_title: 'Emma soccer pickup',
-      partner: 'partnerA',
-      partner_id: 'demo-pa',
-      trigger_email_subject: 'Re: Emma pickup Wednesday — Grandma confirmed',
-    },
-    created_at: hoursAgo(0.7),
-    updated_at: hoursAgo(0.7),
-  },
-  {
-    id: 'alert-11',
-    severity: 'low',
-    type: 'event_auto_cancelled',
-    title: 'Cancelled: "Wait for Amazon delivery" — package confirmed delivered',
-    summary:
-      'An Amazon confirmation email showed the Subscribe & Save order was left at the front door at 11:42am. Calvin automatically removed the "Wait for Amazon delivery" hold from the calendar. Tap Undo if you still need that reminder.',
-    action_hint: 'Tap Undo if this was a mistake.',
-    relevant_to: ['partnerB'],
-    status: 'open',
-    source_data: { event_id: 'demo-evt-amazon-hold', action_id: 'demo-action-2' },
-    created_at: hoursAgo(3.5),
-    updated_at: hoursAgo(3.5),
-  },
 ];
 
 // Mutable copy so dismiss/resolve work in-session
@@ -284,7 +250,6 @@ const DEMO_STATS = {
     expiring_item:        3,
     unshared_context:     2,
     invisible_dependency: 1,
-    event_cancel_confirm: 1,
   },
   recent_resolved: [
     { id: 'r-1', title: 'Car registration renewal — paid online', type: 'dropped_commitment', updated_at: daysAgo(2) },
@@ -352,30 +317,6 @@ export function getDemoResponse(path, options = {}) {
     demoAlerts = demoAlerts.map((a) =>
       a.id === resolveMatch[1] ? { ...a, status: 'resolved' } : a
     );
-    return Promise.resolve({});
-  }
-
-  // Cancel event — convert confirm alert to auto-cancelled
-  const cancelEventMatch = path.match(/^\/api\/briefing\/([^/]+)\/cancel-event$/);
-  if (cancelEventMatch && method === 'POST') {
-    const alertId = cancelEventMatch[1];
-    const alert = demoAlerts.find((a) => a.id === alertId);
-    demoAlerts = demoAlerts.filter((a) => a.id !== alertId);
-    if (alert?.source_data?.event_id) {
-      demoAlerts = [...demoAlerts, {
-        id: `${alertId}-cancelled`,
-        severity: 'low',
-        type: 'event_auto_cancelled',
-        title: `Cancelled: ${alert.source_data.event_title || 'Calendar event'}`,
-        summary: `You confirmed this was done and Calvin removed it from your calendar. "${alert.source_data.trigger_email_subject || ''}"`,
-        action_hint: 'Tap Undo if this was a mistake.',
-        relevant_to: alert.relevant_to,
-        status: 'open',
-        source_data: { event_id: alert.source_data.event_id, action_id: 'demo-action-3' },
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }];
-    }
     return Promise.resolve({});
   }
 

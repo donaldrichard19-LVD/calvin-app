@@ -16,8 +16,6 @@ const TYPE_META = {
   expiring_item:        { icon: '⏰', label: 'Deadline' },
   asymmetric_context:   { icon: '💡', label: 'Unshared Context' },
   // System types
-  event_auto_cancelled: { icon: '✅', label: 'Auto-Resolved' },
-  event_cancel_confirm: { icon: '🗑️', label: 'Confirm Cancel' },
   reminder:             { icon: '🔔', label: 'Reminder' },
 };
 
@@ -52,11 +50,10 @@ function parseSummaryLines(summary) {
   return [summary];
 }
 
-export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnooze, onResolve, onChat, onTackle, onUndo, onCancelEvent }) {
+export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnooze, onResolve, onChat, onTackle }) {
   const [expanded, setExpanded] = useState(false);
   const [resolving, setResolving] = useState(false);
   const [fadingOut, setFadingOut] = useState(false);
-  const [acting, setActing] = useState(false);
   const [tackling, setTackling] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState([]);
@@ -78,9 +75,6 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
     }
     return base;
   })();
-  const isAutoCancelled = alert.type === 'event_auto_cancelled';
-  const isCancelConfirm = alert.type === 'event_cancel_confirm';
-
   const summaryLines = parseSummaryLines(alert.summary);
   const PREVIEW_COUNT = 3;
   const visibleLines = expanded ? summaryLines : summaryLines.slice(0, PREVIEW_COUNT);
@@ -93,26 +87,6 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
       setFadingOut(true);
       setTimeout(() => onResolve(alert.id), 250);
     }, 700);
-  }
-
-  async function handleUndo() {
-    if (acting) return;
-    setActing(true);
-    try {
-      await onUndo(alert.source_data?.event_id, alert.id);
-    } finally {
-      setActing(false);
-    }
-  }
-
-  async function handleCancelEvent() {
-    if (acting) return;
-    setActing(true);
-    try {
-      await onCancelEvent(alert.id);
-    } finally {
-      setActing(false);
-    }
   }
 
   async function handleTackle() {
@@ -294,85 +268,46 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
       {/* Footer */}
       <div className="flex items-center justify-between pt-4 mt-2 border-t border-black/5">
         <div className="flex items-center gap-2">
-          {isAutoCancelled ? (
-            <>
-              <button
-                onClick={handleUndo}
-                disabled={acting}
-                className="text-[12px] font-semibold text-amber border border-amber rounded-full px-3 py-1 hover:bg-amber/10 transition-colors disabled:opacity-50"
-              >
-                {acting ? '...' : 'Undo'}
-              </button>
-              <button
-                onClick={() => onDismiss(alert.id)}
-                className="w-8 h-8 flex items-center justify-center rounded-full text-light hover:text-mid hover:bg-gray-100 transition-colors"
-                title="Dismiss"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </>
-          ) : isCancelConfirm ? (
-            <>
-              <button
-                onClick={handleCancelEvent}
-                disabled={acting}
-                className="text-[12px] font-semibold text-red-600 border border-red-400 rounded-full px-3 py-1 hover:bg-red-50 transition-colors disabled:opacity-50"
-              >
-                {acting ? '...' : 'Cancel it'}
-              </button>
-              <button
-                onClick={() => onDismiss(alert.id)}
-                className="text-[12px] font-semibold text-mid border border-border rounded-full px-3 py-1 hover:bg-gray-50 transition-colors"
-              >
-                Keep it
-              </button>
-            </>
-          ) : (
-            <>
-              {/* Chat toggle */}
-              <button
-                onClick={() => setChatOpen(o => !o)}
-                className="w-8 h-8 flex items-center justify-center rounded-full transition-colors"
-                style={chatOpen ? { background: '#5865F2' } : {}}
-                title="Ask follow-up"
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke={chatOpen ? '#fff' : '#5865F2'}
-                  strokeWidth={2}
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-              </button>
+          {/* Chat toggle */}
+          <button
+            onClick={() => setChatOpen(o => !o)}
+            className="w-8 h-8 flex items-center justify-center rounded-full transition-colors"
+            style={chatOpen ? { background: '#5865F2' } : {}}
+            title="Ask follow-up"
+          >
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke={chatOpen ? '#fff' : '#5865F2'}
+              strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+          </button>
 
-              {/* Resolve */}
-              <button
-                onClick={handleResolve}
-                disabled={resolving}
-                className="w-8 h-8 flex items-center justify-center rounded-full text-green-600 hover:bg-green-50 transition-colors disabled:opacity-50"
-                title="Resolve"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-              </button>
+          {/* Resolve */}
+          <button
+            onClick={handleResolve}
+            disabled={resolving}
+            className="w-8 h-8 flex items-center justify-center rounded-full text-green-600 hover:bg-green-50 transition-colors disabled:opacity-50"
+            title="Resolve"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          </button>
 
-              {/* Dismiss */}
-              <button
-                onClick={() => onDismiss(alert.id)}
-                className="w-8 h-8 flex items-center justify-center rounded-full text-light hover:text-mid hover:bg-gray-100 transition-colors"
-                title="Dismiss"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </>
-          )}
+          {/* Dismiss */}
+          <button
+            onClick={() => onDismiss(alert.id)}
+            className="w-8 h-8 flex items-center justify-center rounded-full text-light hover:text-mid hover:bg-gray-100 transition-colors"
+            title="Dismiss"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
         <div className="flex items-center gap-1">

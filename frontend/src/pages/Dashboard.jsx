@@ -38,6 +38,9 @@ export default function Dashboard() {
   const [view, setView] = useState('pulse');
   const [emojis, setEmojis] = useState({});
   const [spinning, setSpinning] = useState(false);
+  const [connectBannerDismissed, setConnectBannerDismissed] = useState(
+    () => sessionStorage.getItem('calvin_connect_banner_dismissed') === '1'
+  );
 
   function getEmoji(partnerId, fallback = '😊') {
     return emojis[partnerId] ?? getStoredEmoji(partnerId, fallback);
@@ -168,20 +171,6 @@ export default function Dashboard() {
     }));
   }
 
-  async function handleUndo(eventId, alertId) {
-    await apiFetch(`/api/calendar/restore/${eventId}`, { method: 'POST' });
-    setBriefing((prev) => ({
-      ...prev,
-      alerts: prev.alerts.filter((a) => a.id !== alertId),
-      meta: { ...prev.meta, total: Math.max(0, (prev.meta.total || 1) - 1) },
-    }));
-  }
-
-  async function handleCancelEvent(alertId) {
-    await apiFetch(`/api/briefing/${alertId}/cancel-event`, { method: 'POST' });
-    await fetchAll();
-  }
-
   function resolveAndRemoveAlert(alertId) {
     apiFetch(`/api/briefing/${alertId}/resolve`, { method: 'PATCH' }).catch(() => {});
     setBriefing((prev) => ({
@@ -231,56 +220,9 @@ export default function Dashboard() {
     setSpinning(false);
   }
 
-  // ── Splash / connect gates ────────────────────────────────────────────────
+  // ── Splash gate (connect gate removed — soft banner used instead) ────────
   const isDemo = import.meta.env.VITE_IS_DEMO === 'true';
-  if (!isDemo && !loading && myIntegrations !== null && !myIntegration) {
-    if (!splashDone) {
-      return (
-        <SplashScreen
-          onComplete={() => {
-            sessionStorage.setItem(SPLASH_KEY, '1');
-            setSplashDone(true);
-          }}
-        />
-      );
-    }
-
-    const urlError = new URLSearchParams(window.location.search).get('error');
-    return (
-      <div className="min-h-screen bg-bg flex flex-col">
-        <div className="h-12 bg-white border-b border-border flex items-center justify-center shrink-0">
-          <span className="text-dark font-bold text-lg tracking-tight">Calvin</span>
-        </div>
-        <div className="flex flex-col items-center justify-center flex-1 text-center p-8">
-          <div className="text-4xl mb-4">🔌</div>
-          <h2 className="text-xl font-bold text-dark mb-2">Connect your Google account</h2>
-          <p className="text-mid text-sm mb-6 max-w-xs">
-            Calvin needs access to your calendar and inbox to detect gaps and conflicts.
-          </p>
-          {urlError && (
-            <p className="text-red-500 text-xs mb-4 max-w-xs">
-              Last attempt failed ({urlError}). Try again below.
-            </p>
-          )}
-          <button
-            onClick={async () => {
-              const { url } = await apiFetch('/api/google/connect');
-              window.location.href = url;
-            }}
-            className="btn-primary px-6 py-3"
-          >
-            Connect Google account
-          </button>
-          <details className="mt-8 text-left max-w-xs w-full">
-            <summary className="text-[11px] text-light cursor-pointer">Debug info</summary>
-            <pre className="text-[10px] text-mid bg-gray-50 rounded p-2 mt-1 overflow-auto max-h-40">
-              {JSON.stringify({ myIntegrations, urlError }, null, 2)}
-            </pre>
-          </details>
-        </div>
-      </div>
-    );
-  }
+  const showConnectBanner = !isDemo && !loading && myIntegrations !== null && !myIntegration && !connectBannerDismissed;
 
   // ── Shared props ──────────────────────────────────────────────────────────
   const briefingProps = {
@@ -293,8 +235,6 @@ export default function Dashboard() {
     onResolve:      handleResolve,
     onChat:         handleChat,
     onTackle:       handleTackle,
-    onUndo:         handleUndo,
-    onCancelEvent:  handleCancelEvent,
   };
 
   const timelineProps = {
@@ -321,6 +261,40 @@ export default function Dashboard() {
                 <h2 className="text-[26px] font-bold text-dark leading-tight">Here's what's top of mind</h2>
               </div>
             )}
+
+            {showConnectBanner && (
+              <div className="rounded-2xl border border-blurple/15 bg-blurple/4 p-6 mb-4 relative">
+                <button
+                  onClick={() => {
+                    sessionStorage.setItem('calvin_connect_banner_dismissed', '1');
+                    setConnectBannerDismissed(true);
+                  }}
+                  className="absolute top-3 right-3 text-blurple/40 hover:text-blurple transition-colors text-lg leading-none"
+                >
+                  ×
+                </button>
+                <div className="flex items-start gap-4">
+                  <div className="text-3xl shrink-0">🔗</div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-[15px] font-bold text-blurple mb-1">Connect Google to activate Calvin</h3>
+                    <p className="text-[13px] text-blurple/60 leading-relaxed mb-3">
+                      Calvin needs access to your calendar and inbox to detect conflicts and surface alerts.
+                      It takes about 60 seconds.
+                    </p>
+                    <button
+                      onClick={async () => {
+                        const { url } = await apiFetch('/api/google/connect');
+                        window.location.href = url;
+                      }}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-[13px] bg-blurple hover:bg-blurpleHover transition-colors text-white shadow-sm shadow-blurple/30"
+                    >
+                      Connect Google account →
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <BriefingFeed {...briefingProps} />
           </div>
         )}

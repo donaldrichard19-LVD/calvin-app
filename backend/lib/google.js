@@ -244,41 +244,6 @@ async function getRecentEmails(integration, maxResults = 50) {
   });
 }
 
-async function deleteCalendarEvent(integration, eventId) {
-  const accessToken = await refreshIfNeeded(integration);
-  const oauth2Client = createOAuth2Client();
-  oauth2Client.setCredentials({ access_token: accessToken });
-
-  const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
-  await calendar.events.delete({ calendarId: 'primary', eventId });
-}
-
-async function cancelCalendarEvent(integration, eventId) {
-  const accessToken = await refreshIfNeeded(integration);
-  const oauth2Client = createOAuth2Client();
-  oauth2Client.setCredentials({ access_token: accessToken });
-
-  const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
-  await calendar.events.patch({
-    calendarId: 'primary',
-    eventId,
-    requestBody: { status: 'cancelled' },
-  });
-}
-
-async function restoreCalendarEvent(integration, eventId) {
-  const accessToken = await refreshIfNeeded(integration);
-  const oauth2Client = createOAuth2Client();
-  oauth2Client.setCredentials({ access_token: accessToken });
-
-  const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
-  await calendar.events.patch({
-    calendarId: 'primary',
-    eventId,
-    requestBody: { status: 'confirmed' },
-  });
-}
-
 async function sendEmail(integration, { to, subject, body }) {
   const accessToken = await refreshIfNeeded(integration);
   const oauth2Client = createOAuth2Client();
@@ -305,4 +270,4 @@ async function sendEmail(integration, { to, subject, body }) {
   return { id: res.data.id, threadId: res.data.threadId };
 }
 
-module.exports = { getAuthUrl, getTokensFromCode, refreshIfNeeded, getCalendarEvents, createCalendarEvent, deleteCalendarEvent, cancelCalendarEvent, restoreCalendarEvent, getRecentEmails, sendEmail };
+module.exports = { getAuthUrl, getTokensFromCode, refreshIfNeeded, getCalendarEvents, createCalendarEvent, getRecentEmails, sendEmail };

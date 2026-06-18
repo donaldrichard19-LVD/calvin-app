@@ -1,7 +1,7 @@
 import React from 'react';
 import AlertCard from './AlertCard';
 
-export default function BriefingFeed({ alerts, meta, partnerA, partnerB, onDismiss, onSnooze, onResolve, onChat, onTackle, onUndo, onCancelEvent, sidebar = false }) {
+export default function BriefingFeed({ alerts, meta, partnerA, partnerB, onDismiss, onSnooze, onResolve, onChat, onTackle, sidebar = false }) {
   return (
     <div className={`flex flex-col ${sidebar ? 'h-full' : ''}`}>
       <div className={`${sidebar ? 'flex-1 overflow-y-auto' : ''} px-4 pb-4 pt-4 space-y-3`}>
@@ -20,7 +20,7 @@ export default function BriefingFeed({ alerts, meta, partnerA, partnerB, onDismi
             {alerts.map((a) => (
               <AlertCard key={a.id} alert={a} partnerA={partnerA} partnerB={partnerB}
                 onDismiss={onDismiss} onSnooze={onSnooze} onResolve={onResolve} onChat={onChat}
-                onTackle={onTackle} onUndo={onUndo} onCancelEvent={onCancelEvent} />
+                onTackle={onTackle} />
             ))}
           </div>
         )}

@@ -538,6 +538,43 @@ export default function Onboarding() {
                 <p className="text-[11px] text-center text-light">
                   After connecting you'll land on your dashboard automatically.
                 </p>
+
+                <div className="space-y-2 mt-2">
+                  <div className="text-[11px] font-semibold text-blurple/45 uppercase tracking-[0.15em]">
+                    What Calvin accesses
+                  </div>
+                  {[
+                    {
+                      icon: '📅',
+                      label: 'Google Calendar',
+                      detail: 'Reads events to detect conflicts. Creates events only when you ask.',
+                    },
+                    {
+                      icon: '📧',
+                      label: 'Gmail (read-only)',
+                      detail: 'Scans for confirmations and deadlines. Calvin never reads personal messages.',
+                    },
+                    {
+                      icon: '✉️',
+                      label: 'Gmail send',
+                      detail: 'Sends emails only when you explicitly approve a draft — never on its own.',
+                    },
+                  ].map(({ icon, label, detail }) => (
+                    <div key={label} className="flex items-start gap-3 rounded-xl bg-blurple/4 border border-blurple/10 px-3.5 py-2.5">
+                      <span className="text-lg shrink-0 mt-0.5">{icon}</span>
+                      <div className="min-w-0">
+                        <div className="text-[13px] font-semibold text-blurple">{label}</div>
+                        <div className="text-[12px] text-blurple/55 leading-relaxed">{detail}</div>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="flex items-center gap-2 pt-1">
+                    <span className="text-green text-sm">🔒</span>
+                    <span className="text-[11px] text-blurple/45">
+                      Tokens are encrypted at rest. You can disconnect anytime from Settings.
+                    </span>
+                  </div>
+                </div>
               </>
             ) : (
               <div className="space-y-3">
@@ -584,13 +621,13 @@ export default function Onboarding() {
         )}
       </div>
 
-      {/* Skip link — available on household + invite steps only */}
-      {step >= 1 && step <= 2 && (
+      {/* Skip link — available on household, invite, and connect steps */}
+      {step >= 1 && step <= 3 && (
         <button
           onClick={() => navigate('/dashboard')}
           className="mt-4 text-[12px] text-light hover:text-mid transition-colors"
         >
-          Skip for now →
+          {step === 3 ? "I'll do this later →" : 'Skip for now →'}
         </button>
       )}
     </div>

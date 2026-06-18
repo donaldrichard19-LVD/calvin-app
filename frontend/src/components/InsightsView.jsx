@@ -26,7 +26,6 @@ const SLUG_TO_CANONICAL = {
   expiring_item:        'expiring_items',
   invisible_dependency: 'hidden_dependencies',
   action_needed:        'action_needed',
-  event_cancel_confirm: 'event_cancellations',
   event_auto_cancelled: 'event_cancellations',
   heads_up:             'heads_up',
   schedule_conflict:    'schedule_conflicts',

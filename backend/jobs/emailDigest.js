@@ -19,17 +19,30 @@ async function runEmailDigests() {
   for (const h of households) {
     if (h.digest_email_frequency === 'weekly' && !isMonday) continue;
 
-    // Skip if already sent today (idempotency guard against double-fires on restart/deploy)
-    if (h.digest_last_sent_at && h.digest_last_sent_at.slice(0, 10) === todayUTC) {
+    // Atomic claim: only proceed if we successfully set digest_last_sent_at for today.
+    // This prevents double-sends when multiple instances or restarts race.
+    const { data: claimed, error: claimErr } = await supabase
+      .from('households')
+      .update({ digest_last_sent_at: now.toISOString() })
+      .eq('id', h.id)
+      .or(`digest_last_sent_at.is.null,digest_last_sent_at.lt.${todayUTC}`)
+      .select('id');
+
+    if (claimErr) {
+      console.error(`[digest] Claim failed for household ${h.id}:`, claimErr.message);
+      continue;
+    }
+    if (!claimed?.length) {
       console.log(`[digest] Already sent today for household ${h.id}, skipping`);
       continue;
     }
 
     try {
       await sendDigestEmail(h.id, h.digest_email_frequency || 'daily');
-      await supabase.from('households').update({ digest_last_sent_at: now.toISOString() }).eq('id', h.id);
       console.log(`[digest] Sent ${h.digest_email_frequency} digest for household ${h.id}`);
     } catch (err) {
+      // Roll back the claim so it can retry on the next cron tick
+      await supabase.from('households').update({ digest_last_sent_at: h.digest_last_sent_at }).eq('id', h.id);
       console.error(`[digest] Failed for household ${h.id}:`, err.message);
     }
   }

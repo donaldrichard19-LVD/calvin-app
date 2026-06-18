@@ -26,7 +26,7 @@ Calvin — family coordination app for couples. Detects calendar/inbox conflicts
 |---|---|---|
 | Dashboard | `src/pages/Dashboard.jsx` | Main view, polls every 90s |
 | Onboarding | `src/pages/Onboarding.jsx` | Household creation / invite-code join |
-| BriefingFeed | `src/components/BriefingFeed.jsx` | Alert cards: dismiss/snooze/resolve/undo |
+| BriefingFeed | `src/components/BriefingFeed.jsx` | Alert cards: dismiss/snooze/resolve |
 | TimelineView | `src/components/TimelineView.jsx` | Calendar timeline, both partners |
 | InsightsView | `src/components/InsightsView.jsx` | Stats tab |
 | SettingsView | `src/components/SettingsView.jsx` | Settings tab |
@@ -53,12 +53,6 @@ Calvin — family coordination app for couples. Detects calendar/inbox conflicts
 - Auto-resolve an active alert when the recommended action is complete (e.g. calendar event now exists, pickup confirmed by email).
 - Dismissal personalisation: 3+ dismissals of a type → skip medium/low for that type; 6+ → skip the type entirely unless urgent. High-severity genuine conflicts are never suppressed.
 - Analysis reads both partners' calendars and emails for the full lookahead window.
-
-### Auto-calendar modification (email → event cancellation)
-- High-confidence email match (pickup confirmed, delivery confirmed, "thank you for your visit") → soft-cancel the calendar event via `calendar.events.patch({ status: 'cancelled' })` and create an `auto_resolved` alert with `event_id` in `metadata`.
-- Low-confidence match → surface a confirm alert; do not auto-cancel.
-- Guardrails: never auto-cancel events >24h out unless confidence is very high; never auto-cancel recurring events; never auto-cancel a partner's event without their confirmation. Log every cancellation to `calendar_actions`.
-- Undo: `BriefingFeed.jsx` shows "Undo" on auto-cancelled alert cards; restores via `calendar.events.patch({ status: 'confirmed' })`. Available within 30-day Google Calendar trash window.
 
 ## Backlog
 

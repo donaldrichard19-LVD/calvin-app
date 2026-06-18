@@ -3,7 +3,6 @@ const router = express.Router();
 const { requireAuth } = require('../middleware/auth');
 const { supabase } = require('../lib/supabase');
 const { sendSMS } = require('../lib/twilio');
-const { cancelCalendarEvent } = require('../lib/google');
 
 async function getHouseholdId(clerkUserId) {
   const { data } = await supabase
@@ -181,130 +180,6 @@ router.patch('/:alertId/resolve', requireAuth, async (req, res) => {
 
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-router.post('/:alertId/cancel-event', requireAuth, async (req, res) => {
-  try {
-    const householdId = await getHouseholdId(req.auth.userId);
-    if (!householdId) return res.status(400).json({ error: 'No household found' });
-
-    const { data: alert } = await supabase
-      .from('alerts')
-      .select('id, type, source_data')
-      .eq('id', req.params.alertId)
-      .eq('household_id', householdId)
-      .eq('type', 'event_cancel_confirm')
-      .in('status', ['active', 'snoozed'])
-      .single();
-
-    if (!alert) return res.status(404).json({ error: 'Confirmation alert not found' });
-
-    const { event_id, partner, partner_id, integration_id, account_email } = alert.source_data || {};
-    if (!event_id || !partner_id) return res.status(400).json({ error: 'Alert is missing event metadata' });
-
-    // A partner may have multiple connected Google accounts now — resolve the
-    // exact account this event came from when we have that info (tagged at
-    // alert-creation time in jobs/analyze.js), falling back to "first active
-    // account for this partner" for older alerts created before this field existed.
-    let integration = null;
-    if (integration_id) {
-      ({ data: integration } = await supabase
-        .from('integrations')
-        .select('*')
-        .eq('id', integration_id)
-        .eq('is_active', true)
-        .not('access_token', 'is', null)
-        .maybeSingle());
-    }
-    if (!integration && account_email) {
-      ({ data: integration } = await supabase
-        .from('integrations')
-        .select('*')
-        .eq('partner_id', partner_id)
-        .eq('provider', 'google')
-        .eq('account_email', account_email)
-        .eq('is_active', true)
-        .not('access_token', 'is', null)
-        .maybeSingle());
-    }
-    if (!integration) {
-      const { data: candidates } = await supabase
-        .from('integrations')
-        .select('*')
-        .eq('partner_id', partner_id)
-        .eq('provider', 'google')
-        .eq('is_active', true)
-        .not('access_token', 'is', null)
-        .order('connected_at', { ascending: true })
-        .limit(1);
-      integration = candidates?.[0] || null;
-    }
-
-    if (!integration) return res.status(400).json({ error: 'Google Calendar not connected for this partner' });
-
-    await cancelCalendarEvent(integration, event_id);
-
-    const { data: action } = await supabase
-      .from('calendar_actions')
-      .insert({
-        household_id: householdId,
-        event_id,
-        event_title: alert.source_data?.event_title || null,
-        partner: partner || null,
-        partner_id,
-        trigger_email_subject: alert.source_data?.trigger_email_subject || null,
-        trigger_reason: alert.source_data?.trigger_reason || null,
-      })
-      .select()
-      .single();
-
-    const cancelFingerprint = `auto-cancel-${event_id}`;
-    const { data: cancelAlert } = await supabase
-      .from('alerts')
-      .insert({
-        household_id: householdId,
-        type: 'event_auto_cancelled',
-        severity: 'low',
-        title: `Cancelled: ${alert.source_data?.event_title || 'Calendar event'}`,
-        summary: `You confirmed this was already done and Calvin removed it from your calendar. "${alert.source_data?.trigger_email_subject || ''}"`,
-        action_hint: 'Tap Undo if this was a mistake.',
-        source_data: {
-          event_id,
-          partner,
-          trigger_email_subject: alert.source_data?.trigger_email_subject || null,
-          action_id: action?.id || null,
-          // Carry the resolved account forward so Undo (calendar.js /restore)
-          // targets the same Google account this event was cancelled on.
-          integration_id: integration.id,
-          account_email: integration.account_email,
-        },
-        relevant_to: [partner],
-        status: 'active',
-      })
-      .select()
-      .single();
-
-    if (cancelAlert) {
-      await supabase.from('alert_fingerprints').upsert(
-        { household_id: householdId, fingerprint: cancelFingerprint, alert_id: cancelAlert.id },
-        { onConflict: 'household_id,fingerprint' }
-      );
-      if (action) {
-        await supabase.from('calendar_actions').update({ alert_id: cancelAlert.id }).eq('id', action.id);
-      }
-    }
-
-    await supabase
-      .from('alerts')
-      .update({ status: 'resolved', updated_at: new Date().toISOString() })
-      .eq('id', alert.id);
-
-    console.log(`[briefing] User confirmed cancel of event ${event_id} for household ${householdId}`);
-    res.json({ success: true });
-  } catch (err) {
-    console.error('[briefing/cancel-event]', err.message);
     res.status(500).json({ error: err.message });
   }
 });
