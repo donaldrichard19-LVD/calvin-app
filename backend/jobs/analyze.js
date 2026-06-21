@@ -7,6 +7,7 @@ const { analyzeHousehold } = require('../lib/anthropic');
 const { sendAlertSMS } = require('../lib/twilio');
 
 const SEVERITY_RANK = { high: 3, medium: 2, low: 1 };
+const TYPE_PRIORITY = { coverage_gap: 6, deadline: 5, action_needed: 4, upcoming_commitment: 3, unshared_context: 2, heads_up: 1 };
 
 function trimEmail(email) {
   const addrMatch = (email.from || '').match(/<([^>]+)>/);
@@ -258,20 +259,22 @@ async function runAnalysisForHousehold(householdId) {
     // Track all IDs dismissed during cleanup so the fuzzy pass skips them
     const cleanedUpIds = new Set();
 
-    // Clean up any existing duplicate active alerts — keep highest severity per type+title cluster
+    // Clean up any existing duplicate active alerts — keep highest severity per title cluster (cross-type)
     {
-      const bestByCluster = new Map(); // clusterKey → alert with highest severity
+      function alertRank(a) { return (SEVERITY_RANK[a.severity] || 0) * 10 + (TYPE_PRIORITY[a.type] || 0); }
+      const bestByCluster = new Map();
       for (const a of activeAlerts) {
         const wordKey = [...titleWordSet(a.title)].sort().join(',');
-        const clusterKey = `${a.type}::${wordKey}`;
-        const current = bestByCluster.get(clusterKey);
-        if (!current || (SEVERITY_RANK[a.severity] || 0) > (SEVERITY_RANK[current.severity] || 0)) {
-          bestByCluster.set(clusterKey, a);
+        if (!wordKey) continue;
+        const current = bestByCluster.get(wordKey);
+        if (!current || alertRank(a) > alertRank(current)) {
+          bestByCluster.set(wordKey, a);
         }
       }
       const dupIds = activeAlerts.filter((a) => {
         const wordKey = [...titleWordSet(a.title)].sort().join(',');
-        const best = bestByCluster.get(`${a.type}::${wordKey}`);
+        if (!wordKey) return false;
+        const best = bestByCluster.get(wordKey);
         return best && best.id !== a.id;
       }).map((a) => a.id);
       if (dupIds.length) {
@@ -292,9 +295,7 @@ async function runAnalysisForHousehold(householdId) {
         const aWords = titleWordSet(a.title);
         const aEventIds = new Set((a.source_data?.event_ids || []).filter(Boolean));
         const isDup = kept.some((b, i) => {
-          if (b.type !== a.type || aWords.size === 0 || keptWords[i].size === 0) return false;
-          // If both alerts reference specific calendar events, only treat them as
-          // duplicates when they share at least one event ID — different events = different issues.
+          if (aWords.size === 0 || keptWords[i].size === 0) return false;
           const bEventIds = new Set((b.source_data?.event_ids || []).filter(Boolean));
           if (aEventIds.size > 0 && bEventIds.size > 0) {
             if (![...aEventIds].some((id) => bEventIds.has(id))) return false;
@@ -493,7 +494,7 @@ async function runAnalysisForHousehold(householdId) {
       const newWords = titleWordSet(alert.title);
       if (newWords.size > 0) {
         const fuzzyMatch = activeTitleWordSets.find(({ alert: a, words }) => {
-          if (a.type !== alert.type || words.size === 0) return false;
+          if (words.size === 0) return false;
           const overlap = [...newWords].filter((w) => words.has(w)).length;
           return overlap / Math.max(newWords.size, words.size) >= 0.5;
         });
