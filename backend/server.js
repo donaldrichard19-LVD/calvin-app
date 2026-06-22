@@ -44,6 +44,7 @@ app.use('/api/sms', require('./routes/sms'));
 app.use('/api/calendar', require('./routes/calendar'));
 app.use('/api/mcp', require('./routes/mcp'));
 app.use('/api/gpt', require('./routes/gpt'));
+app.use('/api/context', require('./routes/context'));
 app.use('/api/waitlist', require('./routes/waitlist'));
 app.use('/api/oauth', require('./routes/oauth'));
 app.use('/api/funnel', require('./routes/funnel'));

@@ -1,8 +1,10 @@
 const express = require('express');
+const crypto = require('crypto');
 const router = express.Router();
 const { requireAuth } = require('../middleware/auth');
 const { supabase } = require('../lib/supabase');
 const { runAnalysisForHousehold } = require('../jobs/analyze');
+const { generateContextCard } = require('../lib/contextCard');
 
 async function getPartner(clerkUserId) {
   const { data } = await supabase
@@ -172,6 +174,8 @@ router.delete('/leave', requireAuth, async (req, res) => {
     const partner = await getPartner(req.auth.userId);
     if (!partner) return res.status(404).json({ error: 'Partner not found' });
 
+    const householdId = partner.household_id;
+
     await supabase
       .from('integrations')
       .update({ is_active: false, access_token: null, refresh_token: null })
@@ -183,6 +187,18 @@ router.delete('/leave', requireAuth, async (req, res) => {
       .eq('id', partner.id);
     if (error) throw error;
 
+    // Regenerate both tokens so departed partner's saved URLs stop working
+    if (householdId) {
+      const { data: remaining } = await supabase
+        .from('partners').select('id').eq('household_id', householdId);
+      if (remaining?.length) {
+        await supabase.from('households').update({
+          mcp_token: crypto.randomUUID(),
+          share_token: crypto.randomBytes(32).toString('hex'),
+        }).eq('id', householdId);
+      }
+    }
+
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -192,15 +208,18 @@ router.delete('/leave', requireAuth, async (req, res) => {
 router.get('/context', requireAuth, async (req, res) => {
   try {
     const partner = await getPartner(req.auth.userId);
-    if (!partner?.household_id) return res.json({ context: {} });
+    if (!partner?.household_id) return res.json({ context: {}, context_sharing: {} });
 
     const { data, error } = await supabase
       .from('households')
-      .select('context')
+      .select('context, context_sharing')
       .eq('id', partner.household_id)
       .single();
     if (error) throw error;
-    res.json({ context: data?.context || {} });
+    res.json({
+      context: data?.context || {},
+      context_sharing: data?.context_sharing || { members: true, routines: true, preferences: true, logistics: true, orders: true },
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -208,13 +227,17 @@ router.get('/context', requireAuth, async (req, res) => {
 
 router.patch('/context', requireAuth, async (req, res) => {
   try {
-    const { context } = req.body;
+    const { context, context_sharing } = req.body;
     const partner = await getPartner(req.auth.userId);
     if (!partner?.household_id) return res.status(400).json({ error: 'No household' });
 
+    const update = {};
+    if (context !== undefined) update.context = context;
+    if (context_sharing !== undefined) update.context_sharing = context_sharing;
+
     const { error } = await supabase
       .from('households')
-      .update({ context })
+      .update(update)
       .eq('id', partner.household_id);
     if (error) throw error;
     res.json({ success: true });
@@ -314,6 +337,89 @@ router.patch('/notifications', requireAuth, async (req, res) => {
     const { error } = await supabase.from('households').update(update).eq('id', partner.household_id);
     if (error) throw error;
     res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Context Card ──────────────────────────────────────────────────────────────
+
+router.get('/context/card', requireAuth, async (req, res) => {
+  try {
+    const partner = await getPartner(req.auth.userId);
+    if (!partner?.household_id) return res.status(400).json({ error: 'No household' });
+
+    const [{ data: household }, { data: partners }, { data: orders }] = await Promise.all([
+      supabase.from('households').select('context, context_sharing').eq('id', partner.household_id).single(),
+      supabase.from('partners').select('display_name').eq('household_id', partner.household_id),
+      supabase.from('household_orders').select('*').eq('household_id', partner.household_id).is('archived_at', null),
+    ]);
+
+    const card = generateContextCard(
+      household?.context, partners, household?.context_sharing, orders || []
+    );
+    res.json({ card });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Share Token Management ───────────────────────────────────────────────────
+
+router.get('/share-info', requireAuth, async (req, res) => {
+  try {
+    const partner = await getPartner(req.auth.userId);
+    if (!partner?.household_id) return res.status(400).json({ error: 'No household' });
+
+    const { data: household } = await supabase
+      .from('households')
+      .select('share_token')
+      .eq('id', partner.household_id)
+      .single();
+
+    let token = household?.share_token;
+    if (!token) {
+      token = crypto.randomBytes(32).toString('hex');
+      await supabase.from('households').update({ share_token: token }).eq('id', partner.household_id);
+    }
+
+    const base = (process.env.BACKEND_URL || 'https://calvin-app.onrender.com').replace(/\/$/, '');
+    res.json({ share_url: `${base}/api/context/card/${token}`, share_token: token });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/share-token/regenerate', requireAuth, async (req, res) => {
+  try {
+    const partner = await getPartner(req.auth.userId);
+    if (!partner?.household_id) return res.status(400).json({ error: 'No household' });
+
+    const token = crypto.randomBytes(32).toString('hex');
+    await supabase.from('households').update({ share_token: token }).eq('id', partner.household_id);
+
+    const base = (process.env.BACKEND_URL || 'https://calvin-app.onrender.com').replace(/\/$/, '');
+    res.json({ share_url: `${base}/api/context/card/${token}`, share_token: token });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Orders ───────────────────────────────────────────────────────────────────
+
+router.get('/orders', requireAuth, async (req, res) => {
+  try {
+    const partner = await getPartner(req.auth.userId);
+    if (!partner?.household_id) return res.status(400).json({ error: 'No household' });
+
+    const { data, error } = await supabase
+      .from('household_orders')
+      .select('*')
+      .eq('household_id', partner.household_id)
+      .is('archived_at', null)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    res.json({ orders: data || [] });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

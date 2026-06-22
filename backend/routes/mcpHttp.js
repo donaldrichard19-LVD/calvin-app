@@ -9,6 +9,7 @@ const { getCalendarEvents, createCalendarEvent } = require('../lib/google');
 const { sendSMS } = require('../lib/twilio');
 const { sendDigestEmail } = require('../lib/email');
 const { runAnalysisForHousehold } = require('../jobs/analyze');
+const { generateContextCard } = require('../lib/contextCard');
 
 const SEVERITY_ORDER = { high: 0, medium: 1, low: 2 };
 const bySeverity = (arr) =>
@@ -138,13 +139,14 @@ function createServer(householdId) {
 
   server.registerTool('get_household', {
     title: 'Get Household',
-    description: 'Get household info, partner names, phones, and Google Calendar connection status.',
+    description: 'Get household info, partner names, phones, Google Calendar connection status, and full context wallet (routines, preferences, logistics, active orders).',
     annotations: { readOnlyHint: true },
   }, async () => {
-    const [{ data: household }, { data: partners }, { data: integrations }] = await Promise.all([
-      supabase.from('households').select('id, name, context').eq('id', householdId).single(),
+    const [{ data: household }, { data: partners }, { data: integrations }, { data: orders }] = await Promise.all([
+      supabase.from('households').select('id, name, context, context_sharing').eq('id', householdId).single(),
       supabase.from('partners').select('id, display_name, phone').eq('household_id', householdId),
       supabase.from('integrations').select('partner_id, is_active, account_email').eq('household_id', householdId),
+      supabase.from('household_orders').select('*').eq('household_id', householdId).is('archived_at', null),
     ]);
     const lines = [`🏠 ${household?.name || 'Household'}`];
     for (const p of (partners || [])) {
@@ -152,16 +154,8 @@ function createServer(householdId) {
       const cal = intg?.is_active ? `✅ Google (${intg.account_email || 'connected'})` : '❌ No Google Calendar';
       lines.push(`  👤 ${p.display_name || 'Unknown'}${p.phone ? ` · ${p.phone}` : ''} — ${cal}`);
     }
-    const members = household?.context?.members || [];
-    if (members.length) {
-      lines.push('\n👨‍👩‍👧 Household members:');
-      for (const m of members) {
-        const age = m.age ? `, age ${m.age}` : '';
-        const notes = m.notes ? ` — ${m.notes}` : '';
-        lines.push(`  • ${m.name} (${m.role}${age})${notes}`);
-      }
-    }
-    if (household?.context?.notes) lines.push(`\n📝 Notes: ${household.context.notes}`);
+    const card = generateContextCard(household?.context, partners, household?.context_sharing, orders || []);
+    if (card) lines.push('', card);
     return { content: [{ type: 'text', text: lines.join('\n') }] };
   });
 
@@ -333,6 +327,149 @@ function createServer(householdId) {
       .update({ context: { ...existing, members: [...members, newMember] } }).eq('id', householdId);
     if (updateError) throw new Error(updateError.message);
     return { content: [{ type: 'text', text: `✅ Added ${name} (${role}) to Calvin household context.` }] };
+  });
+
+  // ── Context Wallet Write-back ────────────────────────────────────────────────
+
+  async function addContextEntry(category, entry) {
+    const { data: household, error } = await supabase.from('households').select('context').eq('id', householdId).single();
+    if (error) throw new Error(error.message);
+    const existing = household?.context || {};
+    const arr = existing[category] || [];
+    const newEntry = { id: require('crypto').randomUUID(), ...entry };
+    const { error: updateError } = await supabase.from('households')
+      .update({ context: { ...existing, [category]: [...arr, newEntry] } }).eq('id', householdId);
+    if (updateError) throw new Error(updateError.message);
+    return newEntry;
+  }
+
+  async function createContextAlert(title, body, metadata) {
+    await supabase.from('alerts').insert({
+      household_id: householdId,
+      title,
+      body,
+      severity: 'low',
+      status: 'active',
+      type: 'context_update',
+      source: 'ai_agent',
+      metadata,
+    });
+  }
+
+  server.registerTool('add_routine', {
+    title: 'Add Routine',
+    description: 'Add a recurring routine or schedule to the household context wallet (e.g. "School pickup Mon-Fri 3:15pm").',
+    inputSchema: {
+      label: z.string().describe('Short name for the routine'),
+      details: z.string().optional().describe('When/where/how details'),
+      who: z.string().optional().describe('Which partner handles this'),
+    },
+  }, async ({ label, details, who }) => {
+    const entry = await addContextEntry('routines', { label, details: details || '', who: who || '' });
+    await createContextAlert(
+      'AI added a routine to your context wallet',
+      `${label}${details ? ': ' + details : ''}${who ? ' (' + who + ')' : ''}`,
+      { category: 'routines', entry_id: entry.id, action: 'add' }
+    );
+    return { content: [{ type: 'text', text: `✅ Added routine "${label}" to Calvin context wallet.` }] };
+  });
+
+  server.registerTool('add_preference', {
+    title: 'Add Preference',
+    description: 'Add a household preference to the context wallet (e.g. dietary restrictions, lifestyle choices).',
+    inputSchema: {
+      label: z.string().describe('Category (e.g. "Dietary", "Bedtime")'),
+      value: z.string().describe('The preference details'),
+    },
+  }, async ({ label, value }) => {
+    const entry = await addContextEntry('preferences', { label, value });
+    await createContextAlert(
+      'AI added a preference to your context wallet',
+      `${label}: ${value}`,
+      { category: 'preferences', entry_id: entry.id, action: 'add' }
+    );
+    return { content: [{ type: 'text', text: `✅ Added preference "${label}: ${value}" to Calvin context wallet.` }] };
+  });
+
+  server.registerTool('add_logistics', {
+    title: 'Add Logistics Entry',
+    description: 'Add a logistics or contact entry to the context wallet (e.g. pediatrician name/phone, school address).',
+    inputSchema: {
+      label: z.string().describe('Label (e.g. "Pediatrician", "School")'),
+      value: z.string().describe('Contact info, address, or details'),
+    },
+  }, async ({ label, value }) => {
+    const entry = await addContextEntry('logistics', { label, value });
+    await createContextAlert(
+      'AI added a logistics entry to your context wallet',
+      `${label}: ${value}`,
+      { category: 'logistics', entry_id: entry.id, action: 'add' }
+    );
+    return { content: [{ type: 'text', text: `✅ Added logistics "${label}" to Calvin context wallet.` }] };
+  });
+
+  server.registerTool('add_order', {
+    title: 'Add Order',
+    description: 'Log a delivery or service order (DoorDash, UberEats, Instacart, Amazon, etc.) so both partners are aware.',
+    inputSchema: {
+      source: z.string().describe('Service name (e.g. "doordash", "instacart", "ubereats", "amazon")'),
+      description: z.string().describe('What was ordered'),
+      items: z.array(z.object({
+        name: z.string(),
+        qty: z.number().optional(),
+        price: z.number().optional(),
+      })).optional().describe('Itemized list (optional)'),
+      total: z.number().optional().describe('Order total (optional)'),
+      eta: z.string().optional().describe('Expected delivery time in ISO 8601'),
+      placed_by: z.string().optional().describe('Who placed the order'),
+      notes: z.string().optional().describe('Delivery instructions or notes'),
+    },
+  }, async ({ source, description, items, total, eta, placed_by, notes }) => {
+    const { data: order, error } = await supabase.from('household_orders').insert({
+      household_id: householdId,
+      source,
+      description,
+      items: items || [],
+      total: total || null,
+      eta: eta || null,
+      placed_by: placed_by || null,
+      notes: notes || null,
+    }).select().single();
+    if (error) throw new Error(error.message);
+
+    const etaText = eta ? `, ETA ${new Date(eta).toLocaleString()}` : '';
+    await createContextAlert(
+      `${placed_by || 'Someone'} placed a ${source} order`,
+      `${description}${etaText}`,
+      { category: 'orders', order_id: order.id, action: 'add', source }
+    );
+    return { content: [{ type: 'text', text: `✅ Logged ${source} order: ${description}${etaText}` }] };
+  });
+
+  server.registerTool('update_order_status', {
+    title: 'Update Order Status',
+    description: 'Update the status of an existing order (placed → in_progress → delivered → completed).',
+    inputSchema: {
+      order_id: z.string().describe('Order ID'),
+      status: z.enum(['placed', 'in_progress', 'delivered', 'completed']).describe('New status'),
+    },
+  }, async ({ order_id, status }) => {
+    const update = { status, updated_at: new Date().toISOString() };
+    if (status === 'completed') update.archived_at = new Date().toISOString();
+
+    const { data: order, error } = await supabase.from('household_orders')
+      .update(update).eq('id', order_id).eq('household_id', householdId).select().single();
+    if (error) throw new Error(error.message);
+    if (!order) throw new Error('Order not found');
+
+    if (status === 'delivered') {
+      await createContextAlert(
+        `${order.source} order delivered`,
+        order.description || 'Your order has arrived',
+        { category: 'orders', order_id: order.id, action: 'status_update', status }
+      );
+    }
+    return { content: [{ type: 'text', text: `✅ Order ${order_id} updated to "${status}".` }] };
   });
 
   return server;
