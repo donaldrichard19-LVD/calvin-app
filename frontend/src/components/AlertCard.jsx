@@ -18,6 +18,7 @@ const TYPE_META = {
   // System types
   reminder:             { icon: '🔔', label: 'Reminder' },
   context_suggestion:   { icon: '💡', label: 'Wallet Suggestion' },
+  ai_order_reconciled:  { icon: '🤖', label: 'AI Order' },
 };
 
 function timeAgo(dateStr) {
@@ -51,13 +52,14 @@ function parseSummaryLines(summary) {
   return [summary];
 }
 
-export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnooze, onResolve, onChat, onTackle, onAcceptSuggestion }) {
+export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnooze, onResolve, onChat, onTackle, onAcceptSuggestion, onAddToOrders }) {
   const [expanded, setExpanded] = useState(false);
   const [resolving, setResolving] = useState(false);
   const [fadingOut, setFadingOut] = useState(false);
   const [tackling, setTackling] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
+  const [editingAiOrder, setEditingAiOrder] = useState(null);
   const [accepting, setAccepting] = useState(false);
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
@@ -71,6 +73,17 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
   }, [chatMessages, chatOpen]);
 
   const isContextSuggestion = alert.type === 'context_suggestion';
+  const isAiOrder = alert.type === 'ai_order_reconciled';
+
+  async function handleAddToOrders(editedOrder) {
+    if (accepting || !onAddToOrders) return;
+    setAccepting(true);
+    try {
+      await onAddToOrders(alert.id, editedOrder || null);
+    } catch {
+      setAccepting(false);
+    }
+  }
 
   async function handleAcceptSuggestion(editedEntry) {
     if (accepting || !onAcceptSuggestion) return;
@@ -137,7 +150,7 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
     <div
       className={`relative overflow-hidden rounded-2xl ${fadingOut ? 'card-fade-out' : ''}`}
       style={{
-        background: isContextSuggestion ? '#F0F7FF' : '#FFF5F5',
+        background: (isContextSuggestion || isAiOrder) ? '#F0F7FF' : '#FFF5F5',
         padding: '32px',
         boxShadow: '0 4px 24px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04)',
       }}
@@ -157,7 +170,7 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
       <div className="flex items-center justify-between mb-4">
         <span
           className="text-[11px] font-semibold uppercase tracking-wider rounded-full px-3 py-1"
-          style={{ color: isContextSuggestion ? '#2563EB' : '#E8352A', border: isContextSuggestion ? '1.5px solid #2563EB' : '1.5px solid #E8352A' }}
+          style={{ color: (isContextSuggestion || isAiOrder) ? '#2563EB' : '#E8352A', border: (isContextSuggestion || isAiOrder) ? '1.5px solid #2563EB' : '1.5px solid #E8352A' }}
         >
           {meta.icon} {meta.label}
         </span>
@@ -191,8 +204,8 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
         </button>
       )}
 
-      {/* Suggested Next Step box — hidden for context suggestions (they have their own CTA) */}
-      {alert.action_hint && !isContextSuggestion && (() => {
+      {/* Suggested Next Step box — hidden for context suggestions and AI orders (they have their own CTA) */}
+      {alert.action_hint && !isContextSuggestion && !isAiOrder && (() => {
         const primaryLink = (() => {
           const l = alert.links?.[0];
           if (!l?.url || !l.url.trim()) return null;
@@ -337,6 +350,77 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
               </button>
               <button
                 onClick={() => setEditingEntry({ ...alert.source_data?.entry })}
+                className="text-[12px] font-semibold text-blue-600 hover:text-blue-800 transition-colors"
+              >
+                Edit first
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* AI Order Reconciliation: Add to Orders / Edit */}
+      {isAiOrder && (
+        <div className="rounded-xl p-4 mt-4 mb-2" style={{
+          background: 'linear-gradient(135deg, #EFF6FF 0%, #E0ECFF 100%)',
+          border: '1.5px solid #93C5FD',
+        }}>
+          {alert.source_data?.evidence_text && (
+            <p className="text-[11px] italic mb-3" style={{ color: '#6B7280' }}>
+              {alert.source_data.evidence_text}
+            </p>
+          )}
+          {alert.source_data?.confidence === 'medium' && (
+            <span className="inline-block text-[10px] font-semibold uppercase tracking-wider rounded-full px-2 py-0.5 mb-3" style={{ background: '#FEF3C7', color: '#92400E' }}>
+              Medium confidence
+            </span>
+          )}
+          {editingAiOrder ? (
+            <div className="space-y-2 mb-3">
+              {Object.entries(editingAiOrder).map(([key, val]) => (
+                <div key={key} className="flex gap-2 items-center">
+                  <label className="text-[11px] font-semibold text-gray-600 w-16 shrink-0 capitalize">{key}</label>
+                  <input
+                    value={val || ''}
+                    onChange={e => setEditingAiOrder(prev => ({ ...prev, [key]: e.target.value }))}
+                    className="flex-1 text-[12px] border border-gray-300 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+                  />
+                </div>
+              ))}
+              <div className="flex gap-2 mt-2">
+                <button
+                  onClick={() => handleAddToOrders(editingAiOrder)}
+                  disabled={accepting}
+                  className="text-[12px] font-semibold rounded-full px-4 py-1.5 text-white transition-colors disabled:opacity-60"
+                  style={{ background: '#2563EB' }}
+                >
+                  {accepting ? 'Saving...' : 'Save to Orders'}
+                </button>
+                <button
+                  onClick={() => setEditingAiOrder(null)}
+                  className="text-[12px] font-semibold text-gray-500 hover:text-gray-700"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handleAddToOrders()}
+                disabled={accepting}
+                className="text-[12px] font-semibold rounded-full px-4 py-1.5 text-white transition-colors disabled:opacity-60"
+                style={{ background: '#2563EB' }}
+              >
+                {accepting ? 'Adding...' : 'Add to Wallet'}
+              </button>
+              <button
+                onClick={() => setEditingAiOrder({
+                  source: alert.source_data?.merchant_name || '',
+                  description: alert.source_data?.order_description || '',
+                  total: alert.source_data?.order_total || '',
+                  notes: `Placed via ${alert.source_data?.assistant_name || 'AI'}`,
+                })}
                 className="text-[12px] font-semibold text-blue-600 hover:text-blue-800 transition-colors"
               >
                 Edit first

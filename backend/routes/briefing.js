@@ -240,6 +240,81 @@ router.patch('/:alertId/accept-suggestion', requireAuth, async (req, res) => {
   }
 });
 
+router.patch('/:alertId/add-to-orders', requireAuth, async (req, res) => {
+  try {
+    const householdId = await getHouseholdId(req.auth.userId);
+    const { edited_order } = req.body;
+
+    const { data: alert, error: fetchErr } = await supabase
+      .from('alerts')
+      .select('id, type, source_data')
+      .eq('id', req.params.alertId)
+      .eq('household_id', householdId)
+      .single();
+    if (fetchErr) throw fetchErr;
+    if (!alert) return res.status(404).json({ error: 'Alert not found' });
+    if (alert.type !== 'ai_order_reconciled') {
+      return res.status(400).json({ error: 'Alert is not an AI order reconciliation' });
+    }
+
+    const source = edited_order?.source || alert.source_data?.merchant_name || 'Unknown';
+    const description = edited_order?.description || alert.source_data?.order_description || '';
+    const total = edited_order?.total != null ? parseFloat(edited_order.total) : (alert.source_data?.order_total || null);
+    const notes = edited_order?.notes || `Placed via ${alert.source_data?.assistant_name || 'AI'}`;
+
+    const aiAttribution = {
+      assistant_name: alert.source_data?.assistant_name,
+      confidence: alert.source_data?.confidence,
+      reconciliation_id: alert.source_data?.reconciliation_id,
+      email_id: alert.source_data?.email_id,
+    };
+
+    // Duplicate detection: same merchant + approx total + same day
+    const today = new Date();
+    const dayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
+    const dayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1).toISOString();
+    let q = supabase
+      .from('household_orders')
+      .select('id')
+      .eq('household_id', householdId)
+      .ilike('source', source)
+      .gte('created_at', dayStart)
+      .lt('created_at', dayEnd);
+    if (total) {
+      q = q.gte('total', total * 0.9).lte('total', total * 1.1);
+    }
+    const { data: existing } = await q.limit(1);
+
+    if (existing?.length) {
+      await supabase
+        .from('household_orders')
+        .update({ ai_attributed_to: aiAttribution })
+        .eq('id', existing[0].id);
+    } else {
+      await supabase
+        .from('household_orders')
+        .insert({
+          household_id: householdId,
+          source,
+          description,
+          total: total || null,
+          notes,
+          items: [],
+          ai_attributed_to: aiAttribution,
+        });
+    }
+
+    await supabase
+      .from('alerts')
+      .update({ status: 'resolved', updated_at: new Date().toISOString() })
+      .eq('id', req.params.alertId);
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get('/stats', requireAuth, async (req, res) => {
   try {
     const householdId = await getHouseholdId(req.auth.userId);

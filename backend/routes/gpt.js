@@ -1,5 +1,6 @@
 'use strict';
 const express = require('express');
+const crypto = require('crypto');
 const router = express.Router();
 const { supabase } = require('../lib/supabase');
 const { getCalendarEvents, createCalendarEvent } = require('../lib/google');
@@ -21,6 +22,10 @@ async function requireGptAuth(req, res, next) {
   supabase.from('households')
     .update({ chatgpt_last_seen_at: new Date().toISOString() })
     .eq('id', household.id)
+    .then(() => {}).catch(() => {});
+  const ipHash = crypto.createHash('sha256').update(req.ip || 'unknown').digest('hex').slice(0, 16);
+  supabase.from('share_access_log')
+    .insert({ household_id: household.id, ip_hash: ipHash, user_agent: (req.headers['user-agent'] || '').slice(0, 500), assistant_name: 'ChatGPT', access_source: 'gpt_actions' })
     .then(() => {}).catch(() => {});
   next();
 }

@@ -1,5 +1,6 @@
 'use strict';
 const express = require('express');
+const crypto = require('crypto');
 const router = express.Router();
 const { McpServer } = require('@modelcontextprotocol/sdk/server/mcp.js');
 const { StreamableHTTPServerTransport } = require('@modelcontextprotocol/sdk/server/streamableHttp.js');
@@ -500,6 +501,10 @@ router.all('/:token', async (req, res) => {
   supabase.from('households')
     .update({ claude_last_seen_at: new Date().toISOString() })
     .eq('id', household.id)
+    .then(() => {}).catch(() => {});
+  const ipHash = crypto.createHash('sha256').update(req.ip || 'unknown').digest('hex').slice(0, 16);
+  supabase.from('share_access_log')
+    .insert({ household_id: household.id, ip_hash: ipHash, user_agent: (req.headers['user-agent'] || '').slice(0, 500), assistant_name: 'Claude', access_source: 'mcp' })
     .then(() => {}).catch(() => {});
   await handleMcp(req, res, household.id);
 });

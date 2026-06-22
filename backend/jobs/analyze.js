@@ -5,6 +5,8 @@ const { supabase } = require('../lib/supabase');
 const { getCalendarEvents, getRecentEmails } = require('../lib/google');
 const { analyzeHousehold } = require('../lib/anthropic');
 const { sendAlertSMS } = require('../lib/twilio');
+const { detectOrderEmail, isDuplicateOrder } = require('../lib/orderDetection');
+const { reconcileOrders, createReconciliationAlerts } = require('../lib/orderReconciliation');
 
 const SEVERITY_RANK = { high: 3, medium: 2, low: 1 };
 const TYPE_PRIORITY = { coverage_gap: 6, deadline: 5, action_needed: 4, upcoming_commitment: 3, unshared_context: 2, heads_up: 1 };
@@ -210,6 +212,39 @@ async function runAnalysisForHousehold(householdId) {
         supabase.from('integrations').update({ last_synced_at: syncedAt }).eq('id', intg.id)
       )
     );
+
+    // ── Order detection pass ─────────────────────────────────────────────
+    const allEmailsWithPartner = [
+      ...emailsA.map((e) => ({ ...e, _partner_id: partnerA?.id })),
+      ...emailsB.map((e) => ({ ...e, _partner_id: partnerB?.id })),
+    ];
+    const detectedOrders = [];
+    for (const email of allEmailsWithPartner) {
+      const detected = detectOrderEmail(email);
+      if (!detected) continue;
+      const dup = await isDuplicateOrder(supabase, householdId, detected.email_id, detected.merchant_name, detected.order_total, detected.order_date);
+      if (dup) continue;
+      await supabase.from('detected_order_emails').upsert({
+        household_id: householdId,
+        partner_id: email._partner_id || null,
+        ...detected,
+      }, { onConflict: 'household_id,email_id' });
+      detectedOrders.push(detected);
+    }
+    if (detectedOrders.length) console.log(`[analyze] Detected ${detectedOrders.length} new order email(s)`);
+
+    // ── Order reconciliation ──────────────────────────────────────────────
+    if (detectedOrders.length) {
+      try {
+        const recons = await reconcileOrders(supabase, householdId, detectedOrders);
+        if (recons.length) {
+          await createReconciliationAlerts(supabase, householdId, recons, partners);
+          console.log(`[analyze] Created ${recons.length} order reconciliation(s)`);
+        }
+      } catch (err) {
+        console.error('[analyze] Order reconciliation error:', err.message);
+      }
+    }
 
     const thirtyDaysAgo  = new Date(Date.now() -  30 * 86400000).toISOString();
     const ninetyDaysAgo  = new Date(Date.now() -  90 * 86400000).toISOString();

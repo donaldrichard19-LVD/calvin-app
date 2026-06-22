@@ -6,6 +6,7 @@ const rateLimit = require('express-rate-limit');
 const router = express.Router();
 const { supabase } = require('../lib/supabase');
 const { generateContextCard } = require('../lib/contextCard');
+const { parseAssistantFromUA } = require('../lib/userAgentParser');
 
 router.use(cors({ origin: true }));
 
@@ -56,8 +57,9 @@ router.get('/card/:share_token', shareTokenLimiter, async (req, res) => {
     // Log access (hashed IP, truncated user-agent)
     const ipHash = crypto.createHash('sha256').update(req.ip || 'unknown').digest('hex').slice(0, 16);
     const ua = (req.headers['user-agent'] || '').slice(0, 500);
+    const { assistant_name, merchant_domain } = parseAssistantFromUA(ua);
     supabase.from('share_access_log')
-      .insert({ household_id: household.id, ip_hash: ipHash, user_agent: ua })
+      .insert({ household_id: household.id, ip_hash: ipHash, user_agent: ua, assistant_name, merchant_domain, access_source: 'context_card' })
       .then(() => {}).catch(() => {});
 
     res.set('Cache-Control', 'private, max-age=300');

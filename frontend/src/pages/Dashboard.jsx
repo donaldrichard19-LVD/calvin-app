@@ -210,6 +210,20 @@ export default function Dashboard() {
     }
   }
 
+  async function handleAddToOrders(alertId, editedOrder) {
+    const body = editedOrder ? { edited_order: editedOrder } : {};
+    await apiFetch(`/api/briefing/${alertId}/add-to-orders`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    });
+    setBriefing((prev) => ({
+      ...prev,
+      alerts: prev.alerts.filter((a) => a.id !== alertId),
+      meta: { ...prev.meta, total: Math.max(0, (prev.meta.total || 1) - 1) },
+    }));
+    showToast('Order added to your Wallet ✓');
+  }
+
   async function handleAcceptSuggestion(alertId, editedEntry) {
     const body = editedEntry ? { edited_entry: editedEntry } : {};
     await apiFetch(`/api/briefing/${alertId}/accept-suggestion`, {
@@ -251,6 +265,7 @@ export default function Dashboard() {
     onChat:         handleChat,
     onTackle:       handleTackle,
     onAcceptSuggestion: handleAcceptSuggestion,
+    onAddToOrders:  handleAddToOrders,
   };
 
   const timelineProps = {
