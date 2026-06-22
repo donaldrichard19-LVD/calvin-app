@@ -46,7 +46,7 @@ router.get('/card/:share_token', shareTokenLimiter, async (req, res) => {
 
     const [{ data: partners }, { data: orders }] = await Promise.all([
       supabase.from('partners').select('display_name').eq('household_id', household.id),
-      supabase.from('household_orders').select('*').eq('household_id', household.id).is('archived_at', null),
+      supabase.from('household_orders').select('*').eq('household_id', household.id).order('created_at', { ascending: false }).limit(10),
     ]);
 
     const card = generateContextCard(

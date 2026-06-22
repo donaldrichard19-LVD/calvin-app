@@ -146,7 +146,7 @@ function createServer(householdId) {
       supabase.from('households').select('id, name, context, context_sharing').eq('id', householdId).single(),
       supabase.from('partners').select('id, display_name, phone').eq('household_id', householdId),
       supabase.from('integrations').select('partner_id, is_active, account_email').eq('household_id', householdId),
-      supabase.from('household_orders').select('*').eq('household_id', householdId).is('archived_at', null),
+      supabase.from('household_orders').select('*').eq('household_id', householdId).order('created_at', { ascending: false }).limit(10),
     ]);
     const lines = [`🏠 ${household?.name || 'Household'}`];
     for (const p of (partners || [])) {
@@ -455,7 +455,6 @@ function createServer(householdId) {
     },
   }, async ({ order_id, status }) => {
     const update = { status, updated_at: new Date().toISOString() };
-    if (status === 'completed') update.archived_at = new Date().toISOString();
 
     const { data: order, error } = await supabase.from('household_orders')
       .update(update).eq('id', order_id).eq('household_id', householdId).select().single();

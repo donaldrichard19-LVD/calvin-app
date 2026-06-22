@@ -352,7 +352,7 @@ router.get('/context/card', requireAuth, async (req, res) => {
     const [{ data: household }, { data: partners }, { data: orders }] = await Promise.all([
       supabase.from('households').select('context, context_sharing').eq('id', partner.household_id).single(),
       supabase.from('partners').select('display_name').eq('household_id', partner.household_id),
-      supabase.from('household_orders').select('*').eq('household_id', partner.household_id).is('archived_at', null),
+      supabase.from('household_orders').select('*').eq('household_id', partner.household_id).order('created_at', { ascending: false }).limit(10),
     ]);
 
     const card = generateContextCard(
@@ -416,7 +416,6 @@ router.get('/orders', requireAuth, async (req, res) => {
       .from('household_orders')
       .select('*')
       .eq('household_id', partner.household_id)
-      .is('archived_at', null)
       .order('created_at', { ascending: false });
     if (error) throw error;
     res.json({ orders: data || [] });

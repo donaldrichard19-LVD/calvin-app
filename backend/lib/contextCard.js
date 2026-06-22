@@ -52,17 +52,15 @@ function generateContextCard(context, partners, sharingControls, orders, options
   }
 
   if (sharing.orders && orders?.length) {
-    const activeOrders = orders.filter((o) => o.status !== 'completed' || !o.archived_at);
-    if (activeOrders.length) {
-      const items = activeOrders.map((o) => {
-        let s = o.description || o.source;
-        if (o.status) s += ` [${o.status}]`;
-        if (o.eta) s += ` ETA ${new Date(o.eta).toLocaleString()}`;
-        if (o.placed_by) s += ` (${o.placed_by})`;
-        return s;
-      });
-      lines.push(`Active orders: ${items.join('; ')}`);
-    }
+    const recent = orders.slice(0, 5);
+    const items = recent.map((o) => {
+      let s = o.description || o.source;
+      if (o.status) s += ` [${o.status}]`;
+      if (o.eta && o.status !== 'completed' && o.status !== 'delivered') s += ` ETA ${new Date(o.eta).toLocaleString()}`;
+      if (o.placed_by) s += ` (${o.placed_by})`;
+      return s;
+    });
+    lines.push(`Recent orders: ${items.join('; ')}`);
   }
 
   if (lines.length <= 1) return null;

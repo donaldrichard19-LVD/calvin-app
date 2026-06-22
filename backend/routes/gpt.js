@@ -291,9 +291,9 @@ router.get('/openapi.json', (req, res) => {
                       },
                       notes: { type: 'string', description: 'Household notes' },
                       context_card: { type: 'string', nullable: true, description: 'Formatted context card with all shared household context' },
-                      active_orders: {
+                      order_history: {
                         type: 'array',
-                        description: 'Active delivery/service orders',
+                        description: 'Recent delivery/service order history',
                         items: {
                           type: 'object',
                           properties: {
@@ -518,7 +518,7 @@ router.get('/household', async (req, res) => {
       supabase.from('households').select('id, name, context, context_sharing').eq('id', req.householdId).single(),
       supabase.from('partners').select('id, display_name').eq('household_id', req.householdId),
       supabase.from('integrations').select('partner_id, is_active').eq('household_id', req.householdId),
-      supabase.from('household_orders').select('*').eq('household_id', req.householdId).is('archived_at', null),
+      supabase.from('household_orders').select('*').eq('household_id', req.householdId).order('created_at', { ascending: false }).limit(20),
     ]);
 
     const ctx = household?.context || {};
@@ -536,7 +536,7 @@ router.get('/household', async (req, res) => {
       logistics: ctx.logistics || [],
       notes: ctx.notes || '',
       context_card: card,
-      active_orders: orders || [],
+      order_history: orders || [],
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -636,7 +636,6 @@ router.patch('/orders/:orderId', async (req, res) => {
     const { status } = req.body;
     if (!status) return res.status(400).json({ error: 'status is required' });
     const update = { status, updated_at: new Date().toISOString() };
-    if (status === 'completed') update.archived_at = new Date().toISOString();
     const { data: order, error } = await supabase.from('household_orders')
       .update(update).eq('id', req.params.orderId).eq('household_id', req.householdId).select().single();
     if (error) throw error;
