@@ -17,6 +17,7 @@ const TYPE_META = {
   asymmetric_context:   { icon: '💡', label: 'Unshared Context' },
   // System types
   reminder:             { icon: '🔔', label: 'Reminder' },
+  context_suggestion:   { icon: '💡', label: 'Wallet Suggestion' },
 };
 
 function timeAgo(dateStr) {
@@ -50,12 +51,14 @@ function parseSummaryLines(summary) {
   return [summary];
 }
 
-export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnooze, onResolve, onChat, onTackle }) {
+export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnooze, onResolve, onChat, onTackle, onAcceptSuggestion }) {
   const [expanded, setExpanded] = useState(false);
   const [resolving, setResolving] = useState(false);
   const [fadingOut, setFadingOut] = useState(false);
   const [tackling, setTackling] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [editingEntry, setEditingEntry] = useState(null);
+  const [accepting, setAccepting] = useState(false);
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [chatSending, setChatSending] = useState(false);
@@ -66,6 +69,18 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
       chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [chatMessages, chatOpen]);
+
+  const isContextSuggestion = alert.type === 'context_suggestion';
+
+  async function handleAcceptSuggestion(editedEntry) {
+    if (accepting || !onAcceptSuggestion) return;
+    setAccepting(true);
+    try {
+      await onAcceptSuggestion(alert.id, editedEntry || null);
+    } catch {
+      setAccepting(false);
+    }
+  }
 
   const meta = (() => {
     const base = TYPE_META[alert.type] || { icon: '•', label: alert.type };
@@ -122,7 +137,7 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
     <div
       className={`relative overflow-hidden rounded-2xl ${fadingOut ? 'card-fade-out' : ''}`}
       style={{
-        background: '#FFF5F5',
+        background: isContextSuggestion ? '#F0F7FF' : '#FFF5F5',
         padding: '32px',
         boxShadow: '0 4px 24px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04)',
       }}
@@ -142,7 +157,7 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
       <div className="flex items-center justify-between mb-4">
         <span
           className="text-[11px] font-semibold uppercase tracking-wider rounded-full px-3 py-1"
-          style={{ color: '#E8352A', border: '1.5px solid #E8352A' }}
+          style={{ color: isContextSuggestion ? '#2563EB' : '#E8352A', border: isContextSuggestion ? '1.5px solid #2563EB' : '1.5px solid #E8352A' }}
         >
           {meta.icon} {meta.label}
         </span>
@@ -264,6 +279,72 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
           </div>
         );
       })()}
+
+      {/* Context Suggestion: Add to Wallet / Edit */}
+      {isContextSuggestion && (
+        <div className="rounded-xl p-4 mt-4 mb-2" style={{
+          background: 'linear-gradient(135deg, #EFF6FF 0%, #E0ECFF 100%)',
+          border: '1.5px solid #93C5FD',
+        }}>
+          {alert.source_data?.evidence && (
+            <p className="text-[11px] italic mb-3" style={{ color: '#6B7280' }}>
+              Source: {alert.source_data.evidence}
+            </p>
+          )}
+          {alert.source_data?.confidence === 'medium' && (
+            <span className="inline-block text-[10px] font-semibold uppercase tracking-wider rounded-full px-2 py-0.5 mb-3" style={{ background: '#FEF3C7', color: '#92400E' }}>
+              Medium confidence
+            </span>
+          )}
+          {editingEntry ? (
+            <div className="space-y-2 mb-3">
+              {Object.entries(editingEntry).filter(([key]) => key !== 'id').map(([key, val]) => (
+                <div key={key} className="flex gap-2 items-center">
+                  <label className="text-[11px] font-semibold text-gray-600 w-16 shrink-0 capitalize">{key}</label>
+                  <input
+                    value={val || ''}
+                    onChange={e => setEditingEntry(prev => ({ ...prev, [key]: e.target.value }))}
+                    className="flex-1 text-[12px] border border-gray-300 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+                  />
+                </div>
+              ))}
+              <div className="flex gap-2 mt-2">
+                <button
+                  onClick={() => handleAcceptSuggestion(editingEntry)}
+                  disabled={accepting}
+                  className="text-[12px] font-semibold rounded-full px-4 py-1.5 text-white transition-colors disabled:opacity-60"
+                  style={{ background: '#2563EB' }}
+                >
+                  {accepting ? 'Saving...' : 'Save to Wallet'}
+                </button>
+                <button
+                  onClick={() => setEditingEntry(null)}
+                  className="text-[12px] font-semibold text-gray-500 hover:text-gray-700"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handleAcceptSuggestion()}
+                disabled={accepting}
+                className="text-[12px] font-semibold rounded-full px-4 py-1.5 text-white transition-colors disabled:opacity-60"
+                style={{ background: '#2563EB' }}
+              >
+                {accepting ? 'Adding...' : 'Add to Wallet'}
+              </button>
+              <button
+                onClick={() => setEditingEntry({ ...alert.source_data?.entry })}
+                className="text-[12px] font-semibold text-blue-600 hover:text-blue-800 transition-colors"
+              >
+                Edit first
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Footer */}
       <div className="flex items-center justify-between pt-4 mt-2 border-t border-black/5">

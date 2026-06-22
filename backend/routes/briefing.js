@@ -184,6 +184,62 @@ router.patch('/:alertId/resolve', requireAuth, async (req, res) => {
   }
 });
 
+router.patch('/:alertId/accept-suggestion', requireAuth, async (req, res) => {
+  try {
+    const householdId = await getHouseholdId(req.auth.userId);
+    const { edited_entry } = req.body;
+
+    const { data: alert, error: fetchErr } = await supabase
+      .from('alerts')
+      .select('id, type, source_data')
+      .eq('id', req.params.alertId)
+      .eq('household_id', householdId)
+      .single();
+    if (fetchErr) throw fetchErr;
+    if (!alert) return res.status(404).json({ error: 'Alert not found' });
+    if (alert.type !== 'context_suggestion') {
+      return res.status(400).json({ error: 'Alert is not a context suggestion' });
+    }
+
+    const category = alert.source_data?.category;
+    const entry = edited_entry || alert.source_data?.entry;
+    if (!category || !entry) {
+      return res.status(400).json({ error: 'Missing category or entry data' });
+    }
+
+    const validCategories = ['routines', 'preferences', 'logistics'];
+    if (!validCategories.includes(category)) {
+      return res.status(400).json({ error: `Invalid category: ${category}` });
+    }
+
+    const { data: household, error: hErr } = await supabase
+      .from('households')
+      .select('context')
+      .eq('id', householdId)
+      .single();
+    if (hErr) throw hErr;
+
+    const context = household?.context || {};
+    const entryWithId = { id: require('crypto').randomUUID(), ...entry };
+    const updatedContext = { ...context, [category]: [...(context[category] || []), entryWithId] };
+
+    const { error: updateErr } = await supabase
+      .from('households')
+      .update({ context: updatedContext })
+      .eq('id', householdId);
+    if (updateErr) throw updateErr;
+
+    await supabase
+      .from('alerts')
+      .update({ status: 'resolved', updated_at: new Date().toISOString() })
+      .eq('id', req.params.alertId);
+
+    res.json({ success: true, category, entry: entryWithId });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get('/stats', requireAuth, async (req, res) => {
   try {
     const householdId = await getHouseholdId(req.auth.userId);

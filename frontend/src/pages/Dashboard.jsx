@@ -209,6 +209,20 @@ export default function Dashboard() {
     }
   }
 
+  async function handleAcceptSuggestion(alertId, editedEntry) {
+    const body = editedEntry ? { edited_entry: editedEntry } : {};
+    await apiFetch(`/api/briefing/${alertId}/accept-suggestion`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    });
+    setBriefing((prev) => ({
+      ...prev,
+      alerts: prev.alerts.filter((a) => a.id !== alertId),
+      meta: { ...prev.meta, total: Math.max(0, (prev.meta.total || 1) - 1) },
+    }));
+    showToast('Added to your Context Wallet ✓');
+  }
+
   async function handleSync() {
     if (spinning) return;
     setSpinning(true);
@@ -235,6 +249,7 @@ export default function Dashboard() {
     onResolve:      handleResolve,
     onChat:         handleChat,
     onTackle:       handleTackle,
+    onAcceptSuggestion: handleAcceptSuggestion,
   };
 
   const timelineProps = {
