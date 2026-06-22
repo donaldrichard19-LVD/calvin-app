@@ -10,7 +10,7 @@ const { createCalendarEvent } = require('../lib/google');
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 function formatHouseholdContext(ctx) {
-  if (!ctx || (!ctx.members?.length && !ctx.notes)) return '';
+  if (!ctx) return '';
   const parts = [];
   if (ctx.members?.length) {
     const list = ctx.members
@@ -23,7 +23,39 @@ function formatHouseholdContext(ctx) {
       .join('; ');
     if (list) parts.push(`Members: ${list}`);
   }
-  if (ctx.notes) parts.push(ctx.notes);
+  if (ctx.routines?.length) {
+    const list = ctx.routines
+      .filter((r) => r.label)
+      .map((r) => {
+        let s = r.label;
+        if (r.details) s += `: ${r.details}`;
+        if (r.who) s += ` (${r.who})`;
+        return s;
+      })
+      .join('; ');
+    if (list) parts.push(`Routines: ${list}`);
+  }
+  if (ctx.preferences?.length) {
+    const list = ctx.preferences
+      .map((p) => {
+        if (p.label && p.value) return `${p.label}: ${p.value}`;
+        return p.label || p.value || '';
+      })
+      .filter(Boolean)
+      .join('; ');
+    if (list) parts.push(`Preferences: ${list}`);
+  }
+  if (ctx.logistics?.length) {
+    const list = ctx.logistics
+      .map((l) => {
+        if (l.label && l.value) return `${l.label}: ${l.value}`;
+        return l.label || l.value || '';
+      })
+      .filter(Boolean)
+      .join('; ');
+    if (list) parts.push(`Logistics: ${list}`);
+  }
+  if (ctx.notes) parts.push(`Notes: ${ctx.notes}`);
   return parts.join('\n');
 }
 
@@ -103,7 +135,7 @@ Suggested action: ${alert.action_hint}
 ${emailReplyTo ? `Reply-to email address: ${emailReplyTo}\n` : ''}
 Current date/time: ${now} (America/New_York)
 ${householdContext ? `\nHousehold context:\n${householdContext}\n` : ''}
-Be concise and direct. Use the household context to personalise responses — reference people, pets, and preferences by name where relevant. If the user asks to create, schedule, or add a calendar event, use the create_calendar_event tool. If the user asks to draft or send an email reply, use the draft_email_reply tool — compose a clear, professional reply based on the alert context and the reply-to address above. If the suggested action is to follow up, check in, monitor, or be reminded about an issue or event — and it does not involve creating a calendar event or sending an email — use the schedule_reminder tool to set a reminder for 3 days from now. Do not repeat the alert back to the user.`;
+Be concise and direct. Use the household context to personalise responses — reference people, pets, routines, preferences, and logistics by name where relevant. If the user asks to create, schedule, or add a calendar event, use the create_calendar_event tool. If the user asks to draft or send an email reply, use the draft_email_reply tool — compose a clear, professional reply based on the alert context and the reply-to address above. If the suggested action is to follow up, check in, monitor, or be reminded about an issue or event — and it does not involve creating a calendar event or sending an email — use the schedule_reminder tool to set a reminder for 3 days from now. Do not repeat the alert back to the user.`;
 
     const validMessages = messages
       .filter((m) => m.role && m.content)
