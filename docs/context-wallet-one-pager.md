@@ -108,15 +108,15 @@ Responses include `Cache-Control: private, max-age=300` to prevent excessive pol
 
 ---
 
-## Order Tracking
+## Order History
 
-The Context Wallet includes live order tracking for delivery services:
+The Context Wallet saves a persistent history of delivery and service orders:
 
 - **Supported sources**: DoorDash, UberEats, Instacart, Amazon, or any custom source
 - **Lifecycle**: Placed > In Progress > Delivered > Completed
 - **Partner alerts**: When an order is logged, the other partner gets an alert ("Sarah placed a DoorDash order: Thai food, ETA 6:30pm")
 - **Delivery alerts**: A follow-up alert fires when status changes to delivered
-- **Auto-archival**: Completed orders archive after 48 hours, keeping the active view clean
+- **Persistent history**: All orders are saved to Calvin permanently, building a household ordering record over time
 
 ---
 
