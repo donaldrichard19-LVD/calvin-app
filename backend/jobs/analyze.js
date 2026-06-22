@@ -354,8 +354,59 @@ async function runAnalysisForHousehold(householdId) {
       if (dates.some((d) => new Date(d) >= nowDate)) continue;
       deterministicResolveIds.push(alert.id);
     }
+
+    // ── Email-based completion detection ───────────────────────────────────
+    // For email-only alerts (no event_ids), check if a completion-confirmation
+    // email has arrived from the same sender domain. Handles pickup/delivery
+    // confirmations without waiting for the next Claude analysis.
+    {
+      const COMPLETION_RE = [
+        /enjoy your (drive.?up|order|purchase)/i,
+        /pick\s*up (confirmed|complete[d]?)/i,
+        /has been (picked up|delivered|completed)/i,
+        /order.*(picked up|delivered|completed)/i,
+        /delivery (confirmed|complete[d]?)/i,
+        /thank you for (your )?(visit|order|purchase|picking up)/i,
+        /your order is complete/i,
+      ];
+
+      const allCurrentEmails = [...emailsA, ...emailsB];
+      const emailById = new Map(allCurrentEmails.map((e) => [e.id, e]));
+
+      for (const alert of activeAlerts) {
+        if (alert.type === 'event_auto_cancelled') continue;
+        const eventIds = (alert.source_data?.event_ids || []).filter(Boolean);
+        if (eventIds.length > 0) continue;
+        const sourceEmailIds = (alert.source_data?.email_ids || []).filter(Boolean);
+        if (sourceEmailIds.length === 0) continue;
+
+        const sourceDomains = new Set();
+        for (const eid of sourceEmailIds) {
+          const email = emailById.get(eid);
+          if (email) {
+            const domain = (email.from || '').match(/@([\w.-]+)/)?.[1]?.toLowerCase();
+            if (domain) sourceDomains.add(domain);
+          }
+        }
+        if (sourceDomains.size === 0) continue;
+
+        const hasCompletion = allCurrentEmails.some((email) => {
+          if (sourceEmailIds.includes(email.id)) return false;
+          const domain = (email.from || '').match(/@([\w.-]+)/)?.[1]?.toLowerCase();
+          if (!domain || !sourceDomains.has(domain)) return false;
+          const text = `${email.subject || ''} ${email.snippet || ''}`;
+          return COMPLETION_RE.some((p) => p.test(text));
+        });
+
+        if (hasCompletion) {
+          deterministicResolveIds.push(alert.id);
+          console.log(`[analyze] Email-completion auto-resolve: "${alert.title}"`);
+        }
+      }
+    }
+
     if (deterministicResolveIds.length) {
-      console.log(`[analyze] Deterministic auto-resolve: ${deterministicResolveIds.length} alert(s) whose past events left the calendar`);
+      console.log(`[analyze] Deterministic auto-resolve: ${deterministicResolveIds.length} alert(s)`);
     }
     const deterministicResolveSet = new Set(deterministicResolveIds);
 
