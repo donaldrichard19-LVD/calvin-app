@@ -74,7 +74,20 @@ export default function InsightsView() {
   const maxCount = sortedTypes[0]?.[1] ?? 1;
 
   return (
-    <div className="max-w-2xl mx-auto px-4 pt-4 pb-6 space-y-6">
+    <div>
+      {/* Mobile header */}
+      <header className="md:hidden sticky top-0 z-20 bg-cw-sidebar px-4 py-3">
+        <h1 className="text-[17px] font-bold text-white">Insights</h1>
+      </header>
+
+      <div className="max-w-2xl mx-auto px-4 pt-4 pb-6 space-y-6">
+      {/* Desktop header */}
+      <header className="hidden md:block">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-cw-muted">Insights</span>
+        <h1 className="text-[28px] font-bold text-cw-fg mt-1">Activity overview</h1>
+        <p className="text-[15px] text-cw-muted mt-2 leading-relaxed max-w-xl">Alert trends, resolution rates, and common gap categories from the last 30 days.</p>
+      </header>
+
       <div>
         <h2 className="text-[16px] font-bold text-dark mb-3">Overview · last 30 days</h2>
         <div className="grid grid-cols-3 gap-4">
@@ -156,6 +169,7 @@ export default function InsightsView() {
           {stats.dismissed_30d} issue{stats.dismissed_30d !== 1 ? 's' : ''} dismissed in the last 30 days
         </p>
       )}
+      </div>
     </div>
   );
 }

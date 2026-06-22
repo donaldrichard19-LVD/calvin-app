@@ -23,6 +23,16 @@
   --blurple-hover: #4752C4;
   --warm-red: #E8352A;
   --dark: #222222;
+
+  --cw-background: oklch(0.971 0.006 84);
+  --cw-foreground: oklch(0.23 0.02 270);
+  --cw-primary: oklch(0.54 0.2 277);
+  --cw-secondary: oklch(0.96 0.015 277);
+  --cw-muted: oklch(0.54 0.02 270);
+  --cw-success: oklch(0.62 0.15 155);
+  --cw-destructive: oklch(0.58 0.22 27);
+  --cw-sidebar: oklch(0.55 0.2 277);
+  --cw-radius: 0.875rem;
 }
 
 * {

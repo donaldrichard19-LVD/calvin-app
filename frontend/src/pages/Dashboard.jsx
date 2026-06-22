@@ -5,6 +5,7 @@ import BriefingFeed from '../components/BriefingFeed';
 import TimelineView from '../components/TimelineView';
 import InsightsView from '../components/InsightsView';
 import SettingsView, { getInAppAlertsEnabled } from '../components/SettingsView';
+import ContextWallet from '../components/ContextWallet';
 import BottomNav from '../components/BottomNav';
 import EmailDraftModal from '../components/EmailDraftModal';
 import SplashScreen from '../components/SplashScreen';
@@ -314,11 +315,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        {view === 'calendar' && (
-          <div className="p-4">
-            <TimelineView {...timelineProps} />
-          </div>
-        )}
+        {view === 'context' && <ContextWallet />}
 
         {view === 'insights' && <InsightsView />}
 

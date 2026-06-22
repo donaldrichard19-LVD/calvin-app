@@ -216,7 +216,7 @@ async function runAnalysisForHousehold(householdId) {
     const [fingerprintsResult, activeAlertsResult, householdResult, dismissedResult, resolvedResult] = await Promise.all([
       supabase.from('alert_fingerprints').select('fingerprint, alert_id').eq('household_id', householdId),
       supabase.from('alerts').select('id, type, title, summary, action_hint, source_data, status, created_at, severity, relevant_to').eq('household_id', householdId).in('status', ['active', 'snoozed']),
-      supabase.from('households').select('id, name, last_input_hash, last_analyzed_email_ids, context').eq('id', householdId).single(),
+      supabase.from('households').select('id, name, last_input_hash, last_analyzed_email_ids').eq('id', householdId).single(),
       supabase.from('alerts').select('type, title').eq('household_id', householdId).eq('status', 'dismissed').gte('updated_at', thirtyDaysAgo),
       supabase.from('alerts').select('type, title, source_data, relevant_to, updated_at').eq('household_id', householdId).eq('status', 'resolved').gte('updated_at', ninetyDaysAgo).order('updated_at', { ascending: false }).limit(20),
     ]);
@@ -451,14 +451,13 @@ async function runAnalysisForHousehold(householdId) {
         relevant_to: a.relevant_to || [],
         resolved_at: a.updated_at,
       })),
-      household_context: householdResult.data?.context || {},
       current_time: new Date().toISOString(),
       timezone: 'America/New_York',
     };
 
     const contextBytes = Buffer.byteLength(JSON.stringify(context));
     console.log(`[analyze] Fingerprints: ${existingFingerprints.length}, active alerts: ${activeAlerts.length - deterministicResolveIds.length} to Claude, context: ${(contextBytes / 1024).toFixed(1)}KB`);
-    const { alerts, resolveIds: claudeResolveIds, contextSuggestions } = await analyzeHousehold(context);
+    const { alerts, resolveIds: claudeResolveIds } = await analyzeHousehold(context);
     // Filter Claude's resolves: block resolving any alert whose source_data dates are
     // all in the future — guards against Claude prematurely resolving upcoming_commitment
     // alerts just because the event is already on the calendar.
@@ -609,84 +608,6 @@ async function runAnalysisForHousehold(householdId) {
     if (smsAlerts.length > 0 && partners.some((p) => p.phone)) {
       for (const sa of smsAlerts) {
         await sendAlertSMS(partners, sa.title, sa.severity);
-      }
-    }
-
-    // ── Context Wallet Suggestions ──────────────────────────────────────────
-    let suggestionsCreated = 0;
-    const ctxDismissals = dismissalsByType['context_suggestion'] || 0;
-    for (const suggestion of (contextSuggestions || [])) {
-      if (ctxDismissals >= 6) {
-        console.log('[analyze] Suppressing all context suggestions — 6+ dismissals');
-        break;
-      }
-      if (ctxDismissals >= 3 && suggestion.confidence !== 'high') {
-        console.log('[analyze] Suppressing medium-confidence context suggestion — 3+ dismissals');
-        continue;
-      }
-
-      const entryStr = JSON.stringify(suggestion.entry || {});
-      const sugFp = 'ctx-' + suggestion.category + '-' +
-        crypto.createHash('md5').update(entryStr).digest('hex').slice(0, 12);
-
-      if (existingFingerprints.includes(sugFp)) {
-        console.log(`[analyze] Skipping duplicate context suggestion: ${sugFp}`);
-        continue;
-      }
-
-      const cat = suggestion.category;
-      const entry = suggestion.entry || {};
-      const title = cat === 'routines' && entry.label ? `Add routine: ${entry.label}`
-        : cat === 'preferences' && entry.label ? `Add preference: ${entry.label}`
-        : cat === 'logistics' && entry.label ? `Add logistics: ${entry.label}`
-        : `New ${cat} suggestion for your Context Wallet`;
-
-      const { data: inserted, error: insertErr } = await supabase
-        .from('alerts')
-        .insert({
-          household_id: householdId,
-          type: 'context_suggestion',
-          severity: 'low',
-          title,
-          summary: suggestion.evidence || '',
-          source_data: {
-            category: suggestion.category,
-            entry: suggestion.entry,
-            confidence: suggestion.confidence,
-            evidence: suggestion.evidence,
-          },
-          action_hint: `Add to your Context Wallet under ${suggestion.category}`,
-          relevant_to: ['partnerA', 'partnerB'],
-          status: 'active',
-          links: [],
-        })
-        .select()
-        .single();
-
-      if (insertErr) continue;
-
-      await supabase.from('alert_fingerprints').upsert(
-        [{ household_id: householdId, fingerprint: sugFp, alert_id: inserted.id }],
-        { onConflict: 'household_id,fingerprint' }
-      );
-      existingFingerprints.push(sugFp);
-      suggestionsCreated++;
-    }
-    if (suggestionsCreated) console.log(`[analyze] Created ${suggestionsCreated} context suggestion(s)`);
-
-    // SMS for high-confidence context suggestions only
-    if (suggestionsCreated > 0 && partners.some((p) => p.phone)) {
-      const highConf = (contextSuggestions || []).filter((s) => s.confidence === 'high');
-      if (highConf.length > 0) {
-        const titles = highConf.slice(0, 2).map((s) => {
-          const e = s.entry || {};
-          return e.label || s.category;
-        });
-        const msg = `💡 Calvin found ${highConf.length} suggestion${highConf.length > 1 ? 's' : ''} for your Context Wallet: ${titles.join(', ')}. Open Calvin to review.`;
-        const { sendSMS: sms } = require('../lib/twilio');
-        for (const p of partners.filter((p) => p.phone)) {
-          await sms(p.phone, msg).catch(() => {});
-        }
       }
     }
 

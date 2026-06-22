@@ -20,6 +20,19 @@ export default {
         light: '#B0B0B0',
         border: '#DDDDDD',
         bg: '#F7F7F7',
+        cw: {
+          bg: 'var(--cw-background)',
+          fg: 'var(--cw-foreground)',
+          primary: 'var(--cw-primary)',
+          secondary: 'var(--cw-secondary)',
+          muted: 'var(--cw-muted)',
+          success: 'var(--cw-success)',
+          destructive: 'var(--cw-destructive)',
+          sidebar: 'var(--cw-sidebar)',
+        },
+      },
+      borderRadius: {
+        cw: 'var(--cw-radius)',
       },
       fontFamily: {
         sans: ['Geist', 'sans-serif'],

@@ -1,10 +1,10 @@
 import React from 'react';
-import { Activity, CalendarDays, BarChart3, Settings } from 'lucide-react';
+import { Activity, Brain, BarChart3, Settings } from 'lucide-react';
 import EmojiAvatar from './EmojiAvatar';
 
 const TABS = [
   { id: 'pulse',    label: 'Pulse',    Icon: Activity    },
-  { id: 'calendar', label: 'Calendar', Icon: CalendarDays },
+  { id: 'context',  label: 'Context',  Icon: Brain       },
   { id: 'insights', label: 'Insights', Icon: BarChart3   },
   { id: 'settings', label: 'Settings', Icon: Settings    },
 ];

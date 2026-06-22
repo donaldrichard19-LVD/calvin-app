@@ -132,37 +132,16 @@ When an alert involves a bill, invoice, payment due, subscription charge, or any
 
 Look for amounts in the email body, snippet, or subject. If you can see a dollar figure anywhere, use it. If the body was provided (non-null), scan it carefully — amounts are often in the body even when absent from the subject. If no amount is visible despite searching, include what you can (biller name, due date) and append "— check bill for exact amount" to the summary. Never create a financial alert without attempting to extract the amount.
 
-## Context Wallet suggestions
-In addition to alerts, scan calendar events and emails for facts about the household that would be useful as permanent context. Look for:
-- **Routines**: recurring patterns visible across calendar events (e.g. "soccer practice every Tuesday 4pm", "piano lessons Wednesdays")
-- **Preferences**: dietary, brand, or service preferences inferable from orders, restaurant reservations, or recurring emails (e.g. "vegetarian", "uses Kroger for groceries")
-- **Logistics**: addresses, school names, doctor offices, important contacts inferable from calendar locations or email signatures
-
-You will receive the household's current context wallet in household_context. Do NOT suggest entries already present there.
-
-For each suggestion, provide:
-- category: "routines" | "preferences" | "logistics"
-- entry: the structured object to add. For routines: { "label": "...", "details": "...", "who": "..." }. For preferences/logistics: { "label": "...", "value": "..." }
-- confidence: "high" | "medium" — high = explicitly stated in data, medium = inferred
-- evidence: a short human-readable explanation of WHERE this was found, e.g. "Calendar event 'Emma Soccer' recurring Tuesdays" or "3 order confirmation emails from Thai Palace". NEVER include raw email body content or private message text — only describe the source type and relevant detail.
-
-Rules:
-- Only suggest entries NOT already present in household_context.
-- Maximum 5 suggestions per analysis run.
-- Prefer high-confidence suggestions. Only include medium-confidence if fewer than 3 high-confidence suggestions exist.
-
 ## Response format
 Respond ONLY with a valid JSON object. No preamble, no markdown, no explanation outside the JSON.
 
 {
   "resolve": ["uuid-of-alert-1", "uuid-of-alert-2"],
-  "alerts": [],
-  "context_suggestions": []
+  "alerts": []
 }
 
 "resolve" is an array of alert IDs from existing_active_alerts[].id whose recommended actions are now completed.
 "alerts" is an array of new alert objects to create.
-"context_suggestions" is an array of context wallet suggestion objects (see Context Wallet suggestions section above). Omit or leave empty if no patterns are detected.
 
 Each new alert object must have these exact fields:
 {
@@ -210,15 +189,12 @@ async function analyzeHousehold(householdContext) {
   // Support legacy array format in case of partial rollout
   const rawAlerts = Array.isArray(parsed) ? parsed : (parsed.alerts || []);
   const resolveIds = Array.isArray(parsed) ? [] : (parsed.resolve || []);
-  const contextSuggestions = Array.isArray(parsed) ? [] : (parsed.context_suggestions || []);
-
   return {
     alerts: rawAlerts.map((alert) => ({
       ...alert,
       _md5: crypto.createHash('md5').update(alert.fingerprint || JSON.stringify(alert)).digest('hex'),
     })),
     resolveIds,
-    contextSuggestions,
   };
 }
 
