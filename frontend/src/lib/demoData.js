@@ -169,6 +169,42 @@ const DEMO_ALERTS_BASE = [
     created_at: hoursAgo(5),
     updated_at: hoursAgo(5),
   },
+  {
+    id: 'alert-cs-1',
+    severity: 'low',
+    type: 'context_suggestion',
+    title: 'Add routine: Piano lessons Wednesdays',
+    summary: 'Detected from recurring calendar event "Emma Piano Lesson" every Wednesday 5-6pm at Harmony Music Studio.',
+    action_hint: 'Add to your Context Wallet under routines',
+    relevant_to: ['partnerA', 'partnerB'],
+    status: 'open',
+    source_data: {
+      category: 'routines',
+      entry: { label: 'Emma piano lessons', details: 'Wednesdays 5-6pm at Harmony Music Studio', who: '' },
+      confidence: 'high',
+      evidence: 'Recurring calendar event "Emma Piano Lesson" every Wednesday 5-6pm',
+    },
+    created_at: hoursAgo(0.5),
+    updated_at: hoursAgo(0.5),
+  },
+  {
+    id: 'alert-cs-2',
+    severity: 'low',
+    type: 'context_suggestion',
+    title: 'Add preference: Frequently orders from Pad Thai Palace',
+    summary: 'Found 4 DoorDash order confirmation emails from Pad Thai Palace in the last 30 days.',
+    action_hint: 'Add to your Context Wallet under preferences',
+    relevant_to: ['partnerA', 'partnerB'],
+    status: 'open',
+    source_data: {
+      category: 'preferences',
+      entry: { label: 'Takeout', value: 'Pad Thai Palace (DoorDash) — order "no peanuts" for Emma' },
+      confidence: 'medium',
+      evidence: '4 DoorDash order confirmation emails from Pad Thai Palace in last 30 days',
+    },
+    created_at: hoursAgo(0.5),
+    updated_at: hoursAgo(0.5),
+  },
 ];
 
 // Mutable copy so dismiss/resolve work in-session
@@ -267,7 +303,51 @@ const DEMO_CONTEXT = {
     { id: 'm-1', name: 'Emma',  role: 'child', age: '8', notes: 'Nut allergy · soccer Tue/Thu 3:30–4:30' },
     { id: 'm-2', name: 'Liam',  role: 'child', age: '5', notes: 'Loves dinosaurs · preschool 8:30–12:30' },
   ],
+  routines: [
+    { id: 'r-1', label: 'School dropoff', details: 'Mon-Fri 8:00am at Lincoln Elementary', who: 'Alex' },
+    { id: 'r-2', label: 'Emma soccer practice', details: 'Tue/Thu 3:30-4:30pm at Riverside Park', who: '' },
+    { id: 'r-3', label: 'Liam preschool pickup', details: 'Mon-Fri 12:30pm', who: 'Jordan' },
+  ],
+  preferences: [
+    { id: 'p-1', label: 'Dietary', value: 'Vegetarian household, Emma is also nut-free' },
+    { id: 'p-2', label: 'Groceries', value: 'Whole Foods for produce, Costco for bulk' },
+  ],
+  logistics: [
+    { id: 'l-1', label: 'Pediatrician', value: 'Dr. Patel, 555-0199, Mon/Wed/Fri mornings' },
+    { id: 'l-2', label: 'Grandparents', value: 'Pat & Chris Chen, 20 min away, available with advance notice' },
+    { id: 'l-3', label: 'School', value: 'Lincoln Elementary, 555-0100, front office opens 7:30am' },
+  ],
   notes: 'Vegetarian household. Grandparents (Pat & Chris) live 20 min away and are available for pickups with advance notice.',
+};
+
+const DEMO_CONTEXT_SHARING = {
+  members: true, routines: true, preferences: true, logistics: true, orders: true,
+};
+
+const DEMO_ORDERS = [
+  {
+    id: 'order-1', source: 'instacart', description: 'Weekly grocery order — Whole Foods',
+    items: [{ name: 'Organic bananas', qty: 2, price: 3.99 }, { name: 'Almond milk', qty: 1, price: 5.49 }],
+    total: 87.42, status: 'delivered', eta: null, placed_by: 'Jordan', notes: 'Leave at front door',
+    created_at: daysAgo(2), updated_at: daysAgo(1),
+  },
+  {
+    id: 'order-2', source: 'doordash', description: 'Thai food from Pad Thai Palace',
+    items: [{ name: 'Pad Thai (no peanuts)', qty: 2, price: 14.99 }, { name: 'Spring Rolls', qty: 1, price: 6.99 }],
+    total: 42.97, status: 'delivered', eta: null, placed_by: 'Alex', notes: '',
+    created_at: daysAgo(5), updated_at: daysAgo(5),
+  },
+  {
+    id: 'order-3', source: 'amazon', description: 'Subscribe & Save — household supplies',
+    items: [{ name: 'Diapers', qty: 1, price: 34.99 }, { name: 'Paper towels', qty: 1, price: 22.99 }],
+    total: 91.47, status: 'placed', eta: dt(2, 14), placed_by: 'Jordan', notes: '',
+    created_at: hoursAgo(6), updated_at: hoursAgo(6),
+  },
+];
+
+const DEMO_SHARE_INFO = {
+  share_url: 'https://calvin-app.onrender.com/api/context/card/demo-share-token-abc123',
+  share_token: 'demo-share-token-abc123',
 };
 
 // ── Router ─────────────────────────────────────────────────────────────────
@@ -281,8 +361,17 @@ export function getDemoResponse(path, options = {}) {
   if (path === '/api/calendar/events')        return Promise.resolve(DEMO_CALENDAR);
   if (path === '/api/briefing/stats')         return Promise.resolve(DEMO_STATS);
   if (path === '/api/briefing/history')       return Promise.resolve([]);
-  if (path === '/api/household/context' && method === 'GET') return Promise.resolve({ context: DEMO_CONTEXT });
+  if (path === '/api/household/context' && method === 'GET') return Promise.resolve({ context: DEMO_CONTEXT, context_sharing: DEMO_CONTEXT_SHARING });
   if (path === '/api/household/context' && method === 'PATCH') return Promise.resolve({});
+  if (path === '/api/household/context/card') return Promise.resolve({
+    card: `[Family Context — powered by Calvin]\nPartners: Alex, Jordan\nFamily members: Emma (child, age 8) — Nut allergy · soccer Tue/Thu 3:30–4:30; Liam (child, age 5) — Loves dinosaurs · preschool 8:30–12:30\nRoutines: School dropoff: Mon-Fri 8:00am at Lincoln Elementary (Alex); Emma soccer practice: Tue/Thu 3:30-4:30pm at Riverside Park; Liam preschool pickup: Mon-Fri 12:30pm (Jordan)\nPreferences: Dietary: Vegetarian household, Emma is also nut-free; Groceries: Whole Foods for produce, Costco for bulk\nLogistics: Pediatrician: Dr. Patel, 555-0199, Mon/Wed/Fri mornings; Grandparents: Pat & Chris Chen, 20 min away; School: Lincoln Elementary, 555-0100\nNotes: Vegetarian household. Grandparents (Pat & Chris) live 20 min away and are available for pickups with advance notice.`,
+  });
+  if (path === '/api/household/share-info') return Promise.resolve(DEMO_SHARE_INFO);
+  if (path === '/api/household/share-token/regenerate' && method === 'POST') return Promise.resolve({
+    share_url: 'https://calvin-app.onrender.com/api/context/card/demo-new-token-' + Date.now(),
+    share_token: 'demo-new-token-' + Date.now(),
+  });
+  if (path === '/api/household/orders') return Promise.resolve({ orders: DEMO_ORDERS });
   if (path === '/api/household/mcp-info')     return Promise.resolve({
     mcp_url: 'https://calvin-app.onrender.com/mcp/demo-abc123xyz',
     digest_email_enabled: false,
@@ -318,6 +407,16 @@ export function getDemoResponse(path, options = {}) {
       a.id === resolveMatch[1] ? { ...a, status: 'resolved' } : a
     );
     return Promise.resolve({});
+  }
+  const acceptMatch = path.match(/^\/api\/briefing\/([^/]+)\/accept-suggestion$/);
+  if (acceptMatch && method === 'PATCH') {
+    const alert = demoAlerts.find((a) => a.id === acceptMatch[1]);
+    demoAlerts = demoAlerts.map((a) =>
+      a.id === acceptMatch[1] ? { ...a, status: 'resolved' } : a
+    );
+    const category = alert?.source_data?.category || 'routines';
+    const entry = { id: crypto.randomUUID(), ...(alert?.source_data?.entry || {}) };
+    return Promise.resolve({ success: true, category, entry });
   }
 
   // Chat — Take Action and inline follow-up
