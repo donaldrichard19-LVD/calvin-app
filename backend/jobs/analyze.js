@@ -216,7 +216,7 @@ async function runAnalysisForHousehold(householdId) {
     const [fingerprintsResult, activeAlertsResult, householdResult, dismissedResult, resolvedResult] = await Promise.all([
       supabase.from('alert_fingerprints').select('fingerprint, alert_id').eq('household_id', householdId),
       supabase.from('alerts').select('id, type, title, summary, action_hint, source_data, status, created_at, severity, relevant_to').eq('household_id', householdId).in('status', ['active', 'snoozed']),
-      supabase.from('households').select('id, name, last_input_hash, last_analyzed_email_ids').eq('id', householdId).single(),
+      supabase.from('households').select('id, name, context, last_input_hash, last_analyzed_email_ids').eq('id', householdId).single(),
       supabase.from('alerts').select('type, title').eq('household_id', householdId).eq('status', 'dismissed').gte('updated_at', thirtyDaysAgo),
       supabase.from('alerts').select('type, title, source_data, relevant_to, updated_at').eq('household_id', householdId).eq('status', 'resolved').gte('updated_at', ninetyDaysAgo).order('updated_at', { ascending: false }).limit(20),
     ]);
@@ -420,8 +420,16 @@ async function runAnalysisForHousehold(householdId) {
       recent_titles: dismissedAlerts.slice(0, 30).map((a) => a.title),
     };
 
+    const walletCtx = householdResult.data?.context || {};
+    const householdWallet = {};
+    if (walletCtx.members?.length) householdWallet.members = walletCtx.members;
+    if (walletCtx.routines?.length) householdWallet.routines = walletCtx.routines;
+    if (walletCtx.preferences?.length) householdWallet.preferences = walletCtx.preferences;
+    if (walletCtx.logistics?.length) householdWallet.logistics = walletCtx.logistics;
+    if (walletCtx.notes) householdWallet.notes = walletCtx.notes;
+
     const context = {
-      household: { id: householdId, name: householdResult.data?.name },
+      household: { id: householdId, name: householdResult.data?.name, ...Object.keys(householdWallet).length ? { context_wallet: householdWallet } : {} },
       // Each partner may have multiple connected Gmail accounts now — pass the
       // full list of emails. (Cross-account duplicate event/email dedup is
       // explicitly out of scope for this pass — see BACKLOG.md.)
