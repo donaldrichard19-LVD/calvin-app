@@ -758,22 +758,23 @@ export default function SettingsView({ householdInfo, integrations, partnerEmoji
             />
           </div>
 
-          {/* Active orders */}
+          {/* Order history */}
           {orders.length > 0 && (
             <div className="space-y-2">
-              <div className="text-[11px] font-bold uppercase tracking-wider text-light">Active orders</div>
-              {orders.filter((o) => !o.archived_at).map((o) => (
+              <div className="text-[11px] font-bold uppercase tracking-wider text-light">Order history</div>
+              {orders.map((o) => (
                 <div key={o.id} className="flex items-center gap-3 py-1.5 border border-border rounded-lg px-3">
                   <div className="flex-1 min-w-0">
                     <div className="text-[13px] font-medium text-dark truncate">
                       {o.description || o.source}
                     </div>
                     <div className="text-[11px] text-light">
-                      {o.source}{o.placed_by ? ` · ${o.placed_by}` : ''}{o.eta ? ` · ETA ${new Date(o.eta).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
+                      {o.source}{o.placed_by ? ` · ${o.placed_by}` : ''}{o.created_at ? ` · ${new Date(o.created_at).toLocaleDateString()}` : ''}
                     </div>
                   </div>
                   <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
                     o.status === 'delivered' ? 'bg-green-100 text-green-700'
+                    : o.status === 'completed' ? 'bg-blue-100 text-blue-700'
                     : o.status === 'in_progress' ? 'bg-yellow-100 text-yellow-700'
                     : 'bg-gray-100 text-gray-600'
                   }`}>
