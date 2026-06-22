@@ -191,8 +191,8 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
         </button>
       )}
 
-      {/* Suggested Next Step box */}
-      {alert.action_hint && (() => {
+      {/* Suggested Next Step box — hidden for context suggestions (they have their own CTA) */}
+      {alert.action_hint && !isContextSuggestion && (() => {
         const primaryLink = (() => {
           const l = alert.links?.[0];
           if (!l?.url || !l.url.trim()) return null;
