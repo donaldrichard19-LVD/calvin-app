@@ -300,35 +300,15 @@ export default function ContextWallet() {
     { key: 'notes', sharingKey: null, icon: FileText, title: 'Notes', desc: 'Anything else AI assistants should know', count: context.notes ? 1 : 0, render: renderNotes },
   ];
 
-  // ── Save bar (shared) ─────────────────────────────────────────
-  function renderSaveBar() {
-    if (isMobile) {
-      return (
-        <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200 px-4 py-3 flex items-center justify-between z-30 safe-area-pb">
-          <div className="flex items-center gap-2">
-            <span className={`w-2 h-2 rounded-full ${dirty ? 'bg-amber-400' : 'bg-cw-success'}`} />
-            <span className="text-[13px] text-cw-muted">{dirty ? 'Unsaved changes' : 'All changes saved'}</span>
-          </div>
-          <button
-            onClick={saveContext}
-            disabled={!dirty || saving}
-            className="bg-cw-primary text-white font-semibold text-[14px] px-5 py-2.5 rounded-cw disabled:opacity-40 active:scale-[0.98] transition-all"
-          >
-            {saving ? 'Saving…' : 'Save'}
-          </button>
-        </div>
-      );
-    }
+  function renderSaveButton() {
     return (
-      <div className="fixed bottom-0 left-0 md:left-64 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200 px-6 py-3 flex items-center justify-between z-30">
-        <div className="flex items-center gap-2">
-          <span className={`w-2 h-2 rounded-full ${dirty ? 'bg-amber-400' : 'bg-cw-success'}`} />
-          <span className="text-[13px] text-cw-muted">{dirty ? 'Unsaved changes' : 'All changes saved'}</span>
-        </div>
+      <div className="flex justify-end mt-4">
         <button
           onClick={saveContext}
           disabled={!dirty || saving}
-          className="bg-cw-primary text-white font-semibold text-[13px] px-5 py-2 rounded-[10px] disabled:opacity-40 hover:opacity-90 transition-opacity"
+          className={`bg-cw-primary text-white font-semibold px-5 rounded-[10px] disabled:opacity-40 transition-all ${
+            isMobile ? 'text-[14px] py-2.5 rounded-cw active:scale-[0.98]' : 'text-[13px] py-2 hover:opacity-90'
+          }`}
         >
           {saving ? 'Saving…' : 'Save'}
         </button>
@@ -339,7 +319,7 @@ export default function ContextWallet() {
   // ── MOBILE LAYOUT ─────────────────────────────────────────────
   if (isMobile) {
     return (
-      <div className="bg-cw-bg min-h-screen pb-24">
+      <div className="bg-cw-bg min-h-screen pb-6">
         {/* App-style header */}
         <header className="sticky top-0 z-20 bg-cw-sidebar px-4 py-3 flex items-center justify-between">
           <h1 className="text-[17px] font-bold text-white">Context</h1>
@@ -422,16 +402,16 @@ export default function ContextWallet() {
               </p>
             </div>
           </Card>
-        </div>
 
-        {renderSaveBar()}
+          {renderSaveButton()}
+        </div>
       </div>
     );
   }
 
   // ── DESKTOP LAYOUT ────────────────────────────────────────────
   return (
-    <div className="bg-cw-bg min-h-full pb-20">
+    <div className="bg-cw-bg min-h-full pb-6">
       <div className="max-w-3xl mx-auto px-6 pt-8 space-y-6">
         {/* Page header */}
         <header>
@@ -528,9 +508,9 @@ export default function ContextWallet() {
             </p>
           </div>
         </Card>
-      </div>
 
-      {renderSaveBar()}
+        {renderSaveButton()}
+      </div>
     </div>
   );
 }
