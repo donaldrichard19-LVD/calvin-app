@@ -63,7 +63,8 @@ router.get('/card/:share_token', shareTokenLimiter, async (req, res) => {
     res.set('Cache-Control', 'private, max-age=300');
     res.set('X-Content-Type-Options', 'nosniff');
 
-    const wantsJson = req.accepts('application/json', 'text/plain') === 'application/json';
+    const accept = req.headers['accept'] || '';
+    const wantsJson = accept.includes('application/json') && !accept.startsWith('text/');
     if (wantsJson) {
       res.json({ card });
     } else {
