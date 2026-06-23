@@ -235,7 +235,7 @@ export default function Dashboard() {
       alerts: prev.alerts.filter((a) => a.id !== alertId),
       meta: { ...prev.meta, total: Math.max(0, (prev.meta.total || 1) - 1) },
     }));
-    showToast('Added to your Context Wallet ✓');
+    showToast('Added to your Context ✓');
   }
 
   async function handleSync() {
