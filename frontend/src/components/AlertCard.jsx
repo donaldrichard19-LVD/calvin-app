@@ -346,7 +346,7 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
                 className="text-[12px] font-semibold rounded-full px-4 py-1.5 text-white transition-colors disabled:opacity-60"
                 style={{ background: '#2563EB' }}
               >
-                {accepting ? 'Adding...' : 'Add to Wallet'}
+                {accepting ? 'Adding...' : 'Add to Context'}
               </button>
               <button
                 onClick={() => setEditingEntry({ ...alert.source_data?.entry })}
@@ -359,7 +359,7 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
         </div>
       )}
 
-      {/* AI Order Reconciliation: Add to Orders / Edit */}
+      {/* AI Order Reconciliation: Add to Context / Edit */}
       {isAiOrder && (
         <div className="rounded-xl p-4 mt-4 mb-2" style={{
           background: 'linear-gradient(135deg, #EFF6FF 0%, #E0ECFF 100%)',
@@ -377,16 +377,20 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
           )}
           {editingAiOrder ? (
             <div className="space-y-2 mb-3">
-              {Object.entries(editingAiOrder).map(([key, val]) => (
-                <div key={key} className="flex gap-2 items-center">
-                  <label className="text-[11px] font-semibold text-gray-600 w-16 shrink-0 capitalize">{key}</label>
-                  <input
-                    value={val || ''}
-                    onChange={e => setEditingAiOrder(prev => ({ ...prev, [key]: e.target.value }))}
-                    className="flex-1 text-[12px] border border-gray-300 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
-                  />
-                </div>
-              ))}
+              {Object.entries(editingAiOrder).map(([key, val]) => {
+                const placeholders = { category: 'e.g. Food Delivery', app: 'e.g. DoorDash', details: 'e.g. Thai food — pad thai, green curry', total: 'e.g. $32.50' };
+                return (
+                  <div key={key} className="flex gap-2 items-center">
+                    <label className="text-[11px] font-semibold text-gray-600 w-16 shrink-0 capitalize">{key}</label>
+                    <input
+                      value={val || ''}
+                      placeholder={placeholders[key] || ''}
+                      onChange={e => setEditingAiOrder(prev => ({ ...prev, [key]: e.target.value }))}
+                      className="flex-1 text-[12px] border border-gray-300 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+                    />
+                  </div>
+                );
+              })}
               <div className="flex gap-2 mt-2">
                 <button
                   onClick={() => handleAddToOrders(editingAiOrder)}
@@ -394,7 +398,7 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
                   className="text-[12px] font-semibold rounded-full px-4 py-1.5 text-white transition-colors disabled:opacity-60"
                   style={{ background: '#2563EB' }}
                 >
-                  {accepting ? 'Saving...' : 'Save to Orders'}
+                  {accepting ? 'Saving...' : 'Save to Context'}
                 </button>
                 <button
                   onClick={() => setEditingAiOrder(null)}
@@ -412,14 +416,14 @@ export default function AlertCard({ alert, partnerA, partnerB, onDismiss, onSnoo
                 className="text-[12px] font-semibold rounded-full px-4 py-1.5 text-white transition-colors disabled:opacity-60"
                 style={{ background: '#2563EB' }}
               >
-                {accepting ? 'Adding...' : 'Add to Wallet'}
+                {accepting ? 'Adding...' : 'Add to Context'}
               </button>
               <button
                 onClick={() => setEditingAiOrder({
-                  source: alert.source_data?.merchant_name || '',
-                  description: alert.source_data?.order_description || '',
-                  total: alert.source_data?.order_total || '',
-                  notes: `Placed via ${alert.source_data?.assistant_name || 'AI'}`,
+                  category: alert.source_data?.merchant_name || '',
+                  app: alert.source_data?.merchant_name || '',
+                  details: alert.source_data?.order_description || '',
+                  total: alert.source_data?.order_total ? `$${alert.source_data.order_total.toFixed(2)}` : '',
                 })}
                 className="text-[12px] font-semibold text-blue-600 hover:text-blue-800 transition-colors"
               >

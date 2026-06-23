@@ -221,7 +221,7 @@ export default function Dashboard() {
       alerts: prev.alerts.filter((a) => a.id !== alertId),
       meta: { ...prev.meta, total: Math.max(0, (prev.meta.total || 1) - 1) },
     }));
-    showToast('Order added to your Wallet ✓');
+    showToast('Added to Preferences ✓');
   }
 
   async function handleAcceptSuggestion(alertId, editedEntry) {
