@@ -83,8 +83,7 @@ export default function InsightsView() {
       <div className="max-w-2xl mx-auto px-4 pt-4 pb-6 space-y-6">
       {/* Desktop header */}
       <header className="hidden md:block">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-cw-muted">Insights</span>
-        <h1 className="text-[28px] font-bold text-cw-fg mt-1">Activity overview</h1>
+        <h1 className="text-[28px] font-bold text-cw-fg mt-1">Insights</h1>
         <p className="text-[15px] text-cw-muted mt-2 leading-relaxed max-w-xl">Alert trends, resolution rates, and common gap categories from the last 30 days.</p>
       </header>
 

@@ -211,8 +211,7 @@ export default function SettingsView({ householdInfo, integrations, partnerEmoji
       <div className="max-w-2xl mx-auto px-4 pt-4 pb-6 space-y-6 relative">
       {/* Desktop header */}
       <header className="hidden md:block">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-cw-muted">Settings</span>
-        <h1 className="text-[28px] font-bold text-cw-fg mt-1">Account & preferences</h1>
+        <h1 className="text-[28px] font-bold text-cw-fg mt-1">Settings</h1>
         <p className="text-[15px] text-cw-muted mt-2 leading-relaxed max-w-xl">Manage your profile, integrations, notifications, and connected apps.</p>
       </header>
 

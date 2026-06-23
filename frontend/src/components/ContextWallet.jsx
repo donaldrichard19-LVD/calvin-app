@@ -414,7 +414,6 @@ export default function ContextWallet() {
       <div className="max-w-3xl mx-auto px-6 pt-8 space-y-6">
         {/* Page header */}
         <header>
-          <span className="text-[11px] font-bold uppercase tracking-wider text-cw-muted">Context</span>
           <h1 className="text-[28px] font-bold text-cw-fg mt-1 text-balance">Your household context</h1>
           <p className="text-[15px] text-cw-muted mt-2 leading-relaxed text-pretty max-w-xl">
             Add family members, routines, preferences, and logistics. AI assistants connected to Calvin use this to personalise responses.
