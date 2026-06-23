@@ -17,8 +17,8 @@ const TYPE_META = {
   asymmetric_context:   { icon: '💡', label: 'Unshared Context' },
   // System types
   reminder:             { icon: '🔔', label: 'Reminder' },
-  context_suggestion:   { icon: '💡', label: 'Wallet Suggestion' },
-  ai_order_reconciled:  { icon: '🤖', label: 'AI Order' },
+  context_suggestion:   { icon: '💡', label: 'New Context' },
+  ai_order_reconciled:  { icon: '🤖', label: 'New Context' },
 };
 
 function timeAgo(dateStr) {

@@ -45,8 +45,20 @@ Calvin — family coordination app for couples. Detects calendar/inbox conflicts
 - `alerts` — `household_id`, `severity` (high/medium/low), `title`, `body`, `status`, `source`, `metadata`
 - `calendar_actions` — `event_id`, `event_title`, `trigger_email_subject`, `cancelled_at`, `household_id`, `restored_at`
 - `funnel_events` — `partner_id`, `household_id`, `event`, `metadata`, `created_at`
+- `detected_order_emails` — `household_id`, `email_id`, `merchant_name`, `sender_domain`, `order_total`, `item_summary`, `order_date`, `partner_id`
+- `order_reconciliations` — `household_id`, `email_id`, `access_log_id`, `assistant_name`, `merchant_name`, `confidence` (high/medium), `order_total`, `alert_id`
+- `share_access_log` — `household_id`, `ip_hash`, `user_agent`, `assistant_name`, `merchant_domain`, `access_source` (context_card/mcp/gpt_actions)
+- `household_orders.ai_attributed_to` — jsonb: `{ assistant_name, confidence, reconciliation_id, email_id }`
 
 ## System Requirements
+
+### AI assistant context tracking & order reconciliation
+- `share_access_log` records every AI assistant that accesses the context wallet (context card, MCP, GPT Actions), with `assistant_name` parsed from User-Agent.
+- Analysis job runs a regex-based order confirmation email detection pass (before the Claude call). Detected orders are stored in `detected_order_emails`.
+- Reconciliation matches detected orders to recent wallet accesses: 24h window for direct merchant AI matches (Ask DoorDash → DoorDash), 2h window for indirect/general AI matches (ChatGPT → Target).
+- Matched orders surface as `ai_order_reconciled` alerts (severity: low) with "Add to Wallet" and "Edit first" actions.
+- Adding to wallet creates/updates a `household_orders` row with `ai_attributed_to` attribution metadata.
+- Dismissal personalisation applies: 3+ dismissed → suppressed.
 
 ### Alert deduplication & completion detection
 - Fingerprint every alert (type + date + participants hash). On each analysis run, skip inserting if a matching fingerprint is already `open`/`snoozed` — update `updated_at` instead.
