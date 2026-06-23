@@ -202,9 +202,8 @@ export default function ContextWallet() {
     return (
       <div className="space-y-3">
         {context.members.map((m, i) => (
-          <div key={m.id} className={`${isMobile ? 'space-y-2' : 'flex items-start gap-3 group'}`}>
-            {/* Avatar initial */}
-            <div className={`${AVATAR_COLORS[i % AVATAR_COLORS.length]} w-9 h-9 rounded-full flex items-center justify-center text-white text-[14px] font-bold shrink-0 ${isMobile ? 'mb-1' : 'mt-0.5'}`}>
+          <div key={m.id} className={`flex items-start gap-3 ${isMobile ? '' : 'group'}`}>
+            <div className={`${AVATAR_COLORS[i % AVATAR_COLORS.length]} w-9 h-9 rounded-full flex items-center justify-center text-white text-[14px] font-bold shrink-0 mt-0.5`}>
               {getInitial(m.name)}
             </div>
             <div className="flex-1 min-w-0 space-y-1.5">
