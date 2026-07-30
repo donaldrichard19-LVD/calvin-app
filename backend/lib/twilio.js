@@ -1,5 +1,6 @@
 require('dotenv').config();
 const twilio = require('twilio');
+const { SHUTDOWN, blocked } = require('./killSwitch');
 
 const client = twilio(
   process.env.TWILIO_ACCOUNT_SID,
@@ -7,6 +8,7 @@ const client = twilio(
 );
 
 async function sendSMS(to, body) {
+  if (SHUTDOWN) { blocked('SMS send'); return null; }
   if (!to || !process.env.TWILIO_ACCOUNT_SID) return null;
   const normalized = to.startsWith('+') ? to : `+1${to.replace(/\D/g, '')}`;
   try {

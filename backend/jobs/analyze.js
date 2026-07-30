@@ -7,6 +7,7 @@ const { analyzeHousehold } = require('../lib/anthropic');
 const { sendAlertSMS } = require('../lib/twilio');
 const { detectOrderEmail, isDuplicateOrder } = require('../lib/orderDetection');
 const { reconcileOrders, createReconciliationAlerts } = require('../lib/orderReconciliation');
+const { SHUTDOWN, blocked } = require('../lib/killSwitch');
 
 const SEVERITY_RANK = { high: 3, medium: 2, low: 1 };
 const TYPE_PRIORITY = { coverage_gap: 6, deadline: 5, action_needed: 4, upcoming_commitment: 3, unshared_context: 2, heads_up: 1 };
@@ -110,6 +111,7 @@ async function backFillCalendarLinks(householdId, eventsA, eventsB) {
 }
 
 async function runAnalysisForHousehold(householdId) {
+  if (SHUTDOWN) { blocked(`analysis run for household ${householdId}`); return null; }
   const { data: run, error: runErr } = await supabase
     .from('analysis_runs')
     .insert({ household_id: householdId, status: 'running' })
@@ -761,6 +763,7 @@ function buildCronExpr(intervalMinutes) {
 }
 
 function startCronJob() {
+  if (SHUTDOWN) { blocked('analysis cron scheduling'); return; }
   const interval = parseInt(process.env.ANALYSIS_INTERVAL_MINUTES || '720', 10);
   const cronExpr = buildCronExpr(interval);
   console.log(`[analyze] Cron job starting, interval: every ${interval} minutes`);

@@ -2,8 +2,10 @@
 const cron = require('node-cron');
 const { supabase } = require('../lib/supabase');
 const { sendDigestEmail } = require('../lib/email');
+const { SHUTDOWN, blocked } = require('../lib/killSwitch');
 
 async function runEmailDigests() {
+  if (SHUTDOWN) { blocked('email digest run'); return; }
   const now = new Date();
   const isMonday = now.getDay() === 1;
   const todayUTC = now.toISOString().slice(0, 10); // YYYY-MM-DD
@@ -49,6 +51,7 @@ async function runEmailDigests() {
 }
 
 function startDigestCronJob() {
+  if (SHUTDOWN) { blocked('email digest cron scheduling'); return; }
   cron.schedule('0 7 * * *', () => {
     console.log('[digest] Running scheduled email digest');
     runEmailDigests().catch((err) => console.error('[digest] Cron error:', err.message));

@@ -2,6 +2,7 @@ require('dotenv').config();
 const { google } = require('googleapis');
 const { supabase } = require('./supabase');
 const { encrypt, decrypt } = require('./crypto');
+const { SHUTDOWN, blocked } = require('./killSwitch');
 
 function createOAuth2Client() {
   return new google.auth.OAuth2(
@@ -245,6 +246,7 @@ async function getRecentEmails(integration, maxResults = 50) {
 }
 
 async function sendEmail(integration, { to, subject, body }) {
+  if (SHUTDOWN) { blocked('Gmail send'); return { blocked: true }; }
   const accessToken = await refreshIfNeeded(integration);
   const oauth2Client = createOAuth2Client();
   oauth2Client.setCredentials({ access_token: accessToken });

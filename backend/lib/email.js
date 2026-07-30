@@ -4,6 +4,7 @@ const path = require('path');
 const { Resend } = require('resend');
 const { supabase } = require('./supabase');
 const { getCalendarEvents } = require('./google');
+const { SHUTDOWN, blocked } = require('./killSwitch');
 
 const APP_URL = 'https://calvinai.co';
 
@@ -220,6 +221,7 @@ function buildHtml({ type, dateStr, alerts, autoResolvedAlerts, partnerName, wee
 }
 
 async function sendDigestEmail(householdId, type = 'daily') {
+  if (SHUTDOWN) { blocked('digest email'); return { blocked: true }; }
   const resend = getClient();
   const now = new Date();
   const SEVERITY_ORDER = { high: 0, medium: 1, low: 2 };
@@ -370,6 +372,7 @@ function buildWelcomeHtml({ firstName }) {
 }
 
 async function sendWelcomeEmail({ email, firstName }) {
+  if (SHUTDOWN) { blocked('welcome email'); return { blocked: true }; }
   if (!email) throw new Error('email is required');
   const resend = getClient();
   const html = buildWelcomeHtml({ firstName });
@@ -386,6 +389,7 @@ async function sendWelcomeEmail({ email, firstName }) {
 }
 
 async function sendFeatureUpdateEmail({ email, firstName }) {
+  if (SHUTDOWN) { blocked('feature-update email'); return { blocked: true }; }
   if (!email) throw new Error('email is required');
   const resend = getClient();
   const templatePath = path.join(__dirname, '../emails/feature-update-june-2026.html');
@@ -497,6 +501,7 @@ function buildReengagementHtml({ firstName }) {
 }
 
 async function sendReengagementEmail({ email, firstName }) {
+  if (SHUTDOWN) { blocked('reengagement email'); return { blocked: true }; }
   if (!email) throw new Error('email is required');
   const resend = getClient();
   const html = buildReengagementHtml({ firstName });
